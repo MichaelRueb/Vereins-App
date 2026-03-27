@@ -171,6 +171,57 @@
             loadHistory();
         }
     }
+    let isStaff = false; // Speicher für die Berechtigung
+
+sb.auth.onAuthStateChange(async (event, session) => {
+    const authUI = document.getElementById('auth-ui');
+    const formUI = document.getElementById('form-ui');
+    const adminUI = document.getElementById('admin-ui');
+
+    if (session) {
+        authUI.style.display = 'none';
+        formUI.style.display = 'block';
+        document.getElementById('date').valueAsDate = new Date();
+        
+        // PRÜFUNG: Ist der User Funktionär oder Admin?
+        const { data: roleData } = await sb
+            .from('roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+
+        if (roleData && (roleData.role === 'admin' || roleData.role === 'funktionär')) {
+            isStaff = true;
+            adminUI.style.display = 'block';
+            loadAdminData();
+        } else {
+            isStaff = false;
+            adminUI.style.display = 'none';
+        }
+
+        loadHistory();
+    } else {
+        authUI.style.display = 'block';
+        formUI.style.display = 'none';
+        adminUI.style.display = 'none';
+    }
+});
+
+// Die Funktion approveHours muss auch prüfen, ob man es noch darf
+async function approveHours(id) {
+    if (!isStaff) return alert("Keine Berechtigung!");
+
+    const { error } = await sb
+        .from('work_hours')
+        .update({ status: 'approved' })
+        .eq('id', id);
+    
+    if(!error) {
+        alert("Stunden genehmigt!");
+        loadAdminData();
+        loadHistory();
+    }
+}
 </script>
 </body>
 </html>
