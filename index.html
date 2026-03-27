@@ -6,11 +6,25 @@
     <title>Stundenmeldung - Hubertus Strullendorf</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f7f6; display: flex; justify-content: center; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        input, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 450px; margin-bottom: 20px; }
+        input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .secondary { background: #666; }
+        .secondary { background: #666; margin-top: 10px; }
+        label { font-size: 0.85em; font-weight: bold; color: #555; }
+        
+        /* Progress Bar */
+        .progress-container { background: #eee; border-radius: 10px; height: 25px; width: 100%; margin: 15px 0; overflow: hidden; position: relative; }
+        .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.5s; }
+        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-size: 0.8em; font-weight: bold; color: #000; }
+
+        /* Tabelle */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85em; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background: #f9f9f9; }
+        .status-badge { padding: 3px 7px; border-radius: 10px; font-size: 0.8em; }
+        .approved { background: #c8e6c9; color: #2e7d32; }
+        .pending { background: #fff9c4; color: #fbc02d; }
     </style>
 </head>
 <body>
@@ -26,27 +40,63 @@
 
     <div id="form-ui" style="display:none;">
         <h2>Stunden melden</h2>
+        <p>Hubertus Strullendorf</p>
+
+        <label>Dein Ziel: 10 Arbeitsstunden</label>
+        <div class="progress-container">
+            <div id="p-bar" class="progress-bar"></div>
+            <div id="p-text" class="progress-text">0 / 10h</div>
+        </div>
+
+        <label>Datum:</label>
         <input type="date" id="date">
-        <input type="number" id="hours" placeholder="Stundenzahl">
-        <textarea id="task" placeholder="Was hast du gemacht?"></textarea>
-        <button onclick="sendData()">Absenden</button>
+        
+        <label>Tätigkeit:</label>
+        <select id="activity">
+            <option value="Standreinigung">Standreinigung</option>
+            <option value="Fahnenabordnung">Fahnenabordnung</option>
+            <option value="Reinigungsarbeit">Reinigungsarbeit</option>
+            <option value="Helferdienst bei Festen">Helferdienst bei Festen</option>
+            <option value="Sonstiges">Sonstiges</option>
+        </select>
+
+        <label>Beschreibung (optional):</label>
+        <textarea id="description" placeholder="Details zur Arbeit..."></textarea>
+
+        <label>Stundenzahl:</label>
+        <input type="number" id="hours" step="0.5" placeholder="z.B. 2.5">
+
+        <button onclick="sendData()">Stunden absenden</button>
+        
+        <h3>Deine Meldungen</h3>
+        <table id="history-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Std.</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+        </table>
+
         <button onclick="doLogout()" class="secondary">Abmelden</button>
     </div>
     <p id="msg" style="text-align: center;"></p>
 </div>
 
 <script>
-    // ### NUR HIER DEINE DATEN EINTRAGEN ###
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
-
-    // Initialisierung (Nur einmal!)
     const sb = supabase.createClient(S_URL, S_KEY);
 
     sb.auth.onAuthStateChange((event, session) => {
         document.getElementById('auth-ui').style.display = session ? 'none' : 'block';
         document.getElementById('form-ui').style.display = session ? 'block' : 'none';
-        if(session) document.getElementById('date').valueAsDate = new Date();
+        if(session) {
+            document.getElementById('date').valueAsDate = new Date();
+            loadHistory();
+        }
     });
 
     async function doSignup() {
@@ -55,7 +105,7 @@
             password: document.getElementById('password').value
         });
         if (error) alert(error.message);
-        else alert("Registrierung erfolgreich! Du kannst dich jetzt einloggen.");
+        else alert("Registrierung erfolgreich!");
     }
 
     async function doLogin() {
@@ -68,18 +118,58 @@
 
     async function doLogout() { await sb.auth.signOut(); }
 
+    async function loadHistory() {
+        const user = (await sb.auth.getUser()).data.user;
+        const { data, error } = await sb
+            .from('work_hours')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false });
+
+        if (error) return;
+
+        let totalApproved = 0;
+        const body = document.getElementById('history-body');
+        body.innerHTML = '';
+
+        data.forEach(row => {
+            if(row.status === 'approved') totalApproved += parseFloat(row.duration);
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+                <td>${row.duration}h</td>
+                <td><span class="status-badge ${row.status === 'approved' ? 'approved' : 'pending'}">
+                    ${row.status === 'approved' ? 'OK' : 'Wartet'}
+                </span></td>
+            `;
+            body.appendChild(tr);
+        });
+
+        // Fortschrittsbalken aktualisieren
+        const percent = Math.min((totalApproved / 10) * 100, 100);
+        document.getElementById('p-bar').style.width = percent + '%';
+        document.getElementById('p-text').innerText = totalApproved + ' / 10h';
+    }
+
     async function sendData() {
         const user = (await sb.auth.getUser()).data.user;
         const { error } = await sb.from('work_hours').insert([{ 
             user_id: user.id, 
             duration: document.getElementById('hours').value, 
-            description: document.getElementById('task').value, 
-            date: document.getElementById('date').value 
+            description: document.getElementById('activity').value + ': ' + document.getElementById('description').value, 
+            date: document.getElementById('date').value,
+            status: 'pending'
         }]);
 
-        const m = document.getElementById('msg');
-        if (error) { m.innerText = error.message; m.style.color = "red"; }
-        else { m.innerText = "Gespeichert!"; m.style.color = "green"; }
+        if (error) {
+            alert("Fehler: " + error.message);
+        } else {
+            alert("Erfolgreich gemeldet!");
+            document.getElementById('hours').value = "";
+            document.getElementById('description').value = "";
+            loadHistory();
+        }
     }
 </script>
 </body>
