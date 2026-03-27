@@ -1,69 +1,46 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stundenmeldung - Schützenverein</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f7f6; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        input, textarea, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
-    </style>
-</head>
-<body>
+<div id="auth-section" class="card">
+    <h2>Anmelden</h2>
+    <input type="email" id="email" placeholder="E-Mail">
+    <input type="password" id="password" placeholder="Passwort">
+    <button onclick="login()">Einloggen</button>
+    <button onclick="signup()" style="background: #666; margin-top: 5px;">Registrieren</button>
+</div>
 
-<div class="card">
+<div id="form-section" class="card" style="display:none;">
     <h2>Stunden melden</h2>
-    <p>Hubertus Strullendorf</p>
-    
-    <label>Datum:</label>
-    <input type="date" id="date">
-    
-    <label>Stunden (z.B. 2.5):</label>
-    <input type="number" id="hours" step="0.5" placeholder="Stundenzahl">
-    
-    <label>Was hast du gemacht?</label>
-    <textarea id="task" placeholder="z.B. Standreinigung"></textarea>
-    
-    <button onclick="sendData()">Stunden absenden</button>
-    <p id="msg"></p>
+    <button onclick="logout()" style="background: #d32f2f;">Abmelden</button>
 </div>
 
 <script>
-    // 1. Verbindung zu deinem Supabase Projekt
-    const supabaseUrl = 'DEINE_PROJEKT_URL';
-    const supabaseKey = 'DEIN_ANON_KEY';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    // ... (Supabase Initialisierung wie vorher) ...
 
-    async function sendData() {
-        const date = document.getElementById('date').value;
-        const hours = document.getElementById('hours').value;
-        const task = document.getElementById('task').value;
-
-        // Hinweis: In einer echten App müsste der User hier eingeloggt sein.
-        // Für diesen Test nehmen wir an, der User ist eingeloggt (auth.user()).
-        const { data, error } = await supabase
-            .from('work_hours')
-            .insert([
-                { 
-                    user_id: (await supabase.auth.getUser()).data.user.id, 
-                    duration: hours, 
-                    description: task, 
-                    date: date 
-                }
-            ]);
-
-        if (error) {
-            document.getElementById('msg').innerText = "Fehler: " + error.message;
-            document.getElementById('msg').style.color = "red";
+    // Prüfen, ob Nutzer schon eingeloggt ist
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('form-section').style.display = 'block';
         } else {
-            document.getElementById('msg').innerText = "Erfolgreich eingereicht! Ein Funktionär prüft das jetzt.";
-            document.getElementById('msg').style.color = "green";
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('form-section').style.display = 'none';
         }
+    });
+
+    async function login() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) alert(error.message);
+    }
+
+    async function signup() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) alert(error.message);
+        else alert("Check deine E-Mails zur Bestätigung!");
+    }
+
+    async function logout() {
+        await supabase.auth.signOut();
     }
 </script>
-
-</body>
-</html>
