@@ -10,97 +10,76 @@
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
         input, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button:hover { background: #1b5e20; }
         .secondary { background: #666; }
-        label { font-weight: bold; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
-<div id="app" class="card">
+<div class="card">
     <div id="auth-ui">
         <h2>Anmelden</h2>
         <input type="email" id="email" placeholder="E-Mail">
-        <input type="password" id="password" placeholder="Passwort (min. 6 Zeichen)">
-        <button onclick="handleLogin()">Einloggen</button>
-        <button onclick="handleSignup()" class="secondary">Registrieren</button>
+        <input type="password" id="password" placeholder="Passwort">
+        <button onclick="doLogin()">Einloggen</button>
+        <button onclick="doSignup()" class="secondary">Registrieren</button>
     </div>
 
     <div id="form-ui" style="display:none;">
         <h2>Stunden melden</h2>
-        <p>Hubertus Strullendorf</p>
-        <label>Datum:</label>
         <input type="date" id="date">
-        <label>Stunden:</label>
-        <input type="number" id="hours" step="0.5" placeholder="z.B. 2.5">
-        <label>Was hast du gemacht?</label>
-        <textarea id="task" placeholder="z.B. Standreinigung"></textarea>
-        <button onclick="sendData()">Stunden absenden</button>
-        <hr>
-        <button onclick="handleLogout()" class="secondary">Abmelden</button>
+        <input type="number" id="hours" placeholder="Stundenzahl">
+        <textarea id="task" placeholder="Was hast du gemacht?"></textarea>
+        <button onclick="sendData()">Absenden</button>
+        <button onclick="doLogout()" class="secondary">Abmelden</button>
     </div>
-    <p id="msg" style="text-align: center; font-weight: bold;"></p>
+    <p id="msg" style="text-align: center;"></p>
 </div>
 
 <script>
-    // ### WICHTIG: HIER DEINE DATEN EINTRAGEN ###
-    const SUPABASE_URL = 'https://DEINE_PROJEKT_ID.supabase.co';
-    const SUPABASE_KEY = 'DEIN_ANON_KEY';
+    // ### NUR HIER DEINE DATEN EINTRAGEN ###
+    const S_URL = 'DEINE_URL_HIER';
+    const S_KEY = 'DEIN_ANON_KEY_HIER';
 
-    // Supabase Client initialisieren
-    const supabase = lib.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Initialisierung (Nur einmal!)
+    const sb = supabase.createClient(S_URL, S_KEY);
 
-    // Automatischer Wechsel zwischen Login und Formular
-    supabase.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            document.getElementById('auth-ui').style.display = 'none';
-            document.getElementById('form-ui').style.display = 'block';
-            document.getElementById('date').valueAsDate = new Date();
-        } else {
-            document.getElementById('auth-ui').style.display = 'block';
-            document.getElementById('form-ui').style.display = 'none';
-        }
+    sb.auth.onAuthStateChange((event, session) => {
+        document.getElementById('auth-ui').style.display = session ? 'none' : 'block';
+        document.getElementById('form-ui').style.display = session ? 'block' : 'none';
+        if(session) document.getElementById('date').valueAsDate = new Date();
     });
 
-    async function handleSignup() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) alert("Fehler: " + error.message);
+    async function doSignup() {
+        const { error } = await sb.auth.signUp({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        });
+        if (error) alert(error.message);
         else alert("Registrierung erfolgreich! Du kannst dich jetzt einloggen.");
     }
 
-    async function handleLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) alert("Login fehlgeschlagen: " + error.message);
+    async function doLogin() {
+        const { error } = await sb.auth.signInWithPassword({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        });
+        if (error) alert(error.message);
     }
 
-    async function handleLogout() {
-        await supabase.auth.signOut();
-    }
+    async function doLogout() { await sb.auth.signOut(); }
 
     async function sendData() {
-        const date = document.getElementById('date').value;
-        const hours = document.getElementById('hours').value;
-        const task = document.getElementById('task').value;
-        const user = (await supabase.auth.getUser()).data.user;
+        const user = (await sb.auth.getUser()).data.user;
+        const { error } = await sb.from('work_hours').insert([{ 
+            user_id: user.id, 
+            duration: document.getElementById('hours').value, 
+            description: document.getElementById('task').value, 
+            date: document.getElementById('date').value 
+        }]);
 
-        const { error } = await supabase.from('work_hours').insert([
-            { user_id: user.id, duration: hours, description: task, date: date }
-        ]);
-
-        const msg = document.getElementById('msg');
-        if (error) {
-            msg.innerText = "Fehler: " + error.message;
-            msg.style.color = "red";
-        } else {
-            msg.innerText = "Erfolgreich gespeichert!";
-            msg.style.color = "green";
-            document.getElementById('hours').value = "";
-            document.getElementById('task').value = "";
-        }
+        const m = document.getElementById('msg');
+        if (error) { m.innerText = error.message; m.style.color = "red"; }
+        else { m.innerText = "Gespeichert!"; m.style.color = "green"; }
     }
 </script>
 </body>
