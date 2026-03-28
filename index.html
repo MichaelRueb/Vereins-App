@@ -25,12 +25,24 @@
 
 <div class="card">
     <div id="auth-ui">
-        <h2>Anmelden</h2>
-        <input type="email" id="email" placeholder="E-Mail">
-        <input type="password" id="password" placeholder="Passwort">
-        <button onclick="doLogin()">Einloggen</button>
-        <button onclick="doSignup()" class="secondary">Registrieren</button>
+    <h2>Anmelden / Registrieren</h2>
+    <div id="signup-fields" style="display:none;">
+        <input type="text" id="full_name" placeholder="Vor- und Nachname">
     </div>
+    
+    <input type="email" id="email" placeholder="E-Mail">
+    <input type="password" id="password" placeholder="Passwort">
+    
+    <div id="login-buttons">
+        <button onclick="doLogin()">Einloggen</button>
+        <button onclick="showSignup()" class="secondary">Neu registrieren?</button>
+    </div>
+    
+    <div id="signup-buttons" style="display:none;">
+        <button onclick="doSignup()">Konto erstellen</button>
+        <button onclick="showLogin()" class="secondary">Zurück zum Login</button>
+    </div>
+</div>
 
     <div id="form-ui" style="display:none;">
         <h2>Stunden melden</h2>
