@@ -452,7 +452,7 @@
     }
 }
 
-   async function loadHistory() {
+  async function loadHistory() {
     const { data: { user } } = await sb.auth.getUser();
     const { data } = await sb.from('work_hours')
         .select('*')
@@ -461,41 +461,50 @@
 
     if (data) {
         let total = 0;
-        document.getElementById('history-body').innerHTML = data.map(row => {
+        const historyBody = document.getElementById('history-body');
+        const archivBody = document.getElementById('archiv-body');
+        
+        // Aktuelle Liste (Approved, Pending, Rejected)
+        const currentData = data.filter(row => row.status !== 'archived');
+        // Archiv Liste
+        const archivedData = data.filter(row => row.status === 'archived');
+
+        historyBody.innerHTML = currentData.map(row => {
             if (row.status === 'approved') total += row.duration;
-            
-            // Status bestimmen
             const isRejected = row.status === 'rejected';
-            const isApproved = row.status === 'approved';
-            
-            let statusIcon = '⏳'; 
-            if (isApproved) statusIcon = '✅';
-            if (isRejected) statusIcon = '❌';
+            let statusIcon = row.status === 'approved' ? '✅' : (isRejected ? '❌' : '⏳');
 
             return `
-    <tr class="${isRejected ? 'rejected-row' : ''}">
-        <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
-        <td>${row.duration}h</td>
-        <td>
-            <div style="display: flex; flex-direction: column; align-items: flex-start;">
-                <span>${statusIcon}</span>
-                ${isRejected ? `
-                    <span class="reason-text">${row.description}</span>
-                    <button onclick="editEntry(${row.id}, '${row.date}', ${row.duration}, '${row.description.replace(/'/g, "\\'")}')" 
-                            style="width:auto; padding:4px 8px; font-size:0.7em; margin-top:5px; background:#666;">
-                        Bearbeiten
-                    </button>
-                ` : ''}
-            </div>
-        </td>
-    </tr>`;
+                <tr class="${isRejected ? 'rejected-row' : ''}">
+                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+                    <td>${row.duration}h</td>
+                    <td>
+                        ${statusIcon}
+                        ${isRejected ? `<br><span class="reason-text">${row.description}</span>` : ''}
+                    </td>
+                </tr>`;
         }).join('');
+
+        // Archiv befüllen
+        archivBody.innerHTML = archivedData.map(row => `
+            <tr style="color: #666;">
+                <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+                <td>${row.duration}h</td>
+                <td>📦 Archiv</td>
+            </tr>
+        `).join('') || '<tr><td colspan="3">Keine archivierten Daten.</td></tr>';
         
-        // Fortschrittsbalken
+        // Fortschrittsbalken (nur aktuelle approved Stunden)
         const p = Math.min((total / 10) * 100, 100);
         document.getElementById('p-bar').style.width = p + '%';
         document.getElementById('p-text').innerText = total + ' / 10h';
     }
+}
+
+// Archiv ein/ausblenden
+function toggleArchiv() {
+    const div = document.getElementById('archiv-ui');
+    div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }
     async function editEntry(id, oldDate, oldDuration, oldDesc) {
     // 1. Werte ins Formular oben eintragen
