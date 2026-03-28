@@ -114,15 +114,27 @@
     });
 
     async function loadTeams() {
-        const { data } = await sb.from('teams').select('*').order('name');
-        const selects = [document.getElementById('profile-team-select'), document.getElementById('team-filter')];
-        data.forEach(t => {
-            selects.forEach(s => {
-                let opt = new Option(t.name, t.id);
-                s.add(opt);
+    try {
+        const { data, error } = await sb.from('teams').select('*').order('name');
+        if (error) throw error;
+        
+        const teamSelect = document.getElementById('profile-team-select');
+        const teamFilter = document.getElementById('team-filter');
+        
+        // Clear existing options except first
+        teamSelect.innerHTML = '<option value="">Keine Mannschaft</option>';
+        teamFilter.innerHTML = '<option value="my">Meine Mannschaft</option>';
+
+        if (data) {
+            data.forEach(t => {
+                teamSelect.add(new Option(t.name, t.id));
+                teamFilter.add(new Option(t.name, t.id));
             });
-        });
+        }
+    } catch (err) {
+        console.error("Fehler beim Laden der Teams:", err);
     }
+}
 
     async function loadUserData(uid) {
         const { data: prof } = await sb.from('profiles').select('*').eq('id', uid).maybeSingle();
