@@ -175,23 +175,27 @@
     }
 }
     async function loadAdminTasks() {
-        // Dank Foreign Key können wir jetzt sauber joinen!
-        const { data } = await sb.from('work_hours')
-            .select('id, date, duration, description, profiles(full_name)')
-            .eq('status', 'pending');
+    const { data } = await sb.from('work_hours')
+        .select('id, date, duration, description, profiles(full_name)')
+        .eq('status', 'pending');
 
-        const list = document.getElementById('admin-list');
-        if (data && data.length > 0) {
-            list.innerHTML = data.map(row => `
-                <div style="padding:10px; background:white; border-radius:5px; margin-bottom:10px; border:1px solid #ccc;">
-                    <strong>👤 ${row.profiles?.full_name || 'Unbekannt'}</strong><br>
-                    <small>${new Date(row.date).toLocaleDateString('de-DE')}</small> | <strong>${row.duration}h</strong><br>
-                    <p style="margin:5px 0; font-size:0.9em;">${row.description}</p>
-                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:5px 10px; font-size:0.8em;">Bestätigen</button>
+    const list = document.getElementById('admin-list');
+    if (data && data.length > 0) {
+        list.innerHTML = data.map(row => `
+            <div style="padding:15px; background:white; border-radius:8px; margin-bottom:12px; border:1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <strong>👤 ${row.profiles?.full_name || 'Unbekannt'}</strong><br>
+                <small>${new Date(row.date).toLocaleDateString('de-DE')}</small> | <strong>${row.duration}h</strong><br>
+                <p style="margin:8px 0; font-size:0.9em; color: #555;">${row.description}</p>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:8px 15px; font-size:0.85em; background:#2e7d32;">Bestätigen</button>
+                    <button onclick="rejectEntry(${row.id})" style="width:auto; padding:8px 15px; font-size:0.85em; background:#d32f2f;">Ablehnen</button>
                 </div>
-            `).join('');
-        } else { list.innerHTML = "Keine offenen Aufgaben."; }
+            </div>
+        `).join('');
+    } else { 
+        list.innerHTML = "<p style='color: #666;'>Keine offenen Anfragen.</p>"; 
     }
+}
 
     async function loadAdminStats() {
         const { data: profiles } = await sb.from('profiles').select('id, full_name');
