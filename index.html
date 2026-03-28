@@ -197,6 +197,22 @@
     }
 }
 
+   async function rejectEntry(id) {
+    if (!confirm("Möchtest du diese Stundenmeldung wirklich ablehnen und löschen?")) return;
+
+    const { error } = await sb
+        .from('work_hours')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Fehler beim Ablehnen: " + error.message);
+    } else {
+        // Liste sofort aktualisieren
+        loadAdminTasks();
+        loadAdminStats();
+    }
+}
     async function loadAdminStats() {
         const { data: profiles } = await sb.from('profiles').select('id, full_name');
         const { data: hours } = await sb.from('work_hours').select('user_id, duration').eq('status', 'approved');
