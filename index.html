@@ -18,6 +18,8 @@
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-size: 0.8em; font-weight: bold; color: #000; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85em; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+        /* Admin Styling */
+        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; }
     </style>
 </head>
 <body>
@@ -68,109 +70,35 @@
             <tbody id="history-body"></tbody>
         </table>
 
+        <div id="admin-ui" class="admin-box" style="display:none;">
+            <h3>Admin: Bestätigungen</h3>
+            <div id="admin-list">Lade offene Anfragen...</div>
+        </div>
+
         <button onclick="doLogout()" class="secondary">Abmelden</button>
     </div>
 </div>
 
 <script>
-    // Konfiguration
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
-    // Login-Status prüfen
-    sb.auth.onAuthStateChange((event, session) => {
+    sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
             document.getElementById('form-ui').style.display = 'block';
             document.getElementById('date').valueAsDate = new Date();
             loadHistory();
+            // NEU: Admin Check aufrufen
+            checkAdminStatus(session.user.id);
         } else {
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
+            document.getElementById('admin-ui').style.display = 'none';
         }
     });
 
-    // DATEN SENDEN
-    async function sendData() {
-        const btn = document.getElementById('sendBtn');
-        const hours = document.getElementById('hours').value;
-        if (!hours) return alert("Bitte Stunden eingeben!");
-
-        btn.disabled = true;
-        btn.innerText = "Wird gesendet...";
-
-        try {
-            const { data: { user } } = await sb.auth.getUser();
-            
-            const { error } = await sb.from('work_hours').insert([{
-                user_id: user.id,
-                date: document.getElementById('date').value,
-                duration: parseFloat(hours),
-                description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
-                status: 'pending'
-            }]);
-
-            if (error) throw error;
-
-            alert("Erfolgreich gesendet!");
-            document.getElementById('hours').value = '';
-            document.getElementById('description').value = '';
-            loadHistory();
-
-        } catch (err) {
-            alert("Fehler: " + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Stunden absenden";
-        }
-    }
-
-    // HISTORIE LADEN
-    async function loadHistory() {
-        const { data: { user } } = await sb.auth.getUser();
-        const { data, error } = await sb.from('work_hours')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('date', { ascending: false });
-
-        if (!error) {
-            let total = 0;
-            const body = document.getElementById('history-body');
-            body.innerHTML = data.map(row => {
-                if (row.status === 'approved') total += parseFloat(row.duration);
-                return `<tr>
-                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
-                    <td>${row.duration}h</td>
-                    <td>${row.status === 'approved' ? '✅' : '⏳'}</td>
-                </tr>`;
-            }).join('');
-
-            // Fortschrittsbalken aktualisieren
-            const percent = Math.min((total / 10) * 100, 100);
-            document.getElementById('p-bar').style.width = percent + '%';
-            document.getElementById('p-text').innerText = total + ' / 10h';
-        }
-    }
-
-    // AUTH FUNKTIONEN
-    async function doLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) alert("Fehler: " + error.message);
-    }
-
-    async function doSignup() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { error } = await sb.auth.signUp({ email, password });
-        if (error) alert(error.message); else alert("Check deine E-Mails!");
-    }
-
-    async function doLogout() {
-        await sb.auth.signOut();
-    }
-</script>
-</body>
-</html>
+    // NEU: Die Funktion für den Admin Check
+    async function checkAdminStatus(uid) {
+        const { data, error } =
