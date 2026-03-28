@@ -10,6 +10,7 @@
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 450px; margin-bottom: 20px; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #ccc; }
         .secondary { background: #666; margin-top: 10px; }
         label { font-size: 0.85em; font-weight: bold; color: #555; margin-top: 10px; display: block; }
         .progress-container { background: #eee; border-radius: 10px; height: 25px; width: 100%; margin: 15px 0; overflow: hidden; position: relative; }
@@ -18,6 +19,8 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85em; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
         .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; }
+        .status-wartet { color: #fbc02d; font-weight: bold; }
+        .status-ok { color: #2e7d32; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -53,8 +56,8 @@
             <option value="Sonstiges">Sonstiges</option>
         </select>
 
-        <label>Zusatzinfos / Freitext:</label>
-        <textarea id="description" placeholder="Was genau hast du gemacht?"></textarea>
+        <label>Beschreibung (optional):</label>
+        <textarea id="description" placeholder="Details zur Arbeit..."></textarea>
 
         <label>Stundenzahl:</label>
         <input type="number" id="hours" step="0.5" placeholder="z.B. 2.5">
@@ -75,14 +78,15 @@
 
         <button onclick="doLogout()" class="secondary">Abmelden</button>
     </div>
-    <p id="msg" style="text-align: center;"></p>
 </div>
 
 <script>
+    // Konfiguration
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
+    // Automatischer Login-Check
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
@@ -90,21 +94,27 @@
             document.getElementById('date').valueAsDate = new Date();
             loadHistory();
 
+            // Admin-Rolle prüfen
             try {
                 const { data: roleData } = await sb.from('roles').select('name').eq('user_id', session.user.id).maybeSingle();
                 if (roleData && (roleData.name.toLowerCase() === 'admin' || roleData.name.toLowerCase() === 'funktionär')) {
                     document.getElementById('admin-ui').style.display = 'block';
                     loadAdminData();
                 }
-            } catch (err) { console.warn("Admin-Check fehlgeschlagen"); }
+            } catch (err) { console.warn("Rollen-Check übersprungen"); }
         } else {
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
         }
     });
 
+    // DATEN SENDEN
     async function sendData() {
         const btn = document.getElementById('sendBtn');
+        const hoursVal = document.getElementById('hours').value;
+        
+        if(!hoursVal) return alert("Bitte Stunden eingeben!");
+
         btn.disabled = true;
         btn.innerText = "Wird gesendet...";
 
@@ -112,15 +122,16 @@
         const entry = {
             user_id: user.id,
             date: document.getElementById('date').value,
-            duration: parseFloat(document.getElementById('hours').value),
+            duration: parseFloat(hoursVal),
             description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
             status: 'pending'
         };
 
         const { error } = await sb.from('work_hours').insert([entry]);
 
-        if (error) alert("Fehler: " + error.message);
-        else {
+        if (error) {
+            alert("Fehler: " + error.message);
+        } else {
             alert("Erfolgreich gesendet!");
             document.getElementById('hours').value = '';
             document.getElementById('description').value = '';
@@ -130,49 +141,68 @@
         btn.innerText = "Stunden absenden";
     }
 
+    // EIGENE HISTORIE & BALKEN LADEN
     async function loadHistory() {
         const { data: { user } } = await sb.auth.getUser();
         const { data, error } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
 
         if (!error) {
-            let total = 0;
-            document.getElementById('history-body').innerHTML = data.map(row => {
-                if(row.status === 'approved') total += parseFloat(row.duration);
-                return `<tr><td>${new Date(row.date).toLocaleDateString('de-DE')}</td><td>${row.duration}h</td><td>${row.status === 'approved' ? '✅' : '⏳'}</td></tr>`;
+            let approvedTotal = 0;
+            const body = document.getElementById('history-body');
+            body.innerHTML = data.map(row => {
+                if(row.status === 'approved') approvedTotal += parseFloat(row.duration);
+                return `<tr>
+                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+                    <td>${row.duration}h</td>
+                    <td><span class="${row.status === 'approved' ? 'status-ok' : 'status-wartet'}">${row.status === 'approved' ? '✅' : 'Wartet'}</span></td>
+                </tr>`;
             }).join('');
             
-            const percent = Math.min((total / 10) * 100, 100);
+            // Balken aktualisieren
+            const percent = Math.min((approvedTotal / 10) * 100, 100);
             document.getElementById('p-bar').style.width = percent + '%';
-            document.getElementById('p-text').innerText = total + ' / 10h';
+            document.getElementById('p-text').innerText = approvedTotal + ' / 10h';
         }
     }
 
+    // ADMIN: OFFENE ANFRAGEN LADEN
     async function loadAdminData() {
         const { data, error } = await sb.from('work_hours').select('*').eq('status', 'pending');
         if (!error) {
-            document.getElementById('admin-list').innerHTML = data.length === 0 ? "Keine offenen Anfragen." : data.map(row => `
-                <div style="border-bottom:1px solid #ccc; padding:5px;">
-                    ${row.date} - ${row.duration}h <br> ${row.description} <br>
-                    <button style="padding:5px; width:auto;" onclick="approve(${row.id})">Genehmigen</button>
+            const list = document.getElementById('admin-list');
+            list.innerHTML = data.length === 0 ? "Keine offenen Anfragen." : data.map(row => `
+                <div style="border-bottom:1px solid #ccc; padding:10px 0;">
+                    <strong>User-ID:</strong> ${row.user_id.substring(0,5)}...<br>
+                    <strong>Info:</strong> ${row.date} | ${row.duration}h | ${row.description}<br>
+                    <button style="width:auto; padding:5px 10px; background:#1b5e20;" onclick="approve(${row.id})">Genehmigen</button>
                 </div>
             `).join('');
         }
     }
 
+    // ADMIN: GENEHMIGEN
     async function approve(id) {
-        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        const { error } = await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        if (error) alert(error.message);
         loadAdminData();
         loadHistory();
     }
 
+    // AUTH FUNKTIONEN
     async function doLogin() {
-        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
-        if (error) alert(error.message);
+        const { error } = await sb.auth.signInWithPassword({ 
+            email: document.getElementById('email').value, 
+            password: document.getElementById('password').value 
+        });
+        if (error) alert("Login fehlgeschlagen: " + error.message);
     }
 
     async function doSignup() {
-        const { error } = await sb.auth.signUp({ email: document.getElementById('email').value, password: document.getElementById('password').value });
-        if (error) alert(error.message); else alert("Check deine E-Mails!");
+        const { error } = await sb.auth.signUp({ 
+            email: document.getElementById('email').value, 
+            password: document.getElementById('password').value 
+        });
+        if (error) alert(error.message); else alert("Bitte E-Mail bestätigen (Spam-Ordner prüfen)!");
     }
 
     async function doLogout() { await sb.auth.signOut(); }
