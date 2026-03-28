@@ -33,7 +33,7 @@
         button:active { background: #1b5e20; }
         button:disabled { background: #ccc; cursor: not-allowed; }
         .secondary { background: #f5f5f5; color: #444; border: 1px solid #ddd; margin-top: 10px; }
-        .btn-danger { background: #b71c1c !important; }
+        .btn-danger { background: #b71c1c !important; color: white !important; }
 
         /* Fortschrittsbalken */
         .progress-container { 
@@ -113,9 +113,9 @@
         </table>
 
         <div style="margin-top: 20px;">
-            <button onclick="toggleArchiv()" class="secondary" style="font-size: 0.8em; padding: 8px;">📁 Archiv (Vorjahre) anzeigen/verbergen</button>
+            <button onclick="toggleArchiv()" class="secondary" style="font-size: 0.8em; padding: 8px;">📁 Archiv (Vorjahre) anzeigen</button>
             <div id="archiv-ui" style="display:none; margin-top: 10px;">
-                <table style="background: #eee; border-radius: 8px;">
+                <table>
                     <thead><tr><th>Datum</th><th>Std.</th><th>Info</th></tr></thead>
                     <tbody id="archiv-body"></tbody>
                 </table>
@@ -133,8 +133,7 @@
                 <tbody id="admin-stats-body"></tbody>
             </table>
 
-            <hr style="margin-top:20px;">
-            <button onclick="resetYearlyHours()" class="btn-danger" style="font-size:0.8em;">⚠️ Jahresabschluss: Alle Stunden archivieren</button>
+            <button id="admin-reset-btn" onclick="resetYearlyHours()" class="btn-danger" style="display:none; margin-top:20px;">⚠️ Jahresabschluss: Stunden archivieren</button>
         </div>
 
         <button onclick="doLogout()" class="secondary" style="margin-top:30px;">Abmelden</button>
@@ -146,7 +145,6 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
-    // Auth Listener
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
@@ -160,7 +158,7 @@
         }
     });
 
-    // Login & Signup Logik
+    // Auth Funktionen
     function showSignup() {
         document.getElementById('signup-fields').style.display = 'block';
         document.getElementById('signup-buttons').style.display = 'block';
@@ -178,7 +176,7 @@
             email: document.getElementById('email').value, 
             password: document.getElementById('password').value 
         });
-        if (error) alert("Fehler: " + error.message);
+        if (error) alert(error.message);
     }
     async function doSignup() {
         const email = document.getElementById('email').value;
@@ -189,19 +187,22 @@
         if (error) alert(error.message);
         else {
             await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName }]);
-            alert("Erfolgreich! Bitte E-Mail bestätigen.");
+            alert("Registriert! Bitte E-Mail bestätigen.");
             showLogin();
         }
     }
     async function doLogout() { await sb.auth.signOut(); }
 
-    // Admin Logik
+    // Admin & Funktionär Logik
     async function checkAdminStatus(uid) {
         const { data } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
         if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
             document.getElementById('admin-ui').style.display = 'block';
             loadAdminTasks();
             loadAdminStats();
+            if (data.name === 'Admin') {
+                document.getElementById('admin-reset-btn').style.display = 'block';
+            }
         }
     }
 
@@ -210,17 +211,15 @@
         const list = document.getElementById('admin-list');
         if (data && data.length > 0) {
             list.innerHTML = data.map(row => `
-                <div style="padding:15px; background:white; border-radius:8px; margin-bottom:12px; border:1px solid #ddd;">
-                    <strong>👤 ${row.profiles?.full_name || 'Unbekannt'}</strong><br>
-                    <small>${new Date(row.date).toLocaleDateString('de-DE')}</small> | <strong>${row.duration}h</strong><br>
-                    <p style="margin:8px 0; font-size:0.9em; color: #555;">${row.description}</p>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="approveEntry(${row.id})" style="width:auto; padding:8px; background:#2e7d32;">Bestätigen</button>
-                        <button onclick="rejectEntry(${row.id})" style="width:auto; padding:8px; background:#d32f2f;">Ablehnen</button>
-                    </div>
+                <div style="padding:12px; background:#fff; border:1px solid #ddd; border-radius:8px; margin-bottom:10px;">
+                    <strong>${row.profiles?.full_name}</strong><br>
+                    <small>${row.date}</small> | <strong>${row.duration}h</strong><br>
+                    <p style="font-size:0.85em; margin:5px 0;">${row.description}</p>
+                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:6px 12px; background:#2e7d32;">✔</button>
+                    <button onclick="rejectEntry(${row.id})" style="width:auto; padding:6px 12px; background:#d32f2f;">✘</button>
                 </div>
             `).join('');
-        } else { list.innerHTML = "<p>Keine offenen Anfragen.</p>"; }
+        } else { list.innerHTML = "Keine offenen Anfragen."; }
     }
 
     async function approveEntry(id) {
@@ -229,9 +228,9 @@
     }
 
     async function rejectEntry(id) {
-        const reason = prompt("Grund für die Ablehnung:");
+        const reason = prompt("Grund für Ablehnung:");
         if (reason === null) return;
-        await sb.from('work_hours').update({ status: 'rejected', description: reason }).eq('id', id);
+        await sb.from('work_hours').update({ status: 'rejected', description: "❌ ABGELEHNT: " + reason }).eq('id', id);
         loadAdminTasks(); loadAdminStats(); loadHistory();
     }
 
@@ -242,25 +241,27 @@
         if (profiles) {
             statsBody.innerHTML = profiles.map(p => {
                 const total = hours ? hours.filter(h => h.user_id === p.id).reduce((sum, h) => sum + h.duration, 0) : 0;
-                return `<tr><td>${p.full_name}</td><td><strong>${total} / 10h</strong></td></tr>`;
+                return `<tr><td>${p.full_name}</td><td><strong>${total}h</strong></td></tr>`;
             }).join('');
         }
+    }
+
+    async function resetYearlyHours() {
+        if (!confirm("Alle Stunden archivieren? Zähler wird auf 0 gesetzt.")) return;
+        await sb.from('work_hours').update({ status: 'archived' }).neq('status', 'pending');
+        loadAdminStats(); loadHistory();
     }
 
     // User Logik
     async function sendData() {
         const h = document.getElementById('hours').value;
         const date = document.getElementById('date').value;
-        const activity = document.getElementById('activity').value;
+        const act = document.getElementById('activity').value;
         const desc = document.getElementById('description').value;
-        if (!h || !date) return alert("Bitte Daten ausfüllen!");
-        
+        if (!h || !date) return alert("Fehlende Daten!");
         const { data: { user } } = await sb.auth.getUser();
-        await sb.from('work_hours').insert([{ 
-            user_id: user.id, date: date, duration: parseFloat(h), 
-            description: activity + ": " + desc, status: 'pending' 
-        }]);
-        alert("Abgesendet!");
+        await sb.from('work_hours').insert([{ user_id: user.id, date, duration: parseFloat(h), description: act + ": " + desc, status: 'pending' }]);
+        alert("Gesendet!");
         document.getElementById('hours').value = ''; document.getElementById('description').value = '';
         loadHistory();
     }
@@ -268,64 +269,45 @@
     async function loadHistory() {
         const { data: { user } } = await sb.auth.getUser();
         const { data } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
-
         if (data) {
             let total = 0;
-            const currentData = data.filter(row => row.status !== 'archived');
-            const archivedData = data.filter(row => row.status === 'archived');
+            const current = data.filter(r => r.status !== 'archived');
+            const archived = data.filter(r => r.status === 'archived');
 
-            document.getElementById('history-body').innerHTML = currentData.map(row => {
+            document.getElementById('history-body').innerHTML = current.map(row => {
                 if (row.status === 'approved') total += row.duration;
-                const isRejected = row.status === 'rejected';
-                let icon = row.status === 'approved' ? '✅' : (isRejected ? '❌' : '⏳');
-                
+                const isRej = row.status === 'rejected';
                 return `
-                    <tr class="${isRejected ? 'rejected-row' : ''}">
-                        <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
-                        <td>${row.duration}h</td>
+                    <tr class="${isRej ? 'rejected-row' : ''}">
+                        <td>${row.date}</td><td>${row.duration}h</td>
                         <td>
-                            ${icon}
-                            ${isRejected ? `<br><span class="reason-text">${row.description}</span>
-                            <button onclick="editEntry(${row.id}, '${row.date}', ${row.duration}, '${row.description.replace(/'/g, "\\'")}')" 
-                                    style="width:auto; padding:4px 8px; font-size:0.7em; margin-top:5px; background:#666;">Bearbeiten</button>` : ''}
+                            ${row.status === 'approved' ? '✅' : (isRej ? '❌' : '⏳')}
+                            ${isRej ? `<br><span class="reason-text">${row.description}</span>
+                            <button onclick="editEntry(${row.id}, '${row.date}', ${row.duration}, '${row.description.replace(/'/g, "\\'")}')" style="width:auto; padding:3px 6px; font-size:0.7em; background:#666;">📝</button>` : ''}
                         </td>
                     </tr>`;
             }).join('');
 
-            document.getElementById('archiv-body').innerHTML = archivedData.map(row => `
-                <tr style="color: #666;">
-                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
-                    <td>${row.duration}h</td>
-                    <td>📦 Archiv</td>
-                </tr>
-            `).join('') || '<tr><td colspan="3">Leer</td></tr>';
-
+            document.getElementById('archiv-body').innerHTML = archived.map(row => `<tr><td>${row.date}</td><td>${row.duration}h</td><td>📦</td></tr>`).join('') || '<tr><td colspan="3">Leer</td></tr>';
             const p = Math.min((total / 10) * 100, 100);
             document.getElementById('p-bar').style.width = p + '%';
             document.getElementById('p-text').innerText = total + ' / 10h';
         }
     }
 
-    function toggleArchiv() {
-        const div = document.getElementById('archiv-ui');
-        div.style.display = div.style.display === 'none' ? 'block' : 'none';
-    }
-
-    async function editEntry(id, oldDate, oldDuration, oldDesc) {
-        document.getElementById('date').value = oldDate;
-        document.getElementById('hours').value = oldDuration;
-        document.getElementById('description').value = oldDesc;
-        if(confirm("Alten Eintrag löschen und Daten ins Formular laden?")) {
+    async function editEntry(id, date, dur, desc) {
+        document.getElementById('date').value = date;
+        document.getElementById('hours').value = dur;
+        document.getElementById('description').value = desc.replace("❌ ABGELEHNT: ", "");
+        if(confirm("Eintrag löschen und neu bearbeiten?")) {
             await sb.from('work_hours').delete().eq('id', id);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            loadHistory();
+            window.scrollTo(0,0); loadHistory();
         }
     }
 
-    async function resetYearlyHours() {
-        if (!confirm("Alle bestätigten/abgelehnten Stunden jetzt archivieren? Der Zähler geht auf 0.")) return;
-        await sb.from('work_hours').update({ status: 'archived' }).neq('status', 'pending');
-        loadAdminStats(); loadAdminTasks(); loadHistory();
+    function toggleArchiv() {
+        const d = document.getElementById('archiv-ui');
+        d.style.display = d.style.display === 'none' ? 'block' : 'none';
     }
 </script>
 </body>
