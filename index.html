@@ -16,9 +16,10 @@
         .progress-container { background: #eee; border-radius: 10px; height: 25px; width: 100%; margin: 15px 0; overflow: hidden; position: relative; }
         .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.5s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-size: 0.8em; font-weight: bold; color: #000; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85em; }
-        th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
+        th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
         .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; width: 100%; box-sizing: border-box; }
+        .stats-table th { background: #2e7d32; color: white; }
     </style>
 </head>
 <body>
@@ -26,22 +27,18 @@
 <div class="card">
     <div id="auth-ui">
         <h2 id="auth-title">Anmelden</h2>
-        
         <div id="signup-fields" style="display:none;">
-            <label>Vollständiger Name:</label>
+            <label>Dein Name:</label>
             <input type="text" id="full_name" placeholder="Vor- und Nachname">
         </div>
-
         <label>E-Mail:</label>
         <input type="email" id="email" placeholder="beispiel@mail.de">
         <label>Passwort:</label>
         <input type="password" id="password" placeholder="******">
-        
         <div id="login-buttons">
             <button onclick="doLogin()">Einloggen</button>
             <button onclick="showSignup()" class="secondary">Neues Konto erstellen</button>
         </div>
-        
         <div id="signup-buttons" style="display:none;">
             <button onclick="doSignup()">Jetzt Registrieren</button>
             <button onclick="showLogin()" class="secondary">Zurück zum Login</button>
@@ -49,10 +46,9 @@
     </div>
 
     <div id="form-ui" style="display:none;">
-        <h2>Stundenmeldung</h2>
-        <p>Hubertus Strullendorf</p>
+        <h2 style="margin-bottom:0;">Stundenmeldung</h2>
+        <p style="margin-top:5px; color:#666;">Hubertus Strullendorf</p>
 
-        <label>Dein Fortschritt (Ziel: 10h)</label>
         <div class="progress-container">
             <div id="p-bar" class="progress-bar"></div>
             <div id="p-text" class="progress-text">0 / 10h</div>
@@ -60,7 +56,6 @@
 
         <label>Datum:</label>
         <input type="date" id="date">
-        
         <label>Tätigkeit:</label>
         <select id="activity">
             <option value="Standreinigung">Standreinigung</option>
@@ -69,25 +64,27 @@
             <option value="Helferdienst bei Festen">Helferdienst bei Festen</option>
             <option value="Sonstiges">Sonstiges</option>
         </select>
-
-        <label>Zusatzinfos:</label>
-        <textarea id="description" placeholder="Was genau hast du gemacht?"></textarea>
-
-        <label>Stundenzahl:</label>
-        <input type="number" id="hours" step="0.5" placeholder="z.B. 2.5">
-
-        <button id="sendBtn" onclick="sendData()">Stunden absenden</button>
+        <textarea id="description" placeholder="Zusatzinfos..."></textarea>
+        <input type="number" id="hours" step="0.5" placeholder="Stunden (z.B. 2.5)">
+        <button id="sendBtn" onclick="sendData()">Absenden</button>
         
         <hr>
-        <h3>Deine letzten Meldungen</h3>
+        <h3>Deine Meldungen</h3>
         <table>
             <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
             <tbody id="history-body"></tbody>
         </table>
 
         <div id="admin-ui" class="admin-box" style="display:none;">
-            <h3>Admin: Offene Bestätigungen</h3>
-            <div id="admin-list">Lade...</div>
+            <h3>🛡️ Admin-Bereich</h3>
+            <p><strong>Offene Bestätigungen:</strong></p>
+            <div id="admin-list" style="font-size:0.9em;">Lade...</div>
+            
+            <p style="margin-top:20px;"><strong>Mitglieder-Übersicht:</strong></p>
+            <table class="stats-table">
+                <thead><tr><th>Name</th><th>Gesamt</th></tr></thead>
+                <tbody id="admin-stats-body"></tbody>
+            </table>
         </div>
 
         <button onclick="doLogout()" class="secondary" style="margin-top:30px;">Abmelden</button>
@@ -99,7 +96,6 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
-    // Automatischer Login-Check
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
@@ -110,11 +106,9 @@
         } else {
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
-            document.getElementById('admin-ui').style.display = 'none';
         }
     });
 
-    // Umschalten zwischen Login und Registrierung
     function showSignup() {
         document.getElementById('signup-fields').style.display = 'block';
         document.getElementById('signup-buttons').style.display = 'block';
@@ -129,91 +123,92 @@
         document.getElementById('auth-title').innerText = 'Anmelden';
     }
 
-    // AUTH FUNKTIONEN
     async function doLogin() {
         const { error } = await sb.auth.signInWithPassword({ 
             email: document.getElementById('email').value, 
             password: document.getElementById('password').value 
         });
-        if (error) alert("Login fehlgeschlagen: " + error.message);
+        if (error) alert("Fehler: " + error.message);
     }
 
     async function doSignup() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const fullName = document.getElementById('full_name').value;
-
-        if (!fullName) return alert("Bitte Vor- und Nachnamen eingeben!");
+        if (!fullName) return alert("Name fehlt!");
 
         const { data, error } = await sb.auth.signUp({ email, password });
-        if (error) {
-            alert("Fehler: " + error.message);
-        } else if (data.user) {
-            // Namen in der 'profiles' Tabelle speichern
+        if (error) alert(error.message);
+        else {
             await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName }]);
-            alert("Registrierung erfolgreich! Bitte bestätige den Link in deiner E-Mail.");
+            alert("Erfolgreich! Bitte E-Mail bestätigen.");
             showLogin();
         }
     }
 
     async function doLogout() { await sb.auth.signOut(); }
 
-    // ADMIN FUNKTIONEN
     async function checkAdminStatus(uid) {
         const { data } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
-        if (data && (data.name.toLowerCase() === 'admin' || data.name.toLowerCase() === 'funktionär')) {
+        if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
             document.getElementById('admin-ui').style.display = 'block';
             loadAdminTasks();
+            loadAdminStats();
         }
     }
 
     async function loadAdminTasks() {
-        // Lädt die Stunden UND verknüpft sie mit dem Namen aus 'profiles'
-        const { data, error } = await sb.from('work_hours')
+        // Dank Foreign Key können wir jetzt sauber joinen!
+        const { data } = await sb.from('work_hours')
             .select('id, date, duration, description, profiles(full_name)')
             .eq('status', 'pending');
 
         const list = document.getElementById('admin-list');
         if (data && data.length > 0) {
             list.innerHTML = data.map(row => `
-                <div style="padding: 12px 0; border-bottom: 1px solid #ddd;">
-                    <strong>👤 ${row.profiles ? row.profiles.full_name : 'Unbekannter Nutzer'}</strong><br>
-                    <small>📅 ${new Date(row.date).toLocaleDateString('de-DE')}</small> | <strong>${row.duration}h</strong><br>
-                    <p style="margin: 5px 0; font-size: 0.85em; color: #444;">${row.description}</p>
-                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:5px 12px; font-size:0.75em;">Genehmigen</button>
+                <div style="padding:10px; background:white; border-radius:5px; margin-bottom:10px; border:1px solid #ccc;">
+                    <strong>👤 ${row.profiles?.full_name || 'Unbekannt'}</strong><br>
+                    <small>${new Date(row.date).toLocaleDateString('de-DE')}</small> | <strong>${row.duration}h</strong><br>
+                    <p style="margin:5px 0; font-size:0.9em;">${row.description}</p>
+                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:5px 10px; font-size:0.8em;">Bestätigen</button>
                 </div>
             `).join('');
-        } else {
-            list.innerHTML = "Keine neuen Anfragen.";
+        } else { list.innerHTML = "Keine offenen Aufgaben."; }
+    }
+
+    async function loadAdminStats() {
+        const { data: profiles } = await sb.from('profiles').select('id, full_name');
+        const { data: hours } = await sb.from('work_hours').select('user_id, duration').eq('status', 'approved');
+        
+        const statsBody = document.getElementById('admin-stats-body');
+        if (profiles) {
+            statsBody.innerHTML = profiles.map(p => {
+                const total = hours ? hours.filter(h => h.user_id === p.id).reduce((sum, h) => sum + h.duration, 0) : 0;
+                return `<tr><td>${p.full_name}</td><td><strong>${total} / 10h</strong></td></tr>`;
+            }).join('');
         }
     }
 
     async function approveEntry(id) {
         await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
         loadAdminTasks();
+        loadAdminStats();
         loadHistory();
     }
 
-    // NUTZER FUNKTIONEN
     async function sendData() {
-        const btn = document.getElementById('sendBtn');
-        const hours = document.getElementById('hours').value;
-        if (!hours) return alert("Bitte Stundenzahl eingeben!");
-        btn.disabled = true;
-
+        const h = document.getElementById('hours').value;
+        if (!h) return alert("Stunden eingeben!");
         const { data: { user } } = await sb.auth.getUser();
         await sb.from('work_hours').insert([{
             user_id: user.id,
             date: document.getElementById('date').value,
-            duration: parseFloat(hours),
+            duration: parseFloat(h),
             description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
             status: 'pending'
         }]);
-        
-        alert("Stunden wurden zur Prüfung gesendet!");
+        alert("Gesendet!");
         document.getElementById('hours').value = '';
-        document.getElementById('description').value = '';
-        btn.disabled = false;
         loadHistory();
     }
 
@@ -222,19 +217,12 @@
         const { data } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
         if (data) {
             let total = 0;
-            const body = document.getElementById('history-body');
-            body.innerHTML = data.map(row => {
-                if (row.status === 'approved') total += parseFloat(row.duration);
-                return `<tr>
-                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
-                    <td>${row.duration}h</td>
-                    <td>${row.status === 'approved' ? '✅' : '⏳'}</td>
-                </tr>`;
+            document.getElementById('history-body').innerHTML = data.map(row => {
+                if (row.status === 'approved') total += row.duration;
+                return `<tr><td>${new Date(row.date).toLocaleDateString('de-DE')}</td><td>${row.duration}h</td><td>${row.status === 'approved' ? '✅' : '⏳'}</td></tr>`;
             }).join('');
-            
-            // Balken aktualisieren (Ziel 10h)
-            const percent = Math.min((total / 10) * 100, 100);
-            document.getElementById('p-bar').style.width = percent + '%';
+            const p = Math.min((total / 10) * 100, 100);
+            document.getElementById('p-bar').style.width = p + '%';
             document.getElementById('p-text').innerText = total + ' / 10h';
         }
     }
