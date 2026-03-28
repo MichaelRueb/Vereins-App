@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stundenmeldung - Hubertus Strullendorf</title>
+    <title>Vereins-App Hubertus Strullendorf</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 450px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #ccc; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         .secondary { background: #666; margin-top: 10px; }
         label { font-size: 0.85em; font-weight: bold; color: #555; margin-top: 10px; display: block; }
         .progress-container { background: #eee; border-radius: 10px; height: 25px; width: 100%; margin: 15px 0; overflow: hidden; position: relative; }
@@ -18,9 +18,9 @@
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-size: 0.8em; font-weight: bold; color: #000; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85em; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
-        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; }
         .status-wartet { color: #fbc02d; font-weight: bold; }
         .status-ok { color: #2e7d32; font-weight: bold; }
+        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; }
     </style>
 </head>
 <body>
@@ -56,8 +56,8 @@
             <option value="Sonstiges">Sonstiges</option>
         </select>
 
-        <label>Beschreibung (optional):</label>
-        <textarea id="description" placeholder="Details zur Arbeit..."></textarea>
+        <label>Zusatzinfos / Freitext:</label>
+        <textarea id="description" placeholder="Was genau hast du gemacht?"></textarea>
 
         <label>Stundenzahl:</label>
         <input type="number" id="hours" step="0.5" placeholder="z.B. 2.5">
@@ -81,27 +81,19 @@
 </div>
 
 <script>
-    // Konfiguration
+    // Konfiguration (Deine Supabase Daten bleiben gleich)
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
-    // Automatischer Login-Check
+    // Login-Status überwachen
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
             document.getElementById('form-ui').style.display = 'block';
             document.getElementById('date').valueAsDate = new Date();
             loadHistory();
-
-            // Admin-Rolle prüfen
-            try {
-                const { data: roleData } = await sb.from('roles').select('name').eq('user_id', session.user.id).maybeSingle();
-                if (roleData && (roleData.name.toLowerCase() === 'admin' || roleData.name.toLowerCase() === 'funktionär')) {
-                    document.getElementById('admin-ui').style.display = 'block';
-                    loadAdminData();
-                }
-            } catch (err) { console.warn("Rollen-Check übersprungen"); }
+            checkAdminStatus(session.user.id);
         } else {
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
@@ -111,101 +103,105 @@
     // DATEN SENDEN
     async function sendData() {
         const btn = document.getElementById('sendBtn');
-        const hoursVal = document.getElementById('hours').value;
-        
-        if(!hoursVal) return alert("Bitte Stunden eingeben!");
+        const hoursField = document.getElementById('hours');
+        const descField = document.getElementById('description');
+        const activityField = document.getElementById('activity');
+        const dateField = document.getElementById('date');
 
+        if (!hoursField.value) return alert("Bitte Stundenzahl eingeben!");
+
+        // Button sperren
         btn.disabled = true;
         btn.innerText = "Wird gesendet...";
 
-        const { data: { user } } = await sb.auth.getUser();
-        const entry = {
-            user_id: user.id,
-            date: document.getElementById('date').value,
-            duration: parseFloat(hoursVal),
-            description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
-            status: 'pending'
-        };
+        try {
+            const { data: { user } } = await sb.auth.getUser();
+            
+            const { error } = await sb.from('work_hours').insert([{
+                user_id: user.id,
+                date: dateField.value,
+                duration: parseFloat(hoursField.value),
+                description: activityField.value + ": " + descField.value,
+                status: 'pending'
+            }]);
 
-        const { error } = await sb.from('work_hours').insert([entry]);
+            if (error) throw error;
 
-        if (error) {
-            alert("Fehler: " + error.message);
-        } else {
-            alert("Erfolgreich gesendet!");
-            document.getElementById('hours').value = '';
-            document.getElementById('description').value = '';
+            alert("Erfolgreich übermittelt!");
+            hoursField.value = '';
+            descField.value = '';
             loadHistory();
+
+        } catch (err) {
+            alert("Fehler: " + err.message);
+            console.error(err);
+        } finally {
+            // Button immer wieder freigeben
+            btn.disabled = false;
+            btn.innerText = "Stunden absenden";
         }
-        btn.disabled = false;
-        btn.innerText = "Stunden absenden";
     }
 
-    // EIGENE HISTORIE & BALKEN LADEN
+    // HISTORIE UND FORTSCHRITT LADEN
     async function loadHistory() {
         const { data: { user } } = await sb.auth.getUser();
-        const { data, error } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
+        const { data, error } = await sb.from('work_hours')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false });
 
         if (!error) {
-            let approvedTotal = 0;
+            let total = 0;
             const body = document.getElementById('history-body');
             body.innerHTML = data.map(row => {
-                if(row.status === 'approved') approvedTotal += parseFloat(row.duration);
+                if (row.status === 'approved') total += parseFloat(row.duration);
                 return `<tr>
                     <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
                     <td>${row.duration}h</td>
                     <td><span class="${row.status === 'approved' ? 'status-ok' : 'status-wartet'}">${row.status === 'approved' ? '✅' : 'Wartet'}</span></td>
                 </tr>`;
             }).join('');
-            
-            // Balken aktualisieren
-            const percent = Math.min((approvedTotal / 10) * 100, 100);
+
+            // Fortschrittsbalken (Ziel 10h)
+            const percent = Math.min((total / 10) * 100, 100);
             document.getElementById('p-bar').style.width = percent + '%';
-            document.getElementById('p-text').innerText = approvedTotal + ' / 10h';
+            document.getElementById('p-text').innerText = total + ' / 10h';
         }
     }
 
-    // ADMIN: OFFENE ANFRAGEN LADEN
-    async function loadAdminData() {
-        const { data, error } = await sb.from('work_hours').select('*').eq('status', 'pending');
-        if (!error) {
-            const list = document.getElementById('admin-list');
-            list.innerHTML = data.length === 0 ? "Keine offenen Anfragen." : data.map(row => `
-                <div style="border-bottom:1px solid #ccc; padding:10px 0;">
-                    <strong>User-ID:</strong> ${row.user_id.substring(0,5)}...<br>
-                    <strong>Info:</strong> ${row.date} | ${row.duration}h | ${row.description}<br>
-                    <button style="width:auto; padding:5px 10px; background:#1b5e20;" onclick="approve(${row.id})">Genehmigen</button>
+    // ADMIN-CHECK & DATEN
+    async function checkAdminStatus(uid) {
+        const { data } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
+        if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
+            document.getElementById('admin-ui').style.display = 'block';
+            loadAdminTasks();
+        }
+    }
+
+    async function loadAdminTasks() {
+        const { data } = await sb.from('work_hours').select('*').eq('status', 'pending');
+        const list = document.getElementById('admin-list');
+        if (data && data.length > 0) {
+            list.innerHTML = data.map(row => `
+                <div style="padding: 10px 0; border-bottom: 1px solid #ddd;">
+                    <small>${row.date}</small> | <strong>${row.duration}h</strong><br>
+                    <small>${row.description}</small><br>
+                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:5px 10px; font-size:0.7em;">Bestätigen</button>
                 </div>
             `).join('');
+        } else {
+            list.innerHTML = "Keine offenen Anfragen.";
         }
     }
 
-    // ADMIN: GENEHMIGEN
-    async function approve(id) {
-        const { error } = await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
-        if (error) alert(error.message);
-        loadAdminData();
+    async function approveEntry(id) {
+        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        loadAdminTasks();
         loadHistory();
     }
 
     // AUTH FUNKTIONEN
     async function doLogin() {
-        const { error } = await sb.auth.signInWithPassword({ 
-            email: document.getElementById('email').value, 
-            password: document.getElementById('password').value 
-        });
-        if (error) alert("Login fehlgeschlagen: " + error.message);
-    }
-
-    async function doSignup() {
-        const { error } = await sb.auth.signUp({ 
-            email: document.getElementById('email').value, 
-            password: document.getElementById('password').value 
-        });
-        if (error) alert(error.message); else alert("Bitte E-Mail bestätigen (Spam-Ordner prüfen)!");
-    }
-
-    async function doLogout() { await sb.auth.signOut(); }
-</script>
-</body>
-</html>
+        const { error } = await sb.auth.signInWithPassword({
+            email: document.getElementById('email').value,
+            password: document
