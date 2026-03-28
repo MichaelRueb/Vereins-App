@@ -441,7 +441,7 @@
     }
 }
 
-    async function loadHistory() {
+   async function loadHistory() {
     const { data: { user } } = await sb.auth.getUser();
     const { data } = await sb.from('work_hours')
         .select('*')
@@ -453,22 +453,28 @@
         document.getElementById('history-body').innerHTML = data.map(row => {
             if (row.status === 'approved') total += row.duration;
             
-            // Status-Symbol bestimmen
-            let statusIcon = '⏳'; // Standard: Wartend
-            if (row.status === 'approved') statusIcon = '✅';
-            if (row.status === 'rejected') statusIcon = '❌';
+            // Status bestimmen
+            const isRejected = row.status === 'rejected';
+            const isApproved = row.status === 'approved';
+            
+            let statusIcon = '⏳'; 
+            if (isApproved) statusIcon = '✅';
+            if (isRejected) statusIcon = '❌';
 
             return `
-                <tr>
+                <tr class="${isRejected ? 'rejected-row' : ''}">
                     <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
                     <td>${row.duration}h</td>
                     <td>
-                        <span title="${row.description}">${statusIcon}</span>
+                        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                            <span>${statusIcon}</span>
+                            ${isRejected ? `<span class="reason-text">${row.description}</span>` : ''}
+                        </div>
                     </td>
                 </tr>`;
         }).join('');
         
-        // Fortschrittsbalken aktualisieren
+        // Fortschrittsbalken
         const p = Math.min((total / 10) * 100, 100);
         document.getElementById('p-bar').style.width = p + '%';
         document.getElementById('p-text').innerText = total + ' / 10h';
