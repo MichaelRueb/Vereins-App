@@ -198,17 +198,20 @@
 }
 
    async function rejectEntry(id) {
-    if (!confirm("Möchtest du diese Stundenmeldung wirklich ablehnen und löschen?")) return;
+    const reason = prompt("Grund für die Ablehnung (optional):");
+    if (reason === null) return; // Abbrechen, wenn der Admin "Abbrechen" klickt
 
     const { error } = await sb
         .from('work_hours')
-        .delete()
+        .update({ 
+            status: 'rejected',
+            description: reason ? "ABGELEHNT: " + reason : "Abgelehnt durch Admin" 
+        })
         .eq('id', id);
 
     if (error) {
         alert("Fehler beim Ablehnen: " + error.message);
     } else {
-        // Liste sofort aktualisieren
         loadAdminTasks();
         loadAdminStats();
     }
