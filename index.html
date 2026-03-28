@@ -18,21 +18,19 @@
         .secondary { background: #f5f5f5; color: #444; border: 1px solid #ddd; }
         .btn-danger { background: #b71c1c !important; color: white !important; }
         
-        /* Progress Bar */
         .progress-container { background: #eee; border-radius: 20px; height: 28px; width: 100%; margin: 20px 0; overflow: hidden; position: relative; border: 1px solid #ddd; }
         .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.6s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 28px; font-size: 0.9em; font-weight: bold; }
 
-        /* Tables */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
         th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
         .rejected-row { background-color: #fff5f5; }
-        .reason-text { font-size: 0.8em; color: #c62828; display: block; font-style: italic; }
+        .reason-text { font-size: 0.8em; color: #c62828; display: block; font-style: italic; margin-top: 4px; }
 
-        /* Admin Area */
         .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 25px; border-radius: 12px; background: #f1f8e9; width: 100%; }
         .task-card { background: white; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; }
         .admin-btns { display: flex; gap: 8px; }
+        a { color: #2e7d32; text-decoration: none; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -40,26 +38,42 @@
 <div class="card">
     <div id="auth-ui">
         <h2 id="auth-title">Anmelden</h2>
+        
         <div id="signup-fields" style="display:none;">
             <label>Dein Name (Vor- & Nachname):</label>
             <input type="text" id="full_name" placeholder="Max Mustermann">
         </div>
+
         <label>E-Mail:</label>
-        <input type="email" id="email">
-        <label>Passwort:</label>
-        <input type="password" id="password">
+        <input type="email" id="email" placeholder="name@beispiel.de">
+        
+        <div id="password-area">
+            <label>Passwort:</label>
+            <input type="password" id="password" placeholder="******">
+        </div>
+
         <div id="login-buttons">
             <button onclick="doLogin()">Einloggen</button>
-            <button onclick="showSignup()" class="secondary">Konto erstellen</button>
+            <div style="text-align: center; margin-top: 10px;">
+                <button onclick="showSignup()" class="secondary">Neues Konto erstellen</button>
+                <p><a href="#" onclick="forgotPassword()">Passwort vergessen?</a></p>
+            </div>
         </div>
+
         <div id="signup-buttons" style="display:none;">
             <button onclick="doSignup()">Registrieren</button>
-            <button onclick="showLogin()" class="secondary">Zurück</button>
+            <button onclick="showLogin()" class="secondary">Zurück zum Login</button>
+        </div>
+
+        <div id="reset-buttons" style="display:none;">
+            <button onclick="updateNewPassword()">Neues Passwort speichern</button>
         </div>
     </div>
 
     <div id="form-ui" style="display:none;">
-        <h2>Stundenmeldung</h2>
+        <h2 style="margin-bottom:0;">Stundenmeldung</h2>
+        <p style="color:#666; font-size: 0.8em;">Hubertus Strullendorf</p>
+
         <div class="progress-container">
             <div id="p-bar" class="progress-bar"></div>
             <div id="p-text" class="progress-text">0 / 10h</div>
@@ -80,7 +94,7 @@
         <button onclick="sendData()">Absenden</button>
         
         <hr>
-        <h3>Deine Meldungen (Aktuell)</h3>
+        <h3>Deine Meldungen</h3>
         <table>
             <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
             <tbody id="history-body"></tbody>
@@ -109,37 +123,43 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
-    // Auth State
+    // Automatisches Erkennen von Passwort-Reset-Links
+    window.onload = () => {
+        if (window.location.hash.includes('type=recovery')) {
+            showResetMode();
+        }
+    };
+
     sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') showResetMode();
+        
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
             document.getElementById('form-ui').style.display = 'block';
             document.getElementById('date').valueAsDate = new Date();
             loadHistory();
             checkRole(session.user.id);
-        } else {
+        } else if (!window.location.hash.includes('type=recovery')) {
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
         }
     });
 
-    async function checkRole(uid) {
-        const { data } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
-        if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
-            document.getElementById('admin-ui').style.display = 'block';
-            loadAdminTasks();
-            loadAdminStats();
-            if (data.name === 'Admin') document.getElementById('admin-reset-btn').style.display = 'block';
-        }
+    // --- AUTH FUNKTIONEN ---
+    function showSignup() { document.getElementById('signup-fields').style.display = 'block'; document.getElementById('signup-buttons').style.display = 'block'; document.getElementById('login-buttons').style.display = 'none'; document.getElementById('auth-title').innerText = 'Konto erstellen'; }
+    function showLogin() { document.getElementById('signup-fields').style.display = 'none'; document.getElementById('signup-buttons').style.display = 'none'; document.getElementById('login-buttons').style.display = 'block'; document.getElementById('auth-title').innerText = 'Anmelden'; }
+    function showResetMode() {
+        document.getElementById('auth-title').innerText = 'Neues Passwort vergeben';
+        document.getElementById('login-buttons').style.display = 'none';
+        document.getElementById('reset-buttons').style.display = 'block';
+        document.getElementById('email').style.display = 'none';
     }
 
-    // Login / Logout / Signup
-    function showSignup() { document.getElementById('signup-fields').style.display = 'block'; document.getElementById('signup-buttons').style.display = 'block'; document.getElementById('login-buttons').style.display = 'none'; }
-    function showLogin() { document.getElementById('signup-fields').style.display = 'none'; document.getElementById('signup-buttons').style.display = 'none'; document.getElementById('login-buttons').style.display = 'block'; }
     async function doLogin() {
         const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
         if (error) alert(error.message);
     }
+
     async function doSignup() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
@@ -152,9 +172,39 @@
             alert("Erfolgreich! Bitte E-Mail bestätigen.");
         }
     }
+
+    async function forgotPassword() {
+        const email = document.getElementById('email').value;
+        if (!email) return alert("Bitte E-Mail Adresse eingeben.");
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+        if (error) alert(error.message);
+        else alert("Reset-Link wurde per E-Mail verschickt!");
+    }
+
+    async function updateNewPassword() {
+        const newPass = document.getElementById('password').value;
+        const { error } = await sb.auth.updateUser({ password: newPass });
+        if (error) alert(error.message);
+        else {
+            alert("Passwort aktualisiert! Du wirst nun eingeloggt.");
+            window.location.hash = "";
+            location.reload();
+        }
+    }
+
     async function doLogout() { await sb.auth.signOut(); }
 
-    // User Logik
+    async function checkRole(uid) {
+        const { data } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
+        if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
+            document.getElementById('admin-ui').style.display = 'block';
+            loadAdminTasks();
+            loadAdminStats();
+            if (data.name === 'Admin') document.getElementById('admin-reset-btn').style.display = 'block';
+        }
+    }
+
+    // --- USER LOGIK ---
     async function sendData() {
         const h = parseFloat(document.getElementById('hours').value);
         const date = document.getElementById('date').value;
@@ -175,25 +225,19 @@
 
         let total = 0;
         const historyBody = document.getElementById('history-body');
-        
         if (data) {
             historyBody.innerHTML = data.map(row => {
                 if (row.status === 'approved') total += row.duration;
                 const isRej = row.status === 'rejected';
-                
                 return `
                     <tr class="${isRej ? 'rejected-row' : ''}">
                         <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
                         <td>${row.duration}h</td>
                         <td>
                             ${row.status === 'approved' ? '✅' : (isRej ? '❌' : '⏳')}
-                            ${isRej ? `
-                                <div class="reason-text">${row.description}</div>
-                                <button onclick="editRej(${row.id},'${row.date}',${row.duration},'${row.description.replace(/'/g, "\\'")}')" 
-                                        style="width:auto; padding:4px 8px; font-size:0.7em; margin-top:5px; background:#666;">
-                                    📝 Korrigieren
-                                </button>
-                            ` : ''}
+                            ${isRej ? `<div class="reason-text">${row.description}</div>
+                            <button onclick="editRej(${row.id},'${row.date}',${row.duration},'${row.description.replace(/'/g, "\\'")}')" 
+                                    style="width:auto; padding:4px 8px; font-size:0.7em; margin-top:5px; background:#666;">📝 Korrigieren</button>` : ''}
                         </td>
                     </tr>`;
             }).join('');
@@ -212,7 +256,7 @@
         window.scrollTo(0,0); loadHistory();
     }
 
-    // Admin & Funktionär Logik
+    // --- ADMIN & FUNKTIONÄR LOGIK ---
     async function loadAdminTasks() {
         const { data } = await sb.from('work_hours').select('id, date, duration, description, profiles(full_name)').eq('status', 'pending').order('date', {ascending: true});
         const list = document.getElementById('admin-list');
@@ -245,10 +289,8 @@
     async function loadAdminStats() {
         const { data: profs } = await sb.from('profiles').select('id, full_name');
         const { data: hours } = await sb.from('work_hours').select('user_id, duration').eq('status', 'approved');
-        
         if (!profs) return;
         const sorted = profs.sort((a,b) => a.full_name.localeCompare(b.full_name));
-        
         document.getElementById('admin-stats-body').innerHTML = sorted.map(p => {
             const sum = hours ? hours.filter(h => h.user_id === p.id).reduce((s, h) => s + h.duration, 0) : 0;
             return `<tr><td>${p.full_name}</td><td><strong>${sum}h</strong></td></tr>`;
