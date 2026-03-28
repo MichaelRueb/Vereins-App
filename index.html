@@ -198,14 +198,14 @@
 }
 
    async function rejectEntry(id) {
-    const reason = prompt("Grund für die Ablehnung (optional):");
-    if (reason === null) return; // Abbrechen, wenn der Admin "Abbrechen" klickt
+    const reason = prompt("Grund für die Ablehnung eingeben:");
+    if (reason === null) return; // Abbrechen, falls der Admin das Fenster schließt
 
     const { error } = await sb
         .from('work_hours')
         .update({ 
             status: 'rejected',
-            description: reason ? "ABGELEHNT: " + reason : "Abgelehnt durch Admin" 
+            description: reason ? "❌ ABGELEHNT: " + reason : "Abgelehnt durch Admin" 
         })
         .eq('id', id);
 
