@@ -90,14 +90,39 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
-    sb.auth.onAuthStateChange((event, session) => {
-        document.getElementById('auth-ui').style.display = session ? 'none' : 'block';
-        document.getElementById('form-ui').style.display = session ? 'block' : 'none';
-        if(session) {
-            document.getElementById('date').valueAsDate = new Date();
-            loadHistory();
+    sb.auth.onAuthStateChange(async (event, session) => {
+    const authUI = document.getElementById('auth-ui');
+    const formUI = document.getElementById('form-ui');
+    const adminUI = document.getElementById('admin-ui');
+
+    if (session) {
+        authUI.style.display = 'none';
+        formUI.style.display = 'block';
+        document.getElementById('date').valueAsDate = new Date();
+        loadHistory();
+
+        try {
+            // Prüfung: Spaltenname 'name' verwenden (wie in deinem Screenshot gesehen)
+            const { data: roleData, error: roleError } = await sb
+                .from('roles')
+                .select('name') 
+                .eq('user_id', session.user.id)
+                .maybeSingle(); // Verhindert Absturz, wenn kein Eintrag da ist
+
+            if (roleData && (roleData.name.toLowerCase() === 'admin' || roleData.name.toLowerCase() === 'funktionär')) {
+                isStaff = true;
+                if(adminUI) adminUI.style.display = 'block';
+                loadAdminData();
+            }
+        } catch (e) {
+            console.log("Rollenprüfung übersprungen:", e);
         }
-    });
+    } else {
+        authUI.style.display = 'block';
+        formUI.style.display = 'none';
+        if(adminUI) adminUI.style.display = 'none';
+    }
+});
 
     async function doSignup() {
         const { error } = await sb.auth.signUp({
