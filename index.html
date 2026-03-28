@@ -190,11 +190,23 @@
     }
 
     async function approveEntry(id) {
-        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
-        loadAdminTasks();
-        loadAdminStats();
-        loadHistory();
+    // 1. Status in der Datenbank aktualisieren
+    const { error } = await sb
+        .from('work_hours')
+        .update({ status: 'approved' })
+        .eq('id', id);
+
+    if (error) {
+        console.error("Fehler beim Bestätigen:", error);
+        alert("Fehler: " + error.message);
+    } else {
+        // 2. Ansicht sofort aktualisieren
+        console.log("Eintrag " + id + " wurde bestätigt.");
+        loadAdminTasks(); // Liste der offenen Aufgaben neu laden
+        loadAdminStats(); // Mitglieder-Statistik neu berechnen
+        loadHistory();    // Eigene Historie/Fortschrittsbalken aktualisieren
     }
+}
 
     async function sendData() {
     const h = document.getElementById('hours').value;
