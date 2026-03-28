@@ -86,65 +86,80 @@
 </div>
 
 <script>
+    // ### DEINE DATEN (Bitte prüfen!) ###
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
-    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
+    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; // Dein Anon Key
+    
     const sb = supabase.createClient(S_URL, S_KEY);
+    let isStaff = false;
 
+    // Login-Status prüfen
     sb.auth.onAuthStateChange(async (event, session) => {
-    const authUI = document.getElementById('auth-ui');
-    const formUI = document.getElementById('form-ui');
-    const adminUI = document.getElementById('admin-ui');
+        const authUI = document.getElementById('auth-ui');
+        const formUI = document.getElementById('form-ui');
+        const adminUI = document.getElementById('admin-ui');
 
-    if (session) {
-        authUI.style.display = 'none';
-        formUI.style.display = 'block';
-        document.getElementById('date').valueAsDate = new Date();
-        loadHistory();
+        if (session) {
+            authUI.style.display = 'none';
+            formUI.style.display = 'block';
+            document.getElementById('date').valueAsDate = new Date();
+            loadHistory();
 
-        try {
-            // Prüfung: Spaltenname 'name' verwenden (wie in deinem Screenshot gesehen)
-            const { data: roleData, error: roleError } = await sb
-                .from('roles')
-                .select('name') 
-                .eq('user_id', session.user.id)
-                .maybeSingle(); // Verhindert Absturz, wenn kein Eintrag da ist
+            // Admin-Prüfung (in einer Box, damit sie nichts blockiert)
+            try {
+                const { data: roleData } = await sb
+                    .from('roles')
+                    .select('name') // WICHTIG: Deine Spalte heißt 'name'
+                    .eq('user_id', session.user.id)
+                    .maybeSingle();
 
-            if (roleData && (roleData.name.toLowerCase() === 'admin' || roleData.name.toLowerCase() === 'funktionär')) {
-                isStaff = true;
-                if(adminUI) adminUI.style.display = 'block';
-                loadAdminData();
+                if (roleData && (roleData.name.toLowerCase() === 'admin' || roleData.name.toLowerCase() === 'funktionär')) {
+                    isStaff = true;
+                    if(adminUI) adminUI.style.display = 'block';
+                    loadAdminData();
+                }
+            } catch (err) {
+                console.warn("Rollenprüfung fehlgeschlagen, App läuft normal weiter.");
             }
-        } catch (e) {
-            console.log("Rollenprüfung übersprungen:", e);
+        } else {
+            authUI.style.display = 'block';
+            formUI.style.display = 'none';
+            if(adminUI) adminUI.style.display = 'none';
         }
-    } else {
-        authUI.style.display = 'block';
-        formUI.style.display = 'none';
-        if(adminUI) adminUI.style.display = 'none';
+    });
+
+    // STUNDEN ABSENDEN
+    async function sendData() {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerText = "Wird gesendet...";
+
+        const { data: { user } } = await sb.auth.getUser();
+        const entry = {
+            user_id: user.id,
+            date: document.getElementById('date').value,
+            duration: parseFloat(document.getElementById('hours').value),
+            description: document.getElementById('task').value, // Falls du das Feld 'activity' genannt hast, hier anpassen!
+            status: 'pending'
+        };
+
+        const { error } = await sb.from('work_hours').insert([entry]);
+
+        if (error) {
+            alert("Fehler: " + error.message);
+        } else {
+            alert("Erfolgreich gesendet!");
+            document.getElementById('hours').value = '';
+            document.getElementById('task').value = '';
+            loadHistory();
+        }
+        btn.disabled = false;
+        btn.innerText = "Stunden absenden";
     }
-});
 
-    async function doSignup() {
-        const { error } = await sb.auth.signUp({
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value
-        });
-        if (error) alert(error.message);
-        else alert("Registrierung erfolgreich!");
-    }
-
-    async function doLogin() {
-        const { error } = await sb.auth.signInWithPassword({
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value
-        });
-        if (error) alert(error.message);
-    }
-
-    async function doLogout() { await sb.auth.signOut(); }
-
+    // HISTORIE LADEN
     async function loadHistory() {
-        const user = (await sb.auth.getUser()).data.user;
+        const { data: { user } } = await sb.auth.getUser();
         const { data, error } = await sb
             .from('work_hours')
             .select('*')
@@ -152,101 +167,37 @@
             .order('date', { ascending: false });
 
         if (error) return;
-
-        let totalApproved = 0;
-        const body = document.getElementById('history-body');
-        body.innerHTML = '';
-
-        data.forEach(row => {
-            if(row.status === 'approved') totalApproved += parseFloat(row.duration);
-            
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+        const body = document.getElementById('history-body'); // Sicherstellen, dass die ID im HTML existiert
+        if(!body) return; 
+        
+        body.innerHTML = data.map(row => `
+            <tr>
                 <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
                 <td>${row.duration}h</td>
-                <td><span class="status-badge ${row.status === 'approved' ? 'approved' : 'pending'}">
-                    ${row.status === 'approved' ? 'OK' : 'Wartet'}
-                </span></td>
-            `;
-            body.appendChild(tr);
-        });
-
-        // Fortschrittsbalken aktualisieren
-        const percent = Math.min((totalApproved / 10) * 100, 100);
-        document.getElementById('p-bar').style.width = percent + '%';
-        document.getElementById('p-text').innerText = totalApproved + ' / 10h';
+                <td><span class="status-${row.status}">${row.status === 'approved' ? '✅' : '⏳'}</span></td>
+            </tr>
+        `).join('');
     }
 
-    async function sendData() {
-        const user = (await sb.auth.getUser()).data.user;
-        const { error } = await sb.from('work_hours').insert([{ 
-            user_id: user.id, 
-            duration: document.getElementById('hours').value, 
-            description: document.getElementById('activity').value + ': ' + document.getElementById('description').value, 
-            date: document.getElementById('date').value,
-            status: 'pending'
-        }]);
-
-        if (error) {
-            alert("Fehler: " + error.message);
-        } else {
-            alert("Erfolgreich gemeldet!");
-            document.getElementById('hours').value = "";
-            document.getElementById('description').value = "";
-            loadHistory();
-        }
+    // LOGOUT
+    async function doLogout() {
+        await sb.auth.signOut();
     }
-    let isStaff = false; // Speicher für die Berechtigung
 
-sb.auth.onAuthStateChange(async (event, session) => {
-    const authUI = document.getElementById('auth-ui');
-    const formUI = document.getElementById('form-ui');
-    const adminUI = document.getElementById('admin-ui');
-
-    if (session) {
-        authUI.style.display = 'none';
-        formUI.style.display = 'block';
-        document.getElementById('date').valueAsDate = new Date();
-        
-        // PRÜFUNG: Ist der User Funktionär oder Admin?
-        const { data: roleData } = await sb
-            .from('roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-
-        if (roleData && (roleData.role === 'admin' || roleData.role === 'funktionär')) {
-            isStaff = true;
-            adminUI.style.display = 'block';
-            loadAdminData();
-        } else {
-            isStaff = false;
-            adminUI.style.display = 'none';
-        }
-
-        loadHistory();
-    } else {
-        authUI.style.display = 'block';
-        formUI.style.display = 'none';
-        adminUI.style.display = 'none';
+    // LOGIN & SIGNUP (Platzhalter für deine Funktionen)
+    async function doLogin() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) alert(error.message);
     }
-});
 
-// Die Funktion approveHours muss auch prüfen, ob man es noch darf
-async function approveHours(id) {
-    if (!isStaff) return alert("Keine Berechtigung!");
-
-    const { error } = await sb
-        .from('work_hours')
-        .update({ status: 'approved' })
-        .eq('id', id);
-    
-    if(!error) {
-        alert("Stunden genehmigt!");
-        loadAdminData();
-        loadHistory();
+    async function doSignup() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { error } = await sb.auth.signUp({ email, password });
+        if (error) alert("Check deine E-Mails!");
     }
-}
 </script>
 </body>
 </html>
