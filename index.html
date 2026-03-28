@@ -509,6 +509,25 @@
         }
     }
 }
+    async function resetYearlyHours() {
+    const year = new Date().getFullYear();
+    if (!confirm(`Möchtest du wirklich alle Stunden für das Jahr ${year} abschließen? \n\nDie Stunden werden archiviert und die Zähler für alle Mitglieder werden auf 0 gesetzt.`)) return;
+
+    // Wir ändern den Status von 'approved' und 'rejected' auf 'archived'
+    const { error } = await sb
+        .from('work_hours')
+        .update({ status: 'archived' })
+        .not('status', 'eq', 'pending'); // Offene Anfragen lassen wir zur Sicherheit stehen
+
+    if (error) {
+        alert("Fehler beim Zurücksetzen: " + error.message);
+    } else {
+        alert("Jahresabschluss erfolgreich! Alle Konten stehen wieder auf 0.");
+        loadAdminStats();
+        loadAdminTasks();
+        loadHistory();
+    }
+}
 </script>
 </body>
 </html>
