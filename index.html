@@ -197,20 +197,44 @@
     }
 
     async function sendData() {
-        const h = document.getElementById('hours').value;
-        if (!h) return alert("Stunden eingeben!");
-        const { data: { user } } = await sb.auth.getUser();
-        await sb.from('work_hours').insert([{
-            user_id: user.id,
-            date: document.getElementById('date').value,
-            duration: parseFloat(h),
-            description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
-            status: 'pending'
-        }]);
-        alert("Gesendet!");
+    const h = document.getElementById('hours').value;
+    const date = document.getElementById('date').value;
+    const activity = document.getElementById('activity').value;
+    const desc = document.getElementById('description').value;
+
+    if (!h || !date) return alert("Bitte Datum und Stunden eingeben!");
+
+    // Button deaktivieren, um Mehrfachklicks zu verhindern
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    btn.innerText = "Wird gesendet...";
+
+    const { data: { user } } = await sb.auth.getUser();
+
+    // WICHTIG: Wir senden KEINE 'id' mit, die DB macht das von allein
+    const { error } = await sb.from('work_hours').insert([{
+        user_id: user.id,
+        date: date,
+        duration: parseFloat(h),
+        description: activity + ": " + desc,
+        status: 'pending'
+    }]);
+
+    if (error) {
+        console.error("Speicherfehler:", error);
+        alert("Fehler beim Speichern: " + error.message);
+        btn.disabled = false;
+        btn.innerText = "Stunden absenden";
+    } else {
+        alert("Stunden wurden zur Prüfung gesendet!");
+        // Formular leeren
         document.getElementById('hours').value = '';
+        document.getElementById('description').value = '';
+        btn.disabled = false;
+        btn.innerText = "Stunden absenden";
         loadHistory();
     }
+}
 
     async function loadHistory() {
         const { data: { user } } = await sb.auth.getUser();
