@@ -25,24 +25,25 @@
 
 <div class="card">
     <div id="auth-ui">
-    <h2>Anmelden / Registrieren</h2>
-    <div id="signup-fields" style="display:none;">
-        <input type="text" id="full_name" placeholder="Vor- und Nachname">
+        <h2 id="auth-title">Anmelden</h2>
+        
+        <div id="signup-fields" style="display:none;">
+            <input type="text" id="full_name" placeholder="Vor- und Nachname">
+        </div>
+
+        <input type="email" id="email" placeholder="E-Mail">
+        <input type="password" id="password" placeholder="Passwort">
+        
+        <div id="login-buttons">
+            <button onclick="doLogin()">Einloggen</button>
+            <button onclick="showSignup()" class="secondary">Neu registrieren?</button>
+        </div>
+        
+        <div id="signup-buttons" style="display:none;">
+            <button onclick="doSignup()">Konto erstellen</button>
+            <button onclick="showLogin()" class="secondary">Zurück zum Login</button>
+        </div>
     </div>
-    
-    <input type="email" id="email" placeholder="E-Mail">
-    <input type="password" id="password" placeholder="Passwort">
-    
-    <div id="login-buttons">
-        <button onclick="doLogin()">Einloggen</button>
-        <button onclick="showSignup()" class="secondary">Neu registrieren?</button>
-    </div>
-    
-    <div id="signup-buttons" style="display:none;">
-        <button onclick="doSignup()">Konto erstellen</button>
-        <button onclick="showLogin()" class="secondary">Zurück zum Login</button>
-    </div>
-</div>
 
     <div id="form-ui" style="display:none;">
         <h2>Stunden melden</h2>
@@ -95,7 +96,7 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
-    // Status-Überwachung
+    // AUTH STATUS
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
@@ -110,22 +111,70 @@
         }
     });
 
+    // NAVIGATION
+    function showSignup() {
+        document.getElementById('signup-fields').style.display = 'block';
+        document.getElementById('signup-buttons').style.display = 'block';
+        document.getElementById('login-buttons').style.display = 'none';
+        document.getElementById('auth-title').innerText = 'Registrieren';
+    }
+
+    function showLogin() {
+        document.getElementById('signup-fields').style.display = 'none';
+        document.getElementById('signup-buttons').style.display = 'none';
+        document.getElementById('login-buttons').style.display = 'block';
+        document.getElementById('auth-title').innerText = 'Anmelden';
+    }
+
+    // AUTH LOGIK
+    async function doLogin() {
+        const { error } = await sb.auth.signInWithPassword({ 
+            email: document.getElementById('email').value, 
+            password: document.getElementById('password').value 
+        });
+        if (error) alert("Login fehlgeschlagen: " + error.message);
+    }
+
+    async function doSignup() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const fullName = document.getElementById('full_name').value;
+
+        if (!fullName) return alert("Bitte Namen eingeben!");
+
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) {
+            alert(error.message);
+        } else if (data.user) {
+            // Namen in profiles Tabelle speichern
+            await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName }]);
+            alert("Erfolg! Bitte E-Mails bestätigen.");
+            showLogin();
+        }
+    }
+
+    async function doLogout() { await sb.auth.signOut(); }
+
     // ADMIN LOGIK
     async function checkAdminStatus(uid) {
-        // Nutzt deine 'roles' Tabelle
-        const { data, error } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
-        if (data && data.name && (data.name.toLowerCase() === 'admin' || data.name.toLowerCase() === 'funktionär')) {
+        const { data } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
+        if (data && (data.name.toLowerCase() === 'admin' || data.name.toLowerCase() === 'funktionär')) {
             document.getElementById('admin-ui').style.display = 'block';
             loadAdminTasks();
         }
     }
 
     async function loadAdminTasks() {
-        const { data } = await sb.from('work_hours').select('*').eq('status', 'pending');
+        // Lädt Stunden UND den Namen des Nutzers
+        const { data } = await sb.from('work_hours')
+            .select('id, date, duration, description, profiles(full_name)')
+            .eq('status', 'pending');
+
         const list = document.getElementById('admin-list');
         if (data && data.length > 0) {
             list.innerHTML = data.map(row => `
                 <div style="padding: 10px 0; border-bottom: 1px solid #ddd;">
+                    <strong>${row.profiles ? row.profiles.full_name : 'Unbekannt'}</strong><br>
                     <small>${row.date}</small> | <strong>${row.duration}h</strong><br>
                     <small>${row.description}</small><br>
                     <button onclick="approveEntry(${row.id})" style="width:auto; padding:5px 10px; font-size:0.7em; margin-top:5px;">Genehmigen</button>
@@ -142,40 +191,32 @@
         loadHistory();
     }
 
-    // NUTZER LOGIK
+    // USER LOGIK
     async function sendData() {
         const btn = document.getElementById('sendBtn');
         const hours = document.getElementById('hours').value;
-        if (!hours) return alert("Bitte Stunden eingeben!");
+        if (!hours) return alert("Stunden angeben!");
         btn.disabled = true;
-        btn.innerText = "Wird gesendet...";
 
-        try {
-            const { data: { user } } = await sb.auth.getUser();
-            const { error } = await sb.from('work_hours').insert([{
-                user_id: user.id,
-                date: document.getElementById('date').value,
-                duration: parseFloat(hours),
-                description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
-                status: 'pending'
-            }]);
-            if (error) throw error;
-            alert("Erfolgreich gesendet!");
-            document.getElementById('hours').value = '';
-            document.getElementById('description').value = '';
-            loadHistory();
-        } catch (err) {
-            alert("Fehler: " + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Stunden absenden";
-        }
+        const { data: { user } } = await sb.auth.getUser();
+        await sb.from('work_hours').insert([{
+            user_id: user.id,
+            date: document.getElementById('date').value,
+            duration: parseFloat(hours),
+            description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
+            status: 'pending'
+        }]);
+        
+        alert("Gesendet!");
+        document.getElementById('hours').value = '';
+        btn.disabled = false;
+        loadHistory();
     }
 
     async function loadHistory() {
         const { data: { user } } = await sb.auth.getUser();
-        const { data, error } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
-        if (!error) {
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
+        if (data) {
             let total = 0;
             const body = document.getElementById('history-body');
             body.innerHTML = data.map(row => {
@@ -190,27 +231,6 @@
             document.getElementById('p-bar').style.width = percent + '%';
             document.getElementById('p-text').innerText = total + ' / 10h';
         }
-    }
-
-    // AUTH FUNKTIONEN (Wichtig für den ReferenceError!)
-    async function doLogin() {
-        const { error } = await sb.auth.signInWithPassword({ 
-            email: document.getElementById('email').value, 
-            password: document.getElementById('password').value 
-        });
-        if (error) alert("Login fehlgeschlagen: " + error.message);
-    }
-
-    async function doSignup() {
-        const { error } = await sb.auth.signUp({ 
-            email: document.getElementById('email').value, 
-            password: document.getElementById('password').value 
-        });
-        if (error) alert(error.message); else alert("Check deine E-Mails zur Bestätigung!");
-    }
-
-    async function doLogout() {
-        await sb.auth.signOut();
     }
 </script>
 </body>
