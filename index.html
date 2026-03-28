@@ -1,189 +1,62 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <style>
-    /* Grundlayout */
-    body { 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-        padding: 20px; 
-        background: #f4f7f6; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        margin: 0;
-    }
-    
-    .card { 
-        background: white; 
-        padding: 20px; 
-        border-radius: 12px; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-        width: 100%; 
-        max-width: 450px; 
-        box-sizing: border-box;
-    }
-
-    /* Formular-Elemente */
-    input, select, textarea, button { 
-        width: 100%; 
-        padding: 14px; 
-        margin: 10px 0; 
-        border: 1px solid #ddd; 
-        border-radius: 8px; 
-        box-sizing: border-box; 
-        font-size: 16px; /* Verhindert Auto-Zoom auf iPhones */
-    }
-    
-    label { 
-        font-size: 0.9em; 
-        font-weight: bold; 
-        color: #444; 
-        margin-top: 12px; 
-        display: block; 
-    }
-
-    /* Buttons */
-    button { 
-        background: #2e7d32; 
-        color: white; 
-        border: none; 
-        font-weight: bold; 
-        cursor: pointer; 
-        transition: background 0.2s;
-    }
-    
-    button:active { background: #1b5e20; }
-    
-    button:disabled { 
-        background: #ccc; 
-        cursor: not-allowed; 
-    }
-    
-    .secondary { 
-        background: #f5f5f5; 
-        color: #444; 
-        border: 1px solid #ddd; 
-        margin-top: 10px; 
-    }
-
-    /* Fortschrittsbalken */
-    .progress-container { 
-        background: #eee; 
-        border-radius: 20px; 
-        height: 28px; 
-        width: 100%; 
-        margin: 20px 0; 
-        overflow: hidden; 
-        position: relative; 
-        border: 1px solid #ddd;
-    }
-    
-    .progress-bar { 
-        background: #2e7d32; 
-        height: 100%; 
-        width: 0%; 
-        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
-    }
-    
-    .progress-text { 
-        position: absolute; 
-        width: 100%; 
-        text-align: center; 
-        line-height: 28px; 
-        font-size: 0.9em; 
-        font-weight: bold; 
-        color: #000; 
-        text-shadow: 0 0 2px rgba(255,255,255,0.5);
-    }
-
-    /* Tabellen */
-    table
-        <div style="margin-top: 20px;">
-    <button onclick="toggleArchiv()" class="secondary" style="font-size: 0.8em; padding: 8px;">📁 Archiv (Vorjahre) anzeigen/verbergen</button>
-    <div id="archiv-ui" style="display:none; margin-top: 10px;">
-        <table style="background: #eee; border-radius: 8px;">
-            <thead><tr><th>Datum</th><th>Std.</th><th>Info</th></tr></thead>
-            <tbody id="archiv-body"></tbody>
-        </table>
-    </div>
-</div>
-        
-        { 
-        width: 100%; 
-        border-collapse: collapse; 
-        margin-top: 15px; 
-    }
-    
-    th, td { 
-        border-bottom: 1px solid #eee; 
-        padding: 12px 8px; 
-        text-align: left; 
-    }
-    
-    /* Abgelehnte Einträge & Tooltip-Feeling */
-    .rejected-row { 
-        background-color: #fff5f5; 
-    }
-    
-    .reason-text { 
-        font-size: 0.8em; 
-        color: #c62828; 
-        display: block; 
-        font-style: italic; 
-        margin-top: 4px;
-    }
-    
-    span[title] { 
-        cursor: help; 
-        text-decoration: underline dotted #ccc; 
-    }
-
-    /* Admin-Bereich */
-    .admin-box { 
-        border: 2px solid #2e7d32; 
-        padding: 15px; 
-        margin-top: 25px; 
-        border-radius: 12px; 
-        background: #f1f8e9; 
-        width: 100%; 
-        box-sizing: border-box; 
-    }
-    
-    .stats-table th { 
-        background: #2e7d32; 
-        color: white; 
-        border-radius: 4px;
-    }
-
-    /* Mobile Optimierung */
-    @media (max-width: 480px) {
-        body { padding: 10px; }
-        .card { border-radius: 0; box-shadow: none; background: transparent; }
-    }
-</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stundenmeldung - Hubertus Strullendorf</title>
     <link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="icon.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
-        input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
+        /* Grundlayout */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            padding: 20px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0;
+        }
+        .card { 
+            background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+            width: 100%; max-width: 450px; box-sizing: border-box; 
+        }
+
+        /* Formular-Elemente */
+        input, select, textarea, button { 
+            width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; 
+            box-sizing: border-box; font-size: 16px; 
+        }
+        label { font-size: 0.9em; font-weight: bold; color: #444; margin-top: 12px; display: block; }
+
+        /* Buttons */
+        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:active { background: #1b5e20; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        .secondary { background: #666; margin-top: 10px; }
-        label { font-size: 0.85em; font-weight: bold; color: #555; margin-top: 10px; display: block; }
-        .progress-container { background: #eee; border-radius: 10px; height: 25px; width: 100%; margin: 15px 0; overflow: hidden; position: relative; }
-        .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.5s; }
-        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-size: 0.8em; font-weight: bold; color: #000; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
-        th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
-        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; width: 100%; box-sizing: border-box; }
+        .secondary { background: #f5f5f5; color: #444; border: 1px solid #ddd; margin-top: 10px; }
+        .btn-danger { background: #b71c1c !important; }
+
+        /* Fortschrittsbalken */
+        .progress-container { 
+            background: #eee; border-radius: 20px; height: 28px; width: 100%; margin: 20px 0; 
+            overflow: hidden; position: relative; border: 1px solid #ddd;
+        }
+        .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 28px; font-size: 0.9em; font-weight: bold; color: #000; }
+
+        /* Tabellen */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
+        .rejected-row { background-color: #fff5f5; }
+        .reason-text { font-size: 0.8em; color: #c62828; display: block; font-style: italic; margin-top: 4px; }
+
+        /* Admin-Bereich */
+        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 25px; border-radius: 12px; background: #f1f8e9; width: 100%; box-sizing: border-box; }
         .stats-table th { background: #2e7d32; color: white; }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .card { border-radius: 0; box-shadow: none; background: transparent; }
+        }
     </style>
 </head>
 <body>
@@ -239,6 +112,16 @@
             <tbody id="history-body"></tbody>
         </table>
 
+        <div style="margin-top: 20px;">
+            <button onclick="toggleArchiv()" class="secondary" style="font-size: 0.8em; padding: 8px;">📁 Archiv (Vorjahre) anzeigen/verbergen</button>
+            <div id="archiv-ui" style="display:none; margin-top: 10px;">
+                <table style="background: #eee; border-radius: 8px;">
+                    <thead><tr><th>Datum</th><th>Std.</th><th>Info</th></tr></thead>
+                    <tbody id="archiv-body"></tbody>
+                </table>
+            </div>
+        </div>
+
         <div id="admin-ui" class="admin-box" style="display:none;">
             <h3>🛡️ Admin-Bereich</h3>
             <p><strong>Offene Bestätigungen:</strong></p>
@@ -249,6 +132,9 @@
                 <thead><tr><th>Name</th><th>Gesamt</th></tr></thead>
                 <tbody id="admin-stats-body"></tbody>
             </table>
+
+            <hr style="margin-top:20px;">
+            <button onclick="resetYearlyHours()" class="btn-danger" style="font-size:0.8em;">⚠️ Jahresabschluss: Alle Stunden archivieren</button>
         </div>
 
         <button onclick="doLogout()" class="secondary" style="margin-top:30px;">Abmelden</button>
@@ -260,6 +146,7 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
+    // Auth Listener
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
@@ -273,20 +160,19 @@
         }
     });
 
+    // Login & Signup Logik
     function showSignup() {
         document.getElementById('signup-fields').style.display = 'block';
         document.getElementById('signup-buttons').style.display = 'block';
         document.getElementById('login-buttons').style.display = 'none';
         document.getElementById('auth-title').innerText = 'Konto erstellen';
     }
-
     function showLogin() {
         document.getElementById('signup-fields').style.display = 'none';
         document.getElementById('signup-buttons').style.display = 'none';
         document.getElementById('login-buttons').style.display = 'block';
         document.getElementById('auth-title').innerText = 'Anmelden';
     }
-
     async function doLogin() {
         const { error } = await sb.auth.signInWithPassword({ 
             email: document.getElementById('email').value, 
@@ -294,13 +180,11 @@
         });
         if (error) alert("Fehler: " + error.message);
     }
-
     async function doSignup() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const fullName = document.getElementById('full_name').value;
         if (!fullName) return alert("Name fehlt!");
-
         const { data, error } = await sb.auth.signUp({ email, password });
         if (error) alert(error.message);
         else {
@@ -309,81 +193,51 @@
             showLogin();
         }
     }
-
     async function doLogout() { await sb.auth.signOut(); }
 
-   async function checkAdminStatus(uid) {
-    const adminBox = document.getElementById('admin-ui');
-    
-    // Erstmal sicherheitshalber verstecken
-    adminBox.style.display = 'none';
-
-    const { data, error } = await sb
-        .from('roles')
-        .select('name')
-        .eq('user_id', uid)
-        .maybeSingle();
-
-    if (error) {
-        console.error("Fehler bei Rollenabfrage:", error);
-        return;
+    // Admin Logik
+    async function checkAdminStatus(uid) {
+        const { data } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
+        if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
+            document.getElementById('admin-ui').style.display = 'block';
+            loadAdminTasks();
+            loadAdminStats();
+        }
     }
 
-    // Nur wenn die Rolle exakt passt, einblenden
-    if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
-        adminBox.style.display = 'block';
-        loadAdminTasks();
-        loadAdminStats();
-    } else {
-        console.log("Keine Admin-Rechte für diesen Account.");
-    }
-}
     async function loadAdminTasks() {
-    const { data } = await sb.from('work_hours')
-        .select('id, date, duration, description, profiles(full_name)')
-        .eq('status', 'pending');
-
-    const list = document.getElementById('admin-list');
-    if (data && data.length > 0) {
-        list.innerHTML = data.map(row => `
-            <div style="padding:15px; background:white; border-radius:8px; margin-bottom:12px; border:1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <strong>👤 ${row.profiles?.full_name || 'Unbekannt'}</strong><br>
-                <small>${new Date(row.date).toLocaleDateString('de-DE')}</small> | <strong>${row.duration}h</strong><br>
-                <p style="margin:8px 0; font-size:0.9em; color: #555;">${row.description}</p>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:8px 15px; font-size:0.85em; background:#2e7d32;">Bestätigen</button>
-                    <button onclick="rejectEntry(${row.id})" style="width:auto; padding:8px 15px; font-size:0.85em; background:#d32f2f;">Ablehnen</button>
+        const { data } = await sb.from('work_hours').select('id, date, duration, description, profiles(full_name)').eq('status', 'pending');
+        const list = document.getElementById('admin-list');
+        if (data && data.length > 0) {
+            list.innerHTML = data.map(row => `
+                <div style="padding:15px; background:white; border-radius:8px; margin-bottom:12px; border:1px solid #ddd;">
+                    <strong>👤 ${row.profiles?.full_name || 'Unbekannt'}</strong><br>
+                    <small>${new Date(row.date).toLocaleDateString('de-DE')}</small> | <strong>${row.duration}h</strong><br>
+                    <p style="margin:8px 0; font-size:0.9em; color: #555;">${row.description}</p>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="approveEntry(${row.id})" style="width:auto; padding:8px; background:#2e7d32;">Bestätigen</button>
+                        <button onclick="rejectEntry(${row.id})" style="width:auto; padding:8px; background:#d32f2f;">Ablehnen</button>
+                    </div>
                 </div>
-            </div>
-        `).join('');
-    } else { 
-        list.innerHTML = "<p style='color: #666;'>Keine offenen Anfragen.</p>"; 
+            `).join('');
+        } else { list.innerHTML = "<p>Keine offenen Anfragen.</p>"; }
     }
-}
 
-   async function rejectEntry(id) {
-    const reason = prompt("Grund für die Ablehnung eingeben:");
-    if (reason === null) return; // Abbrechen, falls der Admin das Fenster schließt
-
-    const { error } = await sb
-        .from('work_hours')
-        .update({ 
-            status: 'rejected',
-            description: reason ? "❌ ABGELEHNT: " + reason : "Abgelehnt durch Admin" 
-        })
-        .eq('id', id);
-
-    if (error) {
-        alert("Fehler beim Ablehnen: " + error.message);
-    } else {
-        loadAdminTasks();
-        loadAdminStats();
+    async function approveEntry(id) {
+        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        loadAdminTasks(); loadAdminStats(); loadHistory();
     }
-}
+
+    async function rejectEntry(id) {
+        const reason = prompt("Grund für die Ablehnung:");
+        if (reason === null) return;
+        await sb.from('work_hours').update({ status: 'rejected', description: reason }).eq('id', id);
+        loadAdminTasks(); loadAdminStats(); loadHistory();
+    }
+
     async function loadAdminStats() {
         const { data: profiles } = await sb.from('profiles').select('id, full_name');
         const { data: hours } = await sb.from('work_hours').select('user_id, duration').eq('status', 'approved');
-        
         const statsBody = document.getElementById('admin-stats-body');
         if (profiles) {
             statsBody.innerHTML = profiles.map(p => {
@@ -393,161 +247,86 @@
         }
     }
 
-    async function approveEntry(id) {
-    // 1. Status in der Datenbank aktualisieren
-    const { error } = await sb
-        .from('work_hours')
-        .update({ status: 'approved' })
-        .eq('id', id);
-
-    if (error) {
-        console.error("Fehler beim Bestätigen:", error);
-        alert("Fehler: " + error.message);
-    } else {
-        // 2. Ansicht sofort aktualisieren
-        console.log("Eintrag " + id + " wurde bestätigt.");
-        loadAdminTasks(); // Liste der offenen Aufgaben neu laden
-        loadAdminStats(); // Mitglieder-Statistik neu berechnen
-        loadHistory();    // Eigene Historie/Fortschrittsbalken aktualisieren
-    }
-}
-
+    // User Logik
     async function sendData() {
-    const h = document.getElementById('hours').value;
-    const date = document.getElementById('date').value;
-    const activity = document.getElementById('activity').value;
-    const desc = document.getElementById('description').value;
-
-    if (!h || !date) return alert("Bitte Datum und Stunden eingeben!");
-
-    // Button deaktivieren, um Mehrfachklicks zu verhindern
-    const btn = document.getElementById('sendBtn');
-    btn.disabled = true;
-    btn.innerText = "Wird gesendet...";
-
-    const { data: { user } } = await sb.auth.getUser();
-
-    // WICHTIG: Wir senden KEINE 'id' mit, die DB macht das von allein
-    const { error } = await sb.from('work_hours').insert([{
-        user_id: user.id,
-        date: date,
-        duration: parseFloat(h),
-        description: activity + ": " + desc,
-        status: 'pending'
-    }]);
-
-    if (error) {
-        console.error("Speicherfehler:", error);
-        alert("Fehler beim Speichern: " + error.message);
-        btn.disabled = false;
-        btn.innerText = "Stunden absenden";
-    } else {
-        alert("Stunden wurden zur Prüfung gesendet!");
-        // Formular leeren
-        document.getElementById('hours').value = '';
-        document.getElementById('description').value = '';
-        btn.disabled = false;
-        btn.innerText = "Stunden absenden";
+        const h = document.getElementById('hours').value;
+        const date = document.getElementById('date').value;
+        const activity = document.getElementById('activity').value;
+        const desc = document.getElementById('description').value;
+        if (!h || !date) return alert("Bitte Daten ausfüllen!");
+        
+        const { data: { user } } = await sb.auth.getUser();
+        await sb.from('work_hours').insert([{ 
+            user_id: user.id, date: date, duration: parseFloat(h), 
+            description: activity + ": " + desc, status: 'pending' 
+        }]);
+        alert("Abgesendet!");
+        document.getElementById('hours').value = ''; document.getElementById('description').value = '';
         loadHistory();
     }
-}
 
-  async function loadHistory() {
-    const { data: { user } } = await sb.auth.getUser();
-    const { data } = await sb.from('work_hours')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
+    async function loadHistory() {
+        const { data: { user } } = await sb.auth.getUser();
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
 
-    if (data) {
-        let total = 0;
-        const historyBody = document.getElementById('history-body');
-        const archivBody = document.getElementById('archiv-body');
-        
-        // Aktuelle Liste (Approved, Pending, Rejected)
-        const currentData = data.filter(row => row.status !== 'archived');
-        // Archiv Liste
-        const archivedData = data.filter(row => row.status === 'archived');
+        if (data) {
+            let total = 0;
+            const currentData = data.filter(row => row.status !== 'archived');
+            const archivedData = data.filter(row => row.status === 'archived');
 
-        historyBody.innerHTML = currentData.map(row => {
-            if (row.status === 'approved') total += row.duration;
-            const isRejected = row.status === 'rejected';
-            let statusIcon = row.status === 'approved' ? '✅' : (isRejected ? '❌' : '⏳');
+            document.getElementById('history-body').innerHTML = currentData.map(row => {
+                if (row.status === 'approved') total += row.duration;
+                const isRejected = row.status === 'rejected';
+                let icon = row.status === 'approved' ? '✅' : (isRejected ? '❌' : '⏳');
+                
+                return `
+                    <tr class="${isRejected ? 'rejected-row' : ''}">
+                        <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+                        <td>${row.duration}h</td>
+                        <td>
+                            ${icon}
+                            ${isRejected ? `<br><span class="reason-text">${row.description}</span>
+                            <button onclick="editEntry(${row.id}, '${row.date}', ${row.duration}, '${row.description.replace(/'/g, "\\'")}')" 
+                                    style="width:auto; padding:4px 8px; font-size:0.7em; margin-top:5px; background:#666;">Bearbeiten</button>` : ''}
+                        </td>
+                    </tr>`;
+            }).join('');
 
-            return `
-                <tr class="${isRejected ? 'rejected-row' : ''}">
+            document.getElementById('archiv-body').innerHTML = archivedData.map(row => `
+                <tr style="color: #666;">
                     <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
                     <td>${row.duration}h</td>
-                    <td>
-                        ${statusIcon}
-                        ${isRejected ? `<br><span class="reason-text">${row.description}</span>` : ''}
-                    </td>
-                </tr>`;
-        }).join('');
+                    <td>📦 Archiv</td>
+                </tr>
+            `).join('') || '<tr><td colspan="3">Leer</td></tr>';
 
-        // Archiv befüllen
-        archivBody.innerHTML = archivedData.map(row => `
-            <tr style="color: #666;">
-                <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
-                <td>${row.duration}h</td>
-                <td>📦 Archiv</td>
-            </tr>
-        `).join('') || '<tr><td colspan="3">Keine archivierten Daten.</td></tr>';
-        
-        // Fortschrittsbalken (nur aktuelle approved Stunden)
-        const p = Math.min((total / 10) * 100, 100);
-        document.getElementById('p-bar').style.width = p + '%';
-        document.getElementById('p-text').innerText = total + ' / 10h';
-    }
-}
-
-// Archiv ein/ausblenden
-function toggleArchiv() {
-    const div = document.getElementById('archiv-ui');
-    div.style.display = div.style.display === 'none' ? 'block' : 'none';
-}
-    async function editEntry(id, oldDate, oldDuration, oldDesc) {
-    // 1. Werte ins Formular oben eintragen
-    document.getElementById('date').value = oldDate;
-    document.getElementById('hours').value = oldDuration;
-    
-    // Den "ABGELEHNT"-Teil aus der Beschreibung entfernen, falls vorhanden
-    const cleanDesc = oldDesc.replace(/❌ ABGELEHNT: /g, "").split(": ").pop();
-    document.getElementById('description').value = cleanDesc;
-
-    // 2. Den alten (abgelehnten) Eintrag aus der DB löschen, 
-    // damit er beim erneuten Absenden nicht doppelt vorhanden ist
-    if(confirm("Die alten Daten wurden ins Formular geladen. Der ursprüngliche (abgelehnte) Eintrag wird jetzt entfernt. Einverstanden?")) {
-        const { error } = await sb.from('work_hours').delete().eq('id', id);
-        if (error) {
-            alert("Fehler beim Entfernen des alten Eintrags: " + error.message);
-        } else {
-            // Seite nach oben scrollen zum Formular
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            loadHistory();
-            alert("Daten geladen! Du kannst sie jetzt korrigieren und neu absenden.");
+            const p = Math.min((total / 10) * 100, 100);
+            document.getElementById('p-bar').style.width = p + '%';
+            document.getElementById('p-text').innerText = total + ' / 10h';
         }
     }
-}
-    async function resetYearlyHours() {
-    const year = new Date().getFullYear();
-    if (!confirm(`Möchtest du wirklich alle Stunden für das Jahr ${year} abschließen? \n\nDie Stunden werden archiviert und die Zähler für alle Mitglieder werden auf 0 gesetzt.`)) return;
 
-    // Wir ändern den Status von 'approved' und 'rejected' auf 'archived'
-    const { error } = await sb
-        .from('work_hours')
-        .update({ status: 'archived' })
-        .not('status', 'eq', 'pending'); // Offene Anfragen lassen wir zur Sicherheit stehen
-
-    if (error) {
-        alert("Fehler beim Zurücksetzen: " + error.message);
-    } else {
-        alert("Jahresabschluss erfolgreich! Alle Konten stehen wieder auf 0.");
-        loadAdminStats();
-        loadAdminTasks();
-        loadHistory();
+    function toggleArchiv() {
+        const div = document.getElementById('archiv-ui');
+        div.style.display = div.style.display === 'none' ? 'block' : 'none';
     }
-}
+
+    async function editEntry(id, oldDate, oldDuration, oldDesc) {
+        document.getElementById('date').value = oldDate;
+        document.getElementById('hours').value = oldDuration;
+        document.getElementById('description').value = oldDesc;
+        if(confirm("Alten Eintrag löschen und Daten ins Formular laden?")) {
+            await sb.from('work_hours').delete().eq('id', id);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            loadHistory();
+        }
+    }
+
+    async function resetYearlyHours() {
+        if (!confirm("Alle bestätigten/abgelehnten Stunden jetzt archivieren? Der Zähler geht auf 0.")) return;
+        await sb.from('work_hours').update({ status: 'archived' }).neq('status', 'pending');
+        loadAdminStats(); loadAdminTasks(); loadHistory();
+    }
 </script>
 </body>
 </html>
