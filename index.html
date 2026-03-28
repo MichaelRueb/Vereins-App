@@ -289,19 +289,38 @@
 }
 
     async function loadHistory() {
-        const { data: { user } } = await sb.auth.getUser();
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
-        if (data) {
-            let total = 0;
-            document.getElementById('history-body').innerHTML = data.map(row => {
-                if (row.status === 'approved') total += row.duration;
-                return `<tr><td>${new Date(row.date).toLocaleDateString('de-DE')}</td><td>${row.duration}h</td><td>${row.status === 'approved' ? '✅' : '⏳'}</td></tr>`;
-            }).join('');
-            const p = Math.min((total / 10) * 100, 100);
-            document.getElementById('p-bar').style.width = p + '%';
-            document.getElementById('p-text').innerText = total + ' / 10h';
-        }
+    const { data: { user } } = await sb.auth.getUser();
+    const { data } = await sb.from('work_hours')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+    if (data) {
+        let total = 0;
+        document.getElementById('history-body').innerHTML = data.map(row => {
+            if (row.status === 'approved') total += row.duration;
+            
+            // Status-Symbol bestimmen
+            let statusIcon = '⏳'; // Standard: Wartend
+            if (row.status === 'approved') statusIcon = '✅';
+            if (row.status === 'rejected') statusIcon = '❌';
+
+            return `
+                <tr>
+                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+                    <td>${row.duration}h</td>
+                    <td>
+                        <span title="${row.description}">${statusIcon}</span>
+                    </td>
+                </tr>`;
+        }).join('');
+        
+        // Fortschrittsbalken aktualisieren
+        const p = Math.min((total / 10) * 100, 100);
+        document.getElementById('p-bar').style.width = p + '%';
+        document.getElementById('p-text').innerText = total + ' / 10h';
     }
+}
 </script>
 </body>
 </html>
