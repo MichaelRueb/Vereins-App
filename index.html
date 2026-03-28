@@ -462,22 +462,51 @@
             if (isRejected) statusIcon = '❌';
 
             return `
-                <tr class="${isRejected ? 'rejected-row' : ''}">
-                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
-                    <td>${row.duration}h</td>
-                    <td>
-                        <div style="display: flex; flex-direction: column; align-items: flex-start;">
-                            <span>${statusIcon}</span>
-                            ${isRejected ? `<span class="reason-text">${row.description}</span>` : ''}
-                        </div>
-                    </td>
-                </tr>`;
+    <tr class="${isRejected ? 'rejected-row' : ''}">
+        <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+        <td>${row.duration}h</td>
+        <td>
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <span>${statusIcon}</span>
+                ${isRejected ? `
+                    <span class="reason-text">${row.description}</span>
+                    <button onclick="editEntry(${row.id}, '${row.date}', ${row.duration}, '${row.description.replace(/'/g, "\\'")}')" 
+                            style="width:auto; padding:4px 8px; font-size:0.7em; margin-top:5px; background:#666;">
+                        Bearbeiten
+                    </button>
+                ` : ''}
+            </div>
+        </td>
+    </tr>`;
         }).join('');
         
         // Fortschrittsbalken
         const p = Math.min((total / 10) * 100, 100);
         document.getElementById('p-bar').style.width = p + '%';
         document.getElementById('p-text').innerText = total + ' / 10h';
+    }
+}
+    async function editEntry(id, oldDate, oldDuration, oldDesc) {
+    // 1. Werte ins Formular oben eintragen
+    document.getElementById('date').value = oldDate;
+    document.getElementById('hours').value = oldDuration;
+    
+    // Den "ABGELEHNT"-Teil aus der Beschreibung entfernen, falls vorhanden
+    const cleanDesc = oldDesc.replace(/❌ ABGELEHNT: /g, "").split(": ").pop();
+    document.getElementById('description').value = cleanDesc;
+
+    // 2. Den alten (abgelehnten) Eintrag aus der DB löschen, 
+    // damit er beim erneuten Absenden nicht doppelt vorhanden ist
+    if(confirm("Die alten Daten wurden ins Formular geladen. Der ursprüngliche (abgelehnte) Eintrag wird jetzt entfernt. Einverstanden?")) {
+        const { error } = await sb.from('work_hours').delete().eq('id', id);
+        if (error) {
+            alert("Fehler beim Entfernen des alten Eintrags: " + error.message);
+        } else {
+            // Seite nach oben scrollen zum Formular
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            loadHistory();
+            alert("Daten geladen! Du kannst sie jetzt korrigieren und neu absenden.");
+        }
     }
 }
 </script>
