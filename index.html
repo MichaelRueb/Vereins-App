@@ -97,7 +97,18 @@
     }
 
     /* Tabellen */
-    table { 
+    table
+        <div style="margin-top: 20px;">
+    <button onclick="toggleArchiv()" class="secondary" style="font-size: 0.8em; padding: 8px;">📁 Archiv (Vorjahre) anzeigen/verbergen</button>
+    <div id="archiv-ui" style="display:none; margin-top: 10px;">
+        <table style="background: #eee; border-radius: 8px;">
+            <thead><tr><th>Datum</th><th>Std.</th><th>Info</th></tr></thead>
+            <tbody id="archiv-body"></tbody>
+        </table>
+    </div>
+</div>
+        
+        { 
         width: 100%; 
         border-collapse: collapse; 
         margin-top: 15px; 
