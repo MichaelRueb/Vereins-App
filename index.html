@@ -114,26 +114,31 @@
     });
 
     async function loadTeams() {
-    try {
-        const { data, error } = await sb.from('teams').select('*').order('name');
-        if (error) throw error;
-        
-        const teamSelect = document.getElementById('profile-team-select');
-        const teamFilter = document.getElementById('team-filter');
-        
-        // Clear existing options except first
-        teamSelect.innerHTML = '<option value="">Keine Mannschaft</option>';
-        teamFilter.innerHTML = '<option value="my">Meine Mannschaft</option>';
-
-        if (data) {
-            data.forEach(t => {
-                teamSelect.add(new Option(t.name, t.id));
-                teamFilter.add(new Option(t.name, t.id));
-            });
-        }
-    } catch (err) {
-        console.error("Fehler beim Laden der Teams:", err);
+    console.log("Versuche Teams zu laden..."); // Test-Ausgabe
+    const { data, error } = await sb.from('teams').select('*').order('name');
+    
+    if (error) {
+        console.error("Fehler beim Laden:", error.message);
+        return;
     }
+
+    console.log("Daten empfangen:", data); // Hier sollten die 8 Teams stehen
+
+    const selects = [
+        document.getElementById('profile-team-select'), 
+        document.getElementById('team-filter')
+    ];
+
+    selects.forEach(s => {
+        if (!s) return;
+        s.innerHTML = s.id === 'team-filter' 
+            ? '<option value="my">Meine Mannschaft</option>' 
+            : '<option value="">Keine Mannschaft</option>';
+            
+        data.forEach(t => {
+            s.add(new Option(t.name, t.id));
+        });
+    });
 }
 
     async function loadUserData(uid) {
