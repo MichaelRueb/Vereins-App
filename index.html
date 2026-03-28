@@ -18,8 +18,7 @@
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-size: 0.8em; font-weight: bold; color: #000; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85em; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
-        /* Admin Styling */
-        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; }
+        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; width: 100%; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -55,7 +54,7 @@
             <option value="Sonstiges">Sonstiges</option>
         </select>
 
-        <label>Zusatzinfos / Freitext:</label>
+        <label>Zusatzinfos:</label>
         <textarea id="description" placeholder="Was genau hast du gemacht?"></textarea>
 
         <label>Stundenzahl:</label>
@@ -84,13 +83,13 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
+    // Status-Überwachung
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
             document.getElementById('form-ui').style.display = 'block';
             document.getElementById('date').valueAsDate = new Date();
             loadHistory();
-            // NEU: Admin Check aufrufen
             checkAdminStatus(session.user.id);
         } else {
             document.getElementById('auth-ui').style.display = 'block';
@@ -99,6 +98,78 @@
         }
     });
 
-    // NEU: Die Funktion für den Admin Check
+    // ADMIN LOGIK
     async function checkAdminStatus(uid) {
-        const { data, error } =
+        // Nutzt deine 'roles' Tabelle
+        const { data, error } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
+        if (data && data.name && (data.name.toLowerCase() === 'admin' || data.name.toLowerCase() === 'funktionär')) {
+            document.getElementById('admin-ui').style.display = 'block';
+            loadAdminTasks();
+        }
+    }
+
+    async function loadAdminTasks() {
+        const { data } = await sb.from('work_hours').select('*').eq('status', 'pending');
+        const list = document.getElementById('admin-list');
+        if (data && data.length > 0) {
+            list.innerHTML = data.map(row => `
+                <div style="padding: 10px 0; border-bottom: 1px solid #ddd;">
+                    <small>${row.date}</small> | <strong>${row.duration}h</strong><br>
+                    <small>${row.description}</small><br>
+                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:5px 10px; font-size:0.7em; margin-top:5px;">Genehmigen</button>
+                </div>
+            `).join('');
+        } else {
+            list.innerHTML = "Keine offenen Anfragen.";
+        }
+    }
+
+    async function approveEntry(id) {
+        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        loadAdminTasks();
+        loadHistory();
+    }
+
+    // NUTZER LOGIK
+    async function sendData() {
+        const btn = document.getElementById('sendBtn');
+        const hours = document.getElementById('hours').value;
+        if (!hours) return alert("Bitte Stunden eingeben!");
+        btn.disabled = true;
+        btn.innerText = "Wird gesendet...";
+
+        try {
+            const { data: { user } } = await sb.auth.getUser();
+            const { error } = await sb.from('work_hours').insert([{
+                user_id: user.id,
+                date: document.getElementById('date').value,
+                duration: parseFloat(hours),
+                description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
+                status: 'pending'
+            }]);
+            if (error) throw error;
+            alert("Erfolgreich gesendet!");
+            document.getElementById('hours').value = '';
+            document.getElementById('description').value = '';
+            loadHistory();
+        } catch (err) {
+            alert("Fehler: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Stunden absenden";
+        }
+    }
+
+    async function loadHistory() {
+        const { data: { user } } = await sb.auth.getUser();
+        const { data, error } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
+        if (!error) {
+            let total = 0;
+            const body = document.getElementById('history-body');
+            body.innerHTML = data.map(row => {
+                if (row.status === 'approved') total += parseFloat(row.duration);
+                return `<tr>
+                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+                    <td>${row.duration}h</td>
+                    <td>${row.status === 'approved' ? '✅' : '⏳'}</td>
+                </tr>`;
