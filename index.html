@@ -115,7 +115,7 @@
 
     async function loadTeams() {
     console.log("Versuche Teams zu laden..."); // Test-Ausgabe
-    const { data, error } = await sb.from('teams').select('*').order('name');
+    const { data, error } = await sb.from('teams').select('id, name, shortcut').order('name');
     
     if (error) {
         console.error("Fehler beim Laden:", error.message);
