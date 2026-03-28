@@ -11,20 +11,13 @@
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
         .secondary { background: #666; margin-top: 10px; }
-        label { font-size: 0.85em; font-weight: bold; color: #555; }
-        
-        /* Progress Bar */
+        label { font-size: 0.85em; font-weight: bold; color: #555; margin-top: 10px; display: block; }
         .progress-container { background: #eee; border-radius: 10px; height: 25px; width: 100%; margin: 15px 0; overflow: hidden; position: relative; }
         .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.5s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 25px; font-size: 0.8em; font-weight: bold; color: #000; }
-
-        /* Tabelle */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85em; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
-        th { background: #f9f9f9; }
-        .status-badge { padding: 3px 7px; border-radius: 10px; font-size: 0.8em; }
-        .approved { background: #c8e6c9; color: #2e7d32; }
-        .pending { background: #fff9c4; color: #fbc02d; }
+        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 20px; border-radius: 10px; background: #e8f5e9; }
     </style>
 </head>
 <body>
@@ -60,25 +53,25 @@
             <option value="Sonstiges">Sonstiges</option>
         </select>
 
-        <label>Beschreibung (optional):</label>
-        <textarea id="description" placeholder="Details zur Arbeit..."></textarea>
+        <label>Zusatzinfos / Freitext:</label>
+        <textarea id="description" placeholder="Was genau hast du gemacht?"></textarea>
 
         <label>Stundenzahl:</label>
         <input type="number" id="hours" step="0.5" placeholder="z.B. 2.5">
 
-        <button onclick="sendData()">Stunden absenden</button>
+        <button id="sendBtn" onclick="sendData()">Stunden absenden</button>
         
+        <hr>
         <h3>Deine Meldungen</h3>
-        <table id="history-table">
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Std.</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
+        <table>
+            <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
             <tbody id="history-body"></tbody>
         </table>
+
+        <div id="admin-ui" class="admin-box" style="display:none;">
+            <h3>Admin: Bestätigungen</h3>
+            <div id="admin-list">Lade offene Anfragen...</div>
+        </div>
 
         <button onclick="doLogout()" class="secondary">Abmelden</button>
     </div>
@@ -86,51 +79,32 @@
 </div>
 
 <script>
-    // ### DEINE DATEN (Bitte prüfen!) ###
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
-    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; // Dein Anon Key
-    
+    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
-    let isStaff = false;
 
-    // Login-Status prüfen
     sb.auth.onAuthStateChange(async (event, session) => {
-        const authUI = document.getElementById('auth-ui');
-        const formUI = document.getElementById('form-ui');
-        const adminUI = document.getElementById('admin-ui');
-
         if (session) {
-            authUI.style.display = 'none';
-            formUI.style.display = 'block';
+            document.getElementById('auth-ui').style.display = 'none';
+            document.getElementById('form-ui').style.display = 'block';
             document.getElementById('date').valueAsDate = new Date();
             loadHistory();
 
-            // Admin-Prüfung (in einer Box, damit sie nichts blockiert)
             try {
-                const { data: roleData } = await sb
-                    .from('roles')
-                    .select('name') // WICHTIG: Deine Spalte heißt 'name'
-                    .eq('user_id', session.user.id)
-                    .maybeSingle();
-
+                const { data: roleData } = await sb.from('roles').select('name').eq('user_id', session.user.id).maybeSingle();
                 if (roleData && (roleData.name.toLowerCase() === 'admin' || roleData.name.toLowerCase() === 'funktionär')) {
-                    isStaff = true;
-                    if(adminUI) adminUI.style.display = 'block';
+                    document.getElementById('admin-ui').style.display = 'block';
                     loadAdminData();
                 }
-            } catch (err) {
-                console.warn("Rollenprüfung fehlgeschlagen, App läuft normal weiter.");
-            }
+            } catch (err) { console.warn("Admin-Check fehlgeschlagen"); }
         } else {
-            authUI.style.display = 'block';
-            formUI.style.display = 'none';
-            if(adminUI) adminUI.style.display = 'none';
+            document.getElementById('auth-ui').style.display = 'block';
+            document.getElementById('form-ui').style.display = 'none';
         }
     });
 
-    // STUNDEN ABSENDEN
     async function sendData() {
-        const btn = event.target;
+        const btn = document.getElementById('sendBtn');
         btn.disabled = true;
         btn.innerText = "Wird gesendet...";
 
@@ -139,65 +113,69 @@
             user_id: user.id,
             date: document.getElementById('date').value,
             duration: parseFloat(document.getElementById('hours').value),
-            description: document.getElementById('task').value, // Falls du das Feld 'activity' genannt hast, hier anpassen!
+            description: document.getElementById('activity').value + ": " + document.getElementById('description').value,
             status: 'pending'
         };
 
         const { error } = await sb.from('work_hours').insert([entry]);
 
-        if (error) {
-            alert("Fehler: " + error.message);
-        } else {
+        if (error) alert("Fehler: " + error.message);
+        else {
             alert("Erfolgreich gesendet!");
             document.getElementById('hours').value = '';
-            document.getElementById('task').value = '';
+            document.getElementById('description').value = '';
             loadHistory();
         }
         btn.disabled = false;
         btn.innerText = "Stunden absenden";
     }
 
-    // HISTORIE LADEN
     async function loadHistory() {
         const { data: { user } } = await sb.auth.getUser();
-        const { data, error } = await sb
-            .from('work_hours')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('date', { ascending: false });
+        const { data, error } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
 
-        if (error) return;
-        const body = document.getElementById('history-body'); // Sicherstellen, dass die ID im HTML existiert
-        if(!body) return; 
-        
-        body.innerHTML = data.map(row => `
-            <tr>
-                <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
-                <td>${row.duration}h</td>
-                <td><span class="status-${row.status}">${row.status === 'approved' ? '✅' : '⏳'}</span></td>
-            </tr>
-        `).join('');
+        if (!error) {
+            let total = 0;
+            document.getElementById('history-body').innerHTML = data.map(row => {
+                if(row.status === 'approved') total += parseFloat(row.duration);
+                return `<tr><td>${new Date(row.date).toLocaleDateString('de-DE')}</td><td>${row.duration}h</td><td>${row.status === 'approved' ? '✅' : '⏳'}</td></tr>`;
+            }).join('');
+            
+            const percent = Math.min((total / 10) * 100, 100);
+            document.getElementById('p-bar').style.width = percent + '%';
+            document.getElementById('p-text').innerText = total + ' / 10h';
+        }
     }
 
-    // LOGOUT
-    async function doLogout() {
-        await sb.auth.signOut();
+    async function loadAdminData() {
+        const { data, error } = await sb.from('work_hours').select('*').eq('status', 'pending');
+        if (!error) {
+            document.getElementById('admin-list').innerHTML = data.length === 0 ? "Keine offenen Anfragen." : data.map(row => `
+                <div style="border-bottom:1px solid #ccc; padding:5px;">
+                    ${row.date} - ${row.duration}h <br> ${row.description} <br>
+                    <button style="padding:5px; width:auto;" onclick="approve(${row.id})">Genehmigen</button>
+                </div>
+            `).join('');
+        }
     }
 
-    // LOGIN & SIGNUP (Platzhalter für deine Funktionen)
+    async function approve(id) {
+        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        loadAdminData();
+        loadHistory();
+    }
+
     async function doLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { error } = await sb.auth.signInWithPassword({ email, password });
+        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
         if (error) alert(error.message);
     }
 
     async function doSignup() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { error } = await sb.auth.signUp({ email, password });
-        if (error) alert("Check deine E-Mails!");
+        const { error } = await sb.auth.signUp({ email: document.getElementById('email').value, password: document.getElementById('password').value });
+        if (error) alert(error.message); else alert("Check deine E-Mails!");
     }
+
+    async function doLogout() { await sb.auth.signOut(); }
 </script>
 </body>
 </html>
