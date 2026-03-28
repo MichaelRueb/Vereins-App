@@ -149,25 +149,31 @@
     async function doLogout() { await sb.auth.signOut(); }
 
    async function checkAdminStatus(uid) {
+    const adminBox = document.getElementById('admin-ui');
+    
+    // Erstmal sicherheitshalber verstecken
+    adminBox.style.display = 'none';
+
     const { data, error } = await sb
         .from('roles')
         .select('name')
         .eq('user_id', uid)
         .maybeSingle();
 
-    const adminBox = document.getElementById('admin-ui');
+    if (error) {
+        console.error("Fehler bei Rollenabfrage:", error);
+        return;
+    }
 
+    // Nur wenn die Rolle exakt passt, einblenden
     if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
-        console.log("Admin-Zugriff gewährt für:", data.name);
         adminBox.style.display = 'block';
         loadAdminTasks();
         loadAdminStats();
     } else {
-        console.log("Admin-Zugriff verweigert.");
-        adminBox.style.display = 'none'; // Sicherstellen, dass es ausgeblendet bleibt
+        console.log("Keine Admin-Rechte für diesen Account.");
     }
 }
-
     async function loadAdminTasks() {
         // Dank Foreign Key können wir jetzt sauber joinen!
         const { data } = await sb.from('work_hours')
