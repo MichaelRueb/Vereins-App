@@ -173,3 +173,33 @@
                     <td>${row.duration}h</td>
                     <td>${row.status === 'approved' ? '✅' : '⏳'}</td>
                 </tr>`;
+            }).join('');
+            const percent = Math.min((total / 10) * 100, 100);
+            document.getElementById('p-bar').style.width = percent + '%';
+            document.getElementById('p-text').innerText = total + ' / 10h';
+        }
+    }
+
+    // AUTH FUNKTIONEN (Wichtig für den ReferenceError!)
+    async function doLogin() {
+        const { error } = await sb.auth.signInWithPassword({ 
+            email: document.getElementById('email').value, 
+            password: document.getElementById('password').value 
+        });
+        if (error) alert("Login fehlgeschlagen: " + error.message);
+    }
+
+    async function doSignup() {
+        const { error } = await sb.auth.signUp({ 
+            email: document.getElementById('email').value, 
+            password: document.getElementById('password').value 
+        });
+        if (error) alert(error.message); else alert("Check deine E-Mails zur Bestätigung!");
+    }
+
+    async function doLogout() {
+        await sb.auth.signOut();
+    }
+</script>
+</body>
+</html>
