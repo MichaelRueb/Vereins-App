@@ -169,22 +169,46 @@
     }
 
     async function loadHistory() {
-        const { data: { user } } = await sb.auth.getUser();
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', user.id).neq('status', 'archived').order('date', { ascending: false });
-        let total = 0;
-        document.getElementById('history-body').innerHTML = data.map(row => {
+    const { data: { user } } = await sb.auth.getUser();
+    // Wir laden die Daten (ohne archivierte)
+    const { data } = await sb.from('work_hours')
+        .select('*')
+        .eq('user_id', user.id)
+        .neq('status', 'archived')
+        .order('date', { ascending: false });
+
+    let total = 0;
+    const historyBody = document.getElementById('history-body');
+    
+    if (data) {
+        historyBody.innerHTML = data.map(row => {
             if (row.status === 'approved') total += row.duration;
             const isRej = row.status === 'rejected';
-            return `<tr class="${isRej ? 'rejected-row' : ''}">
-                <td>${row.date}</td><td>${row.duration}h</td>
-                <td>${row.status === 'approved' ? '✅' : (isRej ? '❌' : '⏳')}
-                ${isRej ? `<button onclick="editRej(${row.id},'${row.date}',${row.duration},'${row.description}')" style="width:auto;padding:2px 5px;font-size:0.7em;">📝</button>` : ''}
-                </td></tr>`;
+            
+            return `
+                <tr class="${isRej ? 'rejected-row' : ''}">
+                    <td>${new Date(row.date).toLocaleDateString('de-DE')}</td>
+                    <td>${row.duration}h</td>
+                    <td>
+                        ${row.status === 'approved' ? '✅' : (isRej ? '❌' : '⏳')}
+                        
+                        ${isRej ? `
+                            <div class="reason-text">${row.description}</div>
+                            <button onclick="editRej(${row.id},'${row.date}',${row.duration},'${row.description.replace(/'/g, "\\'")}')" 
+                                    style="width:auto; padding:4px 8px; font-size:0.7em; margin-top:5px; background:#666;">
+                                📝 Korrigieren
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>`;
         }).join('');
-        const p = Math.min((total / 10) * 100, 100);
-        document.getElementById('p-bar').style.width = p + '%';
-        document.getElementById('p-text').innerText = total + ' / 10h';
     }
+
+    // Progress Bar Update
+    const p = Math.min((total / 10) * 100, 100);
+    document.getElementById('p-bar').style.width = p + '%';
+    document.getElementById('p-text').innerText = total + ' / 10h';
+}
 
     async function editRej(id, d, h, desc) {
         if(!confirm("Eintrag löschen und neu bearbeiten?")) return;
