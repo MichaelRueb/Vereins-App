@@ -7,56 +7,32 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <link rel="apple-touch-icon" href="icon.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* Grundlayout */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            padding: 20px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0;
-        }
-        .card { 
-            background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-            width: 100%; max-width: 450px; box-sizing: border-box; 
-        }
-
-        /* Formular-Elemente */
-        input, select, textarea, button { 
-            width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; 
-            box-sizing: border-box; font-size: 16px; 
-        }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 450px; box-sizing: border-box; }
+        input, select, textarea, button { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         label { font-size: 0.9em; font-weight: bold; color: #444; margin-top: 12px; display: block; }
-
-        /* Buttons */
-        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        button:active { background: #1b5e20; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        .secondary { background: #f5f5f5; color: #444; border: 1px solid #ddd; margin-top: 10px; }
+        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
+        .secondary { background: #f5f5f5; color: #444; border: 1px solid #ddd; }
         .btn-danger { background: #b71c1c !important; color: white !important; }
+        
+        /* Progress Bar */
+        .progress-container { background: #eee; border-radius: 20px; height: 28px; width: 100%; margin: 20px 0; overflow: hidden; position: relative; border: 1px solid #ddd; }
+        .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.6s; }
+        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 28px; font-size: 0.9em; font-weight: bold; }
 
-        /* Fortschrittsbalken */
-        .progress-container { 
-            background: #eee; border-radius: 20px; height: 28px; width: 100%; margin: 20px 0; 
-            overflow: hidden; position: relative; border: 1px solid #ddd;
-        }
-        .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 28px; font-size: 0.9em; font-weight: bold; color: #000; }
-
-        /* Tabellen */
+        /* Tables */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
         th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
         .rejected-row { background-color: #fff5f5; }
-        .reason-text { font-size: 0.8em; color: #c62828; display: block; font-style: italic; margin-top: 4px; }
+        .reason-text { font-size: 0.8em; color: #c62828; display: block; font-style: italic; }
 
-        /* Admin-Bereich */
-        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 25px; border-radius: 12px; background: #f1f8e9; width: 100%; box-sizing: border-box; }
-        .stats-table th { background: #2e7d32; color: white; }
-
-        @media (max-width: 480px) {
-            body { padding: 10px; }
-            .card { border-radius: 0; box-shadow: none; background: transparent; }
-        }
+        /* Admin Area */
+        .admin-box { border: 2px solid #2e7d32; padding: 15px; margin-top: 25px; border-radius: 12px; background: #f1f8e9; width: 100%; }
+        .task-card { background: white; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; }
+        .admin-btns { display: flex; gap: 8px; }
     </style>
 </head>
 <body>
@@ -65,27 +41,25 @@
     <div id="auth-ui">
         <h2 id="auth-title">Anmelden</h2>
         <div id="signup-fields" style="display:none;">
-            <label>Dein Name:</label>
-            <input type="text" id="full_name" placeholder="Vor- und Nachname">
+            <label>Dein Name (Vor- & Nachname):</label>
+            <input type="text" id="full_name" placeholder="Max Mustermann">
         </div>
         <label>E-Mail:</label>
-        <input type="email" id="email" placeholder="beispiel@mail.de">
+        <input type="email" id="email">
         <label>Passwort:</label>
-        <input type="password" id="password" placeholder="******">
+        <input type="password" id="password">
         <div id="login-buttons">
             <button onclick="doLogin()">Einloggen</button>
-            <button onclick="showSignup()" class="secondary">Neues Konto erstellen</button>
+            <button onclick="showSignup()" class="secondary">Konto erstellen</button>
         </div>
         <div id="signup-buttons" style="display:none;">
-            <button onclick="doSignup()">Jetzt Registrieren</button>
-            <button onclick="showLogin()" class="secondary">Zurück zum Login</button>
+            <button onclick="doSignup()">Registrieren</button>
+            <button onclick="showLogin()" class="secondary">Zurück</button>
         </div>
     </div>
 
     <div id="form-ui" style="display:none;">
-        <h2 style="margin-bottom:0;">Stundenmeldung</h2>
-        <p style="margin-top:5px; color:#666;">Hubertus Strullendorf</p>
-
+        <h2>Stundenmeldung</h2>
         <div class="progress-container">
             <div id="p-bar" class="progress-bar"></div>
             <div id="p-text" class="progress-text">0 / 10h</div>
@@ -95,45 +69,35 @@
         <input type="date" id="date">
         <label>Tätigkeit:</label>
         <select id="activity">
-            <option value="Standreinigung">Standreinigung</option>
-            <option value="Fahnenabordnung">Fahnenabordnung</option>
-            <option value="Reinigungsarbeit">Reinigungsarbeit</option>
-            <option value="Helferdienst bei Festen">Helferdienst bei Festen</option>
-            <option value="Sonstiges">Sonstiges</option>
+            <option>Standreinigung</option>
+            <option>Fahnenabordnung</option>
+            <option>Reinigungsarbeit</option>
+            <option>Helferdienst bei Festen</option>
+            <option>Sonstiges</option>
         </select>
         <textarea id="description" placeholder="Zusatzinfos..."></textarea>
         <input type="number" id="hours" step="0.5" placeholder="Stunden (z.B. 2.5)">
-        <button id="sendBtn" onclick="sendData()">Absenden</button>
+        <button onclick="sendData()">Absenden</button>
         
         <hr>
-        <h3>Deine Meldungen</h3>
+        <h3>Deine Meldungen (Aktuell)</h3>
         <table>
             <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
             <tbody id="history-body"></tbody>
         </table>
 
-        <div style="margin-top: 20px;">
-            <button onclick="toggleArchiv()" class="secondary" style="font-size: 0.8em; padding: 8px;">📁 Archiv (Vorjahre) anzeigen</button>
-            <div id="archiv-ui" style="display:none; margin-top: 10px;">
-                <table>
-                    <thead><tr><th>Datum</th><th>Std.</th><th>Info</th></tr></thead>
-                    <tbody id="archiv-body"></tbody>
-                </table>
-            </div>
-        </div>
-
         <div id="admin-ui" class="admin-box" style="display:none;">
-            <h3>🛡️ Admin-Bereich</h3>
-            <p><strong>Offene Bestätigungen:</strong></p>
-            <div id="admin-list" style="font-size:0.9em;">Lade...</div>
+            <h3>🛡️ Verwaltung</h3>
+            <p><strong>Offene Aufgaben:</strong></p>
+            <div id="admin-list">Lade...</div>
             
-            <p style="margin-top:20px;"><strong>Mitglieder-Übersicht:</strong></p>
-            <table class="stats-table">
-                <thead><tr><th>Name</th><th>Gesamt</th></tr></thead>
+            <p style="margin-top:20px;"><strong>Mitglieder-Statistik:</strong></p>
+            <table>
+                <thead><tr><th>Name</th><th>Bestätigt</th></tr></thead>
                 <tbody id="admin-stats-body"></tbody>
             </table>
 
-            <button id="admin-reset-btn" onclick="resetYearlyHours()" class="btn-danger" style="display:none; margin-top:20px;">⚠️ Jahresabschluss: Stunden archivieren</button>
+            <button id="admin-reset-btn" onclick="resetYearlyHours()" class="btn-danger" style="display:none; margin-top:20px;">⚠️ Jahresabschluss machen</button>
         </div>
 
         <button onclick="doLogout()" class="secondary" style="margin-top:30px;">Abmelden</button>
@@ -145,169 +109,136 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
+    // Auth State
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             document.getElementById('auth-ui').style.display = 'none';
             document.getElementById('form-ui').style.display = 'block';
             document.getElementById('date').valueAsDate = new Date();
             loadHistory();
-            checkAdminStatus(session.user.id);
+            checkRole(session.user.id);
         } else {
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
         }
     });
 
-    // Auth Funktionen
-    function showSignup() {
-        document.getElementById('signup-fields').style.display = 'block';
-        document.getElementById('signup-buttons').style.display = 'block';
-        document.getElementById('login-buttons').style.display = 'none';
-        document.getElementById('auth-title').innerText = 'Konto erstellen';
-    }
-    function showLogin() {
-        document.getElementById('signup-fields').style.display = 'none';
-        document.getElementById('signup-buttons').style.display = 'none';
-        document.getElementById('login-buttons').style.display = 'block';
-        document.getElementById('auth-title').innerText = 'Anmelden';
-    }
-    async function doLogin() {
-        const { error } = await sb.auth.signInWithPassword({ 
-            email: document.getElementById('email').value, 
-            password: document.getElementById('password').value 
-        });
-        if (error) alert(error.message);
-    }
-    async function doSignup() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const fullName = document.getElementById('full_name').value;
-        if (!fullName) return alert("Name fehlt!");
-        const { data, error } = await sb.auth.signUp({ email, password });
-        if (error) alert(error.message);
-        else {
-            await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName }]);
-            alert("Registriert! Bitte E-Mail bestätigen.");
-            showLogin();
-        }
-    }
-    async function doLogout() { await sb.auth.signOut(); }
-
-    // Admin & Funktionär Logik
-    async function checkAdminStatus(uid) {
+    async function checkRole(uid) {
         const { data } = await sb.from('roles').select('name').eq('user_id', uid).maybeSingle();
         if (data && (data.name === 'Admin' || data.name === 'Funktionär')) {
             document.getElementById('admin-ui').style.display = 'block';
             loadAdminTasks();
             loadAdminStats();
-            if (data.name === 'Admin') {
-                document.getElementById('admin-reset-btn').style.display = 'block';
-            }
+            if (data.name === 'Admin') document.getElementById('admin-reset-btn').style.display = 'block';
         }
     }
 
-    async function loadAdminTasks() {
-        const { data } = await sb.from('work_hours').select('id, date, duration, description, profiles(full_name)').eq('status', 'pending');
-        const list = document.getElementById('admin-list');
-        if (data && data.length > 0) {
-            list.innerHTML = data.map(row => `
-                <div style="padding:12px; background:#fff; border:1px solid #ddd; border-radius:8px; margin-bottom:10px;">
-                    <strong>${row.profiles?.full_name}</strong><br>
-                    <small>${row.date}</small> | <strong>${row.duration}h</strong><br>
-                    <p style="font-size:0.85em; margin:5px 0;">${row.description}</p>
-                    <button onclick="approveEntry(${row.id})" style="width:auto; padding:6px 12px; background:#2e7d32;">✔</button>
-                    <button onclick="rejectEntry(${row.id})" style="width:auto; padding:6px 12px; background:#d32f2f;">✘</button>
-                </div>
-            `).join('');
-        } else { list.innerHTML = "Keine offenen Anfragen."; }
+    // Login / Logout / Signup
+    function showSignup() { document.getElementById('signup-fields').style.display = 'block'; document.getElementById('signup-buttons').style.display = 'block'; document.getElementById('login-buttons').style.display = 'none'; }
+    function showLogin() { document.getElementById('signup-fields').style.display = 'none'; document.getElementById('signup-buttons').style.display = 'none'; document.getElementById('login-buttons').style.display = 'block'; }
+    async function doLogin() {
+        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
+        if (error) alert(error.message);
+    }
+    async function doSignup() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const name = document.getElementById('full_name').value;
+        if(!name) return alert("Bitte Namen angeben");
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) alert(error.message);
+        else {
+            await sb.from('profiles').insert([{ id: data.user.id, full_name: name }]);
+            alert("Erfolgreich! Bitte E-Mail bestätigen.");
+        }
+    }
+    async function doLogout() { await sb.auth.signOut(); }
+
+    // User Logik
+    async function sendData() {
+        const h = parseFloat(document.getElementById('hours').value);
+        const date = document.getElementById('date').value;
+        const act = document.getElementById('activity').value;
+        const desc = document.getElementById('description').value;
+        if (!h || !date) return alert("Daten unvollständig!");
+        const { data: { user } } = await sb.auth.getUser();
+        await sb.from('work_hours').insert([{ user_id: user.id, date, duration: h, description: act + ": " + desc, status: 'pending' }]);
+        alert("Gesendet!");
+        document.getElementById('hours').value = "";
+        loadHistory();
     }
 
-    async function approveEntry(id) {
-        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+    async function loadHistory() {
+        const { data: { user } } = await sb.auth.getUser();
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', user.id).neq('status', 'archived').order('date', { ascending: false });
+        let total = 0;
+        document.getElementById('history-body').innerHTML = data.map(row => {
+            if (row.status === 'approved') total += row.duration;
+            const isRej = row.status === 'rejected';
+            return `<tr class="${isRej ? 'rejected-row' : ''}">
+                <td>${row.date}</td><td>${row.duration}h</td>
+                <td>${row.status === 'approved' ? '✅' : (isRej ? '❌' : '⏳')}
+                ${isRej ? `<button onclick="editRej(${row.id},'${row.date}',${row.duration},'${row.description}')" style="width:auto;padding:2px 5px;font-size:0.7em;">📝</button>` : ''}
+                </td></tr>`;
+        }).join('');
+        const p = Math.min((total / 10) * 100, 100);
+        document.getElementById('p-bar').style.width = p + '%';
+        document.getElementById('p-text').innerText = total + ' / 10h';
+    }
+
+    async function editRej(id, d, h, desc) {
+        if(!confirm("Eintrag löschen und neu bearbeiten?")) return;
+        document.getElementById('date').value = d;
+        document.getElementById('hours').value = h;
+        document.getElementById('description').value = desc.replace("❌ ABGELEHNT: ", "");
+        await sb.from('work_hours').delete().eq('id', id);
+        window.scrollTo(0,0); loadHistory();
+    }
+
+    // Admin & Funktionär Logik
+    async function loadAdminTasks() {
+        const { data } = await sb.from('work_hours').select('id, date, duration, description, profiles(full_name)').eq('status', 'pending').order('date', {ascending: true});
+        const list = document.getElementById('admin-list');
+        if (!data || data.length === 0) { list.innerHTML = "Keine Anfragen."; return; }
+        list.innerHTML = data.map(row => `
+            <div class="task-card">
+                <strong>👤 ${row.profiles ? row.profiles.full_name : 'Unbekannt'}</strong><br>
+                <small>${row.date} | ${row.duration}h</small><br>
+                <p style="font-size:0.85em; margin:5px 0;">${row.description}</p>
+                <div class="admin-btns">
+                    <button onclick="updateTask(${row.id}, 'approved')" style="background:#2e7d32; padding:8px;">✔ Bestätigen</button>
+                    <button onclick="rejectTask(${row.id})" style="background:#d32f2f; padding:8px;">✘ Ablehnen</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function updateTask(id, stat) {
+        await sb.from('work_hours').update({ status: stat }).eq('id', id);
         loadAdminTasks(); loadAdminStats(); loadHistory();
     }
 
-    async function rejectEntry(id) {
-        const reason = prompt("Grund für Ablehnung:");
+    async function rejectTask(id) {
+        const reason = prompt("Grund für die Ablehnung:");
         if (reason === null) return;
         await sb.from('work_hours').update({ status: 'rejected', description: "❌ ABGELEHNT: " + reason }).eq('id', id);
         loadAdminTasks(); loadAdminStats(); loadHistory();
     }
 
     async function loadAdminStats() {
-        const { data: profiles } = await sb.from('profiles').select('id, full_name');
+        const { data: profs } = await sb.from('profiles').select('id, full_name');
         const { data: hours } = await sb.from('work_hours').select('user_id, duration').eq('status', 'approved');
-        const statsBody = document.getElementById('admin-stats-body');
-        if (profiles) {
-            statsBody.innerHTML = profiles.map(p => {
-                const total = hours ? hours.filter(h => h.user_id === p.id).reduce((sum, h) => sum + h.duration, 0) : 0;
-                return `<tr><td>${p.full_name}</td><td><strong>${total}h</strong></td></tr>`;
-            }).join('');
-        }
+        const sorted = profs.sort((a,b) => a.full_name.localeCompare(b.full_name));
+        document.getElementById('admin-stats-body').innerHTML = sorted.map(p => {
+            const sum = hours.filter(h => h.user_id === p.id).reduce((s, h) => s + h.duration, 0);
+            return `<tr><td>${p.full_name}</td><td><strong>${sum}h</strong></td></tr>`;
+        }).join('');
     }
 
     async function resetYearlyHours() {
-        if (!confirm("Alle Stunden archivieren? Zähler wird auf 0 gesetzt.")) return;
+        if (!confirm("Alle bestätigten/abgelehnten Stunden archivieren? Zähler geht auf 0.")) return;
         await sb.from('work_hours').update({ status: 'archived' }).neq('status', 'pending');
         loadAdminStats(); loadHistory();
-    }
-
-    // User Logik
-    async function sendData() {
-        const h = document.getElementById('hours').value;
-        const date = document.getElementById('date').value;
-        const act = document.getElementById('activity').value;
-        const desc = document.getElementById('description').value;
-        if (!h || !date) return alert("Fehlende Daten!");
-        const { data: { user } } = await sb.auth.getUser();
-        await sb.from('work_hours').insert([{ user_id: user.id, date, duration: parseFloat(h), description: act + ": " + desc, status: 'pending' }]);
-        alert("Gesendet!");
-        document.getElementById('hours').value = ''; document.getElementById('description').value = '';
-        loadHistory();
-    }
-
-    async function loadHistory() {
-        const { data: { user } } = await sb.auth.getUser();
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', user.id).order('date', { ascending: false });
-        if (data) {
-            let total = 0;
-            const current = data.filter(r => r.status !== 'archived');
-            const archived = data.filter(r => r.status === 'archived');
-
-            document.getElementById('history-body').innerHTML = current.map(row => {
-                if (row.status === 'approved') total += row.duration;
-                const isRej = row.status === 'rejected';
-                return `
-                    <tr class="${isRej ? 'rejected-row' : ''}">
-                        <td>${row.date}</td><td>${row.duration}h</td>
-                        <td>
-                            ${row.status === 'approved' ? '✅' : (isRej ? '❌' : '⏳')}
-                            ${isRej ? `<br><span class="reason-text">${row.description}</span>
-                            <button onclick="editEntry(${row.id}, '${row.date}', ${row.duration}, '${row.description.replace(/'/g, "\\'")}')" style="width:auto; padding:3px 6px; font-size:0.7em; background:#666;">📝</button>` : ''}
-                        </td>
-                    </tr>`;
-            }).join('');
-
-            document.getElementById('archiv-body').innerHTML = archived.map(row => `<tr><td>${row.date}</td><td>${row.duration}h</td><td>📦</td></tr>`).join('') || '<tr><td colspan="3">Leer</td></tr>';
-            const p = Math.min((total / 10) * 100, 100);
-            document.getElementById('p-bar').style.width = p + '%';
-            document.getElementById('p-text').innerText = total + ' / 10h';
-        }
-    }
-
-    async function editEntry(id, date, dur, desc) {
-        document.getElementById('date').value = date;
-        document.getElementById('hours').value = dur;
-        document.getElementById('description').value = desc.replace("❌ ABGELEHNT: ", "");
-        if(confirm("Eintrag löschen und neu bearbeiten?")) {
-            await sb.from('work_hours').delete().eq('id', id);
-            window.scrollTo(0,0); loadHistory();
-        }
-    }
-
-    function toggleArchiv() {
-        const d = document.getElementById('archiv-ui');
-        d.style.display = d.style.display === 'none' ? 'block' : 'none';
     }
 </script>
 </body>
