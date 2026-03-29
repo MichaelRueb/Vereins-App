@@ -72,7 +72,9 @@
             <label>Dein Name:</label>
             <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
             <label>Deine Mannschaft:</label>
-            <select id="profile-team-select"><option value="">Lade Mannschaften...</option></select>
+            <select id="profile-team-select">
+                <option value="">Lade Mannschaften...</option>
+            </select>
             <button onclick="updateProfile()">Profil speichern</button>
             <button onclick="doLogout()" class="btn-danger">Abmelden</button>
         </div>
@@ -80,21 +82,14 @@
 </div>
 
 <script>
-    // 1. INITIALISIERUNG
+    // 1. INITIALISIERUNG (WICHTIG: Keine Schrägstriche am Ende der URL)
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
     const sb = supabase.createClient(S_URL, S_KEY);
 
-
     let currentUserId = null;
 
-    function switchTab(tab) {
-        ['home', 'comp', 'profile'].forEach(t => {
-            document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
-            document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
-        });
-    }
-
+    // 2. AUTHENTIFIZIERUNG & STATUS-ÜBERWACHUNG
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             currentUserId = session.user.id;
@@ -102,41 +97,53 @@
             document.getElementById('form-ui').style.display = 'block';
             document.getElementById('profile-email-display').value = session.user.email;
             
+            // Daten erst nach erfolgreichem Login laden
             await loadTeams(); 
             await loadUserData();
             await loadHistory();
         } else {
+            currentUserId = null;
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
         }
     });
 
+    // 3. FUNKTION: MANNSCHAFTEN LADEN
     async function loadTeams() {
-    console.log("Funktion loadTeams gestartet...");
-    try {
-        const { data, error } = await sb.from('teams').select('id, name');
-        
-        if (error) {
-            console.error("Supabase API Fehler:", error);
-            return;
+        console.log("Starte API-Abfrage für Mannschaften...");
+        try {
+            const { data, error } = await sb.from('teams').select('id, name').order('name');
+            
+            if (error) {
+                console.error("Fehler beim Abruf der Teams:", error.message);
+                return;
+            }
+
+            const select = document.getElementById('profile-team-select');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Wähle eine Mannschaft</option>';
+            
+            if (data && data.length > 0) {
+                data.forEach(t => {
+                    let opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.text = t.name;
+                    select.add(opt);
+                });
+                console.log(data.length + " Mannschaften erfolgreich geladen.");
+            } else {
+                console.warn("Keine Teams in der Datenbank gefunden.");
+                select.innerHTML = '<option value="">Keine Teams vorhanden</option>';
+            }
+        } catch (err) {
+            console.error("Kritischer Fehler in loadTeams:", err.message);
         }
-
-        console.log("Teams erfolgreich empfangen:", data);
-        const select = document.getElementById('profile-team-select');
-        select.innerHTML = '<option value="">Wähle eine Mannschaft</option>';
-        
-        data.forEach(t => {
-            let opt = document.createElement('option');
-            opt.value = t.id;
-            opt.text = t.name;
-            select.add(opt);
-        });
-    } catch (err) {
-        console.error("Kritischer Script-Fehler:", err.message);
     }
-}
 
+    // 4. FUNKTION: BENUTZERDATEN LADEN
     async function loadUserData() {
+        if (!currentUserId) return;
         const { data: prof } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
         if (prof) document.getElementById('profile-name-input').value = prof.full_name || '';
         
@@ -144,25 +151,42 @@
         if (teamMem) document.getElementById('profile-team-select').value = teamMem.team_id;
     }
 
+    // 5. FUNKTION: STUNDEN ABSENDEN
     async function sendData() {
+        const dateInput = document.getElementById('date').value;
+        const hoursInput = document.getElementById('hours').value;
+        
+        if (!dateInput || !hoursInput) {
+            alert("Bitte Datum und Stunden ausfüllen!");
+            return;
+        }
+
         const entry = {
             user_id: currentUserId,
-            date: document.getElementById('date').value,
+            date: dateInput,
             activity: document.getElementById('activity').value,
             description: document.getElementById('description').value,
-            hours: parseFloat(document.getElementById('hours').value),
+            hours: parseFloat(hoursInput),
             status: 'pending'
         };
+
         const { error } = await sb.from('work_hours').insert([entry]);
-        if (error) alert("Fehler: " + error.message);
-        else { alert("Gespeichert!"); loadHistory(); }
+        if (error) {
+            alert("Fehler beim Speichern: " + error.message);
+        } else { 
+            alert("Stunden erfolgreich eingereicht!"); 
+            loadHistory(); 
+        }
     }
 
+    // 6. FUNKTION: HISTORIE & FORTSCHRITT LADEN
     async function loadHistory() {
+        if (!currentUserId) return;
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUserId).order('date', { ascending: false });
         const body = document.getElementById('history-body');
         body.innerHTML = "";
         let approvedHours = 0;
+
         if (data) {
             data.forEach(h => {
                 if (h.status === 'approved') approvedHours += h.hours;
@@ -174,6 +198,7 @@
         document.getElementById('p-text').innerText = approvedHours + " / 10h";
     }
 
+    // 7. FUNKTION: PROFIL AKTUALISIEREN
     async function updateProfile() {
         const name = document.getElementById('profile-name-input').value;
         const teamId = document.getElementById('profile-team-select').value;
@@ -182,8 +207,16 @@
         if (teamId) {
             await sb.from('team_members').upsert({ user_id: currentUserId, team_id: teamId });
         }
-        if (pErr) alert("Fehler: " + pErr.message);
-        else alert("Profil aktualisiert!");
+        if (pErr) alert("Fehler beim Profil-Update: " + pErr.message);
+        else alert("Profil erfolgreich gespeichert!");
+    }
+
+    // 8. HILFSFUNKTIONEN: TABS, LOGIN, LOGOUT
+    function switchTab(tab) {
+        ['home', 'comp', 'profile'].forEach(t => {
+            document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
+            document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
+        });
     }
 
     async function doLogin() {
@@ -191,10 +224,13 @@
             email: document.getElementById('email').value,
             password: document.getElementById('password').value
         });
-        if (error) alert(error.message);
+        if (error) alert("Login fehlgeschlagen: " + error.message);
     }
 
-    async function doLogout() { await sb.auth.signOut(); location.reload(); }
+    async function doLogout() { 
+        await sb.auth.signOut(); 
+        location.reload(); 
+    }
 </script>
 </body>
 </html>
