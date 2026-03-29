@@ -3,32 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hubertus Strullendorf - Sport & Stunden</title>
+    <title>Hubertus Strullendorf - Vereins-App</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 15px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0; padding-bottom: 50px; }
+        body { font-family: -apple-system, sans-serif; padding: 15px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 500px; box-sizing: border-box; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        .secondary { background: #f5f5f5; color: #444; border: 1px solid #ddd; }
         .btn-danger { background: #b71c1c !important; }
         
-        .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; position: sticky; top: 0; background: #f4f7f6; z-index: 10; padding: 5px 0; }
-        .tab { flex: 1; padding: 10px 5px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.8em; }
+        /* Tab-Navigation */
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
+        .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .tab.active { background: #2e7d32; color: white; }
 
-        .comp-card { border-left: 5px solid #2e7d32; background: #f9f9f9; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 0.9em; }
-        .badge-captain { background: #ff9800; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; }
-        
-        table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
-        th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
-        .status-pending { color: orange; font-style: italic; }
-        .status-approved { color: green; font-weight: bold; }
-
+        /* Fortschrittsbalken */
         .progress-container { background: #eee; border-radius: 20px; height: 20px; width: 100%; margin: 10px 0; overflow: hidden; position: relative; }
         .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.6s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 20px; font-size: 0.75em; font-weight: bold; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
     </style>
 </head>
 <body>
@@ -39,7 +34,6 @@
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort">
         <button onclick="doLogin()">Login</button>
-        <p style="text-align:center; font-size:0.8em; color: #666;">Nutze deine registrierten Daten.</p>
     </div>
 
     <div id="form-ui" style="display:none;">
@@ -62,9 +56,9 @@
                 <option>Feste</option>
                 <option>Sonstiges</option>
             </select>
-            <textarea id="description" placeholder="Was wurde genau gemacht?"></textarea>
-            <input type="number" id="hours" step="0.5" placeholder="Stunden (z.B. 1.5)">
-            <button id="submit-btn" onclick="sendData()">Absenden</button>
+            <textarea id="description" placeholder="Details..."></textarea>
+            <input type="number" id="hours" step="0.5" placeholder="Stunden">
+            <button onclick="sendData()">Absenden</button>
             
             <table>
                 <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
@@ -73,21 +67,12 @@
         </div>
 
         <div id="view-comp" style="display:none;">
-            <h3>Wettkampf-Kalender</h3>
-            <div id="captain-area" style="display:none; background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:15px;">
-                <p><strong>Neuer Wettkampf:</strong></p>
-                <input type="date" id="comp-date">
-                <input type="text" id="comp-opponent" placeholder="Gegner">
-                <input type="text" id="comp-location" placeholder="Ort">
-                <button onclick="addCompetition()">Termin speichern</button>
-            </div>
-            <label>Mannschaft filtern:</label>
-            <select id="team-filter" onchange="loadCompetitions()"><option value="my">Meine Mannschaft</option></select>
-            <div id="comp-list" style="margin-top:15px;">Lade Termine...</div>
+            <h3>Wettkämpfe</h3>
+            <p>Aktuelle Termine werden hier geladen.</p>
         </div>
 
         <div id="view-profile" style="display:none;">
-            <h3>Profil <span id="captain-badge" class="badge-captain" style="display:none;">KAPITÄN</span></h3>
+            <h3>Profil</h3>
             <label>E-Mail:</label>
             <input type="text" id="profile-email-display" disabled>
             <label>Dein Name:</label>
@@ -95,7 +80,7 @@
             <label>Deine Mannschaft:</label>
             <select id="profile-team-select"><option value="">Keine Mannschaft</option></select>
             <button onclick="updateProfile()">Profil speichern</button>
-            <button onclick="doLogout()" class="btn-danger" style="margin-top:20px;">Abmelden</button>
+            <button onclick="doLogout()" class="btn-danger">Abmelden</button>
         </div>
     </div>
 </div>
@@ -106,11 +91,9 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
 
-    let myTeamId = null;
-    let isCaptain = false;
     let currentUserId = null;
 
-    // 2. Tab-Wechsel
+    // 2. Tab-Wechsel (Global definiert, um ReferenceError zu vermeiden)
     function switchTab(tab) {
         ['home', 'comp', 'profile'].forEach(t => {
             document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
@@ -127,135 +110,93 @@
             document.getElementById('profile-email-display').value = session.user.email;
             
             await loadTeams(); 
-            await loadUserData(currentUserId);
-            loadHistory();
-            loadCompetitions();
+            await loadUserData();
+            await loadHistory();
         } else {
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
         }
     });
 
-    // 4. Daten laden (Teams)
+    // 4. Mannschaften aus Tabelle 'teams' laden
     async function loadTeams() {
         console.log("Lade Mannschaften...");
         const { data, error } = await sb.from('teams').select('id, name').order('name');
         if (data) {
-            const ts = document.getElementById('profile-team-select');
-            const tf = document.getElementById('team-filter');
-            ts.innerHTML = '<option value="">Keine Mannschaft</option>';
-            tf.innerHTML = '<option value="my">Meine Mannschaft</option>';
-            data.forEach(t => {
-                ts.add(new Option(t.name, t.id));
-                tf.add(new Option(t.name, t.id));
-            });
-            console.log("Teams geladen:", data.length);
+            const select = document.getElementById('profile-team-select');
+            select.innerHTML = '<option value="">Keine Mannschaft</option>';
+            data.forEach(t => select.add(new Option(t.name, t.id)));
         }
     }
 
-    // 5. User-Profil & Team laden
-    async function loadUserData(uid) {
-        const { data: prof } = await sb.from('profiles').select('*').eq('id', uid).maybeSingle();
-        if (prof) document.getElementById('profile-name-input').value = prof.full_name || '';
-
-        const { data: mem } = await sb.from('team_members').select('*').eq('user_id', uid).maybeSingle();
-        if (mem) {
-            myTeamId = mem.team_id;
-            isCaptain = mem.is_captain;
-            document.getElementById('profile-team-select').value = myTeamId;
-            if (isCaptain) {
-                document.getElementById('captain-area').style.display = 'block';
-                document.getElementById('captain-badge').style.display = 'inline';
-            }
-        }
+    // 5. User-Profil laden
+    async function loadUserData() {
+        const { data } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
+        if (data) document.getElementById('profile-name-input').value = data.full_name || '';
+        
+        const { data: teamMem } = await sb.from('team_members').select('team_id').eq('user_id', currentUserId).maybeSingle();
+        if (teamMem) document.getElementById('profile-team-select').value = teamMem.team_id;
     }
 
     // 6. Stunden absenden
     async function sendData() {
-        const date = document.getElementById('date').value;
-        const hours = document.getElementById('hours').value;
-        if (!date || !hours) return alert("Bitte Datum und Stunden ausfüllen!");
-
-        const btn = document.getElementById('submit-btn');
-        btn.disabled = true;
-        btn.innerText = "Wird gesendet...";
-
-        const { error } = await sb.from('work_hours').insert([{
+        const entry = {
             user_id: currentUserId,
-            date: date,
+            date: document.getElementById('date').value,
             activity: document.getElementById('activity').value,
             description: document.getElementById('description').value,
-            hours: parseFloat(hours),
+            hours: parseFloat(document.getElementById('hours').value),
             status: 'pending'
-        }]);
+        };
 
-        if (error) {
-            alert("Fehler: " + error.message);
-        } else {
+        const { error } = await sb.from('work_hours').insert([entry]);
+        if (error) alert("Fehler: " + error.message);
+        else {
             alert("Erfolgreich gespeichert!");
-            document.getElementById('hours').value = "";
-            document.getElementById('description').value = "";
             loadHistory();
         }
-        btn.disabled = false;
-        btn.innerText = "Absenden";
     }
 
-    // 7. Historie & Fortschritt
+    // 7. Historie laden & Fortschritt berechnen
     async function loadHistory() {
-        const { data, error } = await sb.from('work_hours')
-            .select('*')
-            .eq('user_id', currentUserId)
-            .order('date', { ascending: false });
-
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUserId).order('date', { ascending: false });
         const body = document.getElementById('history-body');
         body.innerHTML = "";
-        let total = 0;
+        let approvedHours = 0;
 
         if (data) {
             data.forEach(h => {
-                if(h.status === 'approved') total += h.hours;
-                body.innerHTML += `<tr>
-                    <td>${new Date(h.date).toLocaleDateString('de-DE')}</td>
-                    <td>${h.hours}h</td>
-                    <td class="status-${h.status}">${h.status === 'approved' ? 'OK' : 'Offen'}</td>
-                </tr>`;
+                if (h.status === 'approved') approvedHours += h.hours;
+                body.innerHTML += `<tr><td>${h.date}</td><td>${h.hours}h</td><td>${h.status}</td></tr>`;
             });
         }
         
-        // Fortschrittsbalken (Ziel: 10h)
-        const percent = Math.min((total / 10) * 100, 100);
+        const percent = Math.min((approvedHours / 10) * 100, 100);
         document.getElementById('p-bar').style.width = percent + "%";
-        document.getElementById('p-text').innerText = total + " / 10h";
+        document.getElementById('p-text').innerText = approvedHours + " / 10h";
     }
 
     // 8. Profil speichern
     async function updateProfile() {
         const name = document.getElementById('profile-name-input').value;
-        const team = document.getElementById('profile-team-select').value;
+        const teamId = document.getElementById('profile-team-select').value;
 
-        const { error: pErr } = await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
-        
-        if (team) {
-            await sb.from('team_members').upsert({ user_id: currentUserId, team_id: team });
+        await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
+        if (teamId) {
+            await sb.from('team_members').upsert({ user_id: currentUserId, team_id: teamId });
         }
-        
         alert("Profil aktualisiert!");
-        location.reload();
     }
 
-    // 9. Login / Logout
+    // 9. Login/Logout
     async function doLogin() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) alert("Fehler: " + error.message);
+        if (error) alert(error.message);
     }
 
-    async function doLogout() { await sb.auth.signOut(); location.reload(); }
-
-    // Dummys für Wettkämpfe (Logik kann nach Bedarf ergänzt werden)
-    async function loadCompetitions() { document.getElementById('comp-list').innerHTML = "Keine aktuellen Termine gefunden."; }
+    async function doLogout() { await sb.auth.signOut(); }
 </script>
 </body>
 </html>
