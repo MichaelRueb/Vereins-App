@@ -82,9 +82,9 @@
 <script>
     // 1. INITIALISIERUNG
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
-    // WICHTIG: Hier muss der lange Key rein, der mit "eyJ..." beginnt!
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
     const sb = supabase.createClient(S_URL, S_KEY);
+
 
     let currentUserId = null;
 
@@ -112,16 +112,29 @@
     });
 
     async function loadTeams() {
-        console.log("Versuche Teams zu laden...");
-        const { data, error } = await sb.from('teams').select('id, name').order('name');
+    console.log("Funktion loadTeams gestartet...");
+    try {
+        const { data, error } = await sb.from('teams').select('id, name');
+        
         if (error) {
-            console.error("Fehler Teams:", error.message);
+            console.error("Supabase API Fehler:", error);
             return;
         }
+
+        console.log("Teams erfolgreich empfangen:", data);
         const select = document.getElementById('profile-team-select');
-        select.innerHTML = '<option value="">Keine Mannschaft</option>';
-        if (data) data.forEach(t => select.add(new Option(t.name, t.id)));
+        select.innerHTML = '<option value="">Wähle eine Mannschaft</option>';
+        
+        data.forEach(t => {
+            let opt = document.createElement('option');
+            opt.value = t.id;
+            opt.text = t.name;
+            select.add(opt);
+        });
+    } catch (err) {
+        console.error("Kritischer Script-Fehler:", err.message);
     }
+}
 
     async function loadUserData() {
         const { data: prof } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
