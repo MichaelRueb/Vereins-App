@@ -85,7 +85,12 @@
     // 1. INITIALISIERUNG (WICHTIG: Keine Schrägstriche am Ende der URL)
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
-    const sb = supabase.createClient(S_URL, S_KEY);
+   const sb = supabase.createClient(S_URL, S_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true
+  }
+});
 
     let currentUserId = null;
 
