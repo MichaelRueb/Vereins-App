@@ -11,17 +11,12 @@
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-danger { background: #b71c1c !important; }
-        
-        /* Tab-Navigation */
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
         .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .tab.active { background: #2e7d32; color: white; }
-
-        /* Fortschrittsbalken */
         .progress-container { background: #eee; border-radius: 20px; height: 20px; width: 100%; margin: 10px 0; overflow: hidden; position: relative; }
         .progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.6s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 20px; font-size: 0.75em; font-weight: bold; }
-
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
     </style>
@@ -59,7 +54,6 @@
             <textarea id="description" placeholder="Details..."></textarea>
             <input type="number" id="hours" step="0.5" placeholder="Stunden">
             <button onclick="sendData()">Absenden</button>
-            
             <table>
                 <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
                 <tbody id="history-body"></tbody>
@@ -78,7 +72,7 @@
             <label>Dein Name:</label>
             <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
             <label>Deine Mannschaft:</label>
-            <select id="profile-team-select"><option value="">Keine Mannschaft</option></select>
+            <select id="profile-team-select"><option value="">Lade Mannschaften...</option></select>
             <button onclick="updateProfile()">Profil speichern</button>
             <button onclick="doLogout()" class="btn-danger">Abmelden</button>
         </div>
@@ -86,14 +80,14 @@
 </div>
 
 <script>
-    // 1. Initialisierung
+    // 1. INITIALISIERUNG
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
-    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
+    // WICHTIG: Hier muss der lange Key rein, der mit "eyJ..." beginnt!
+    const S_KEY = 'HIER_DEINEN_LANGEN_ANON_KEY_EINSETZEN'; 
     const sb = supabase.createClient(S_URL, S_KEY);
 
     let currentUserId = null;
 
-    // 2. Tab-Wechsel (Global definiert, um ReferenceError zu vermeiden)
     function switchTab(tab) {
         ['home', 'comp', 'profile'].forEach(t => {
             document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
@@ -101,7 +95,6 @@
         });
     }
 
-    // 3. Auth-Überwachung
     sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             currentUserId = session.user.id;
@@ -118,67 +111,26 @@
         }
     });
 
-   // 4. Mannschaften laden (mit Fehler-Ausgabe)
-async function loadTeams() {
-    console.log("Lade Mannschaften...");
-    const { data, error } = await sb.from('teams').select('id, name').order('name');
-    
-    if (error) {
-        console.error("Supabase-Fehler (Teams):", error);
-        alert("Fehler beim Laden der Teams: " + error.message);
-        return;
-    }
-    
-    console.log("Teams erfolgreich geladen:", data);
-    const select = document.getElementById('profile-team-select');
-    select.innerHTML = '<option value="">Keine Mannschaft</option>';
-    if (data) {
-        data.forEach(t => select.add(new Option(t.name, t.id)));
-    }
-}
-
-// 8. Profil speichern (mit Fehler-Ausgabe)
-async function updateProfile() {
-    if (!currentUserId) {
-        alert("Fehler: Kein User eingeloggt!");
-        return;
-    }
-
-    const name = document.getElementById('profile-name-input').value;
-    const teamId = document.getElementById('profile-team-select').value;
-    console.log("Versuche Profil zu speichern...", { name, teamId });
-
-    // Profil speichern
-    const { error: pError } = await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
-    if (pError) {
-        console.error("Fehler Profile:", pError);
-        alert("Datenbank-Fehler (Profil): " + pError.message);
-        return; // Bricht ab, wenn Fehler auftritt
-    }
-
-    // Mannschafts-Zuweisung speichern
-    if (teamId) {
-        const { error: tError } = await sb.from('team_members').upsert({ user_id: currentUserId, team_id: teamId });
-        if (tError) {
-            console.error("Fehler Team-Zuweisung:", tError);
-            alert("Datenbank-Fehler (Mannschaft): " + tError.message);
+    async function loadTeams() {
+        console.log("Versuche Teams zu laden...");
+        const { data, error } = await sb.from('teams').select('id, name').order('name');
+        if (error) {
+            console.error("Fehler Teams:", error.message);
             return;
         }
+        const select = document.getElementById('profile-team-select');
+        select.innerHTML = '<option value="">Keine Mannschaft</option>';
+        if (data) data.forEach(t => select.add(new Option(t.name, t.id)));
     }
-    
-    alert("Profil erfolgreich aktualisiert!");
-}
 
-    // 5. User-Profil laden
     async function loadUserData() {
-        const { data } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
-        if (data) document.getElementById('profile-name-input').value = data.full_name || '';
+        const { data: prof } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
+        if (prof) document.getElementById('profile-name-input').value = prof.full_name || '';
         
         const { data: teamMem } = await sb.from('team_members').select('team_id').eq('user_id', currentUserId).maybeSingle();
         if (teamMem) document.getElementById('profile-team-select').value = teamMem.team_id;
     }
 
-    // 6. Stunden absenden
     async function sendData() {
         const entry = {
             user_id: currentUserId,
@@ -188,55 +140,48 @@ async function updateProfile() {
             hours: parseFloat(document.getElementById('hours').value),
             status: 'pending'
         };
-
         const { error } = await sb.from('work_hours').insert([entry]);
         if (error) alert("Fehler: " + error.message);
-        else {
-            alert("Erfolgreich gespeichert!");
-            loadHistory();
-        }
+        else { alert("Gespeichert!"); loadHistory(); }
     }
 
-    // 7. Historie laden & Fortschritt berechnen
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUserId).order('date', { ascending: false });
         const body = document.getElementById('history-body');
         body.innerHTML = "";
         let approvedHours = 0;
-
         if (data) {
             data.forEach(h => {
                 if (h.status === 'approved') approvedHours += h.hours;
                 body.innerHTML += `<tr><td>${h.date}</td><td>${h.hours}h</td><td>${h.status}</td></tr>`;
             });
         }
-        
         const percent = Math.min((approvedHours / 10) * 100, 100);
         document.getElementById('p-bar').style.width = percent + "%";
         document.getElementById('p-text').innerText = approvedHours + " / 10h";
     }
 
-    // 8. Profil speichern
     async function updateProfile() {
         const name = document.getElementById('profile-name-input').value;
         const teamId = document.getElementById('profile-team-select').value;
-
-        await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
+        
+        const { error: pErr } = await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
         if (teamId) {
             await sb.from('team_members').upsert({ user_id: currentUserId, team_id: teamId });
         }
-        alert("Profil aktualisiert!");
+        if (pErr) alert("Fehler: " + pErr.message);
+        else alert("Profil aktualisiert!");
     }
 
-    // 9. Login/Logout
     async function doLogin() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { error } = await sb.auth.signInWithPassword({ email, password });
+        const { error } = await sb.auth.signInWithPassword({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        });
         if (error) alert(error.message);
     }
 
-    async function doLogout() { await sb.auth.signOut(); }
+    async function doLogout() { await sb.auth.signOut(); location.reload(); }
 </script>
 </body>
 </html>
