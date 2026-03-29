@@ -119,15 +119,35 @@
     });
 
     // 4. Mannschaften aus Tabelle 'teams' laden
-    async function loadTeams() {
-        console.log("Lade Mannschaften...");
-        const { data, error } = await sb.from('teams').select('id, name').order('name');
-        if (data) {
-            const select = document.getElementById('profile-team-select');
-            select.innerHTML = '<option value="">Keine Mannschaft</option>';
-            data.forEach(t => select.add(new Option(t.name, t.id)));
+   async function loadTeams() {
+    console.log("Starte API-Abfrage für Teams...");
+    try {
+        const { data, error, status } = await sb.from('teams').select('id, name').order('name');
+        
+        if (error) {
+            console.error("Supabase Fehler:", error.message, "Status Code:", status);
+            alert("Fehler beim Laden: " + error.message);
+            return;
         }
+
+        console.log("Empfangene Daten:", data);
+
+        const select = document.getElementById('profile-team-select');
+        if (data && data.length > 0) {
+            select.innerHTML = '<option value="">Wähle deine Mannschaft</option>';
+            data.forEach(t => {
+                const option = new Option(t.name, t.id);
+                select.add(option);
+            });
+            console.log(data.length + " Teams ins Dropdown eingefügt.");
+        } else {
+            console.warn("Die Tabelle 'teams' scheint leer zu sein oder RLS blockiert.");
+            select.innerHTML = '<option value="">Keine Teams gefunden</option>';
+        }
+    } catch (err) {
+        console.error("Unerwarteter JavaScript Fehler:", err);
     }
+}
 
     // 5. User-Profil laden
     async function loadUserData() {
