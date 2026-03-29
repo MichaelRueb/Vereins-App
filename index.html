@@ -118,35 +118,55 @@
         }
     });
 
-    // 4. Mannschaften aus Tabelle 'teams' laden
-   async function loadTeams() {
-    console.log("Starte API-Abfrage für Teams...");
-    try {
-        const { data, error, status } = await sb.from('teams').select('id, name').order('name');
-        
-        if (error) {
-            console.error("Supabase Fehler:", error.message, "Status Code:", status);
-            alert("Fehler beim Laden: " + error.message);
+   // 4. Mannschaften laden (mit Fehler-Ausgabe)
+async function loadTeams() {
+    console.log("Lade Mannschaften...");
+    const { data, error } = await sb.from('teams').select('id, name').order('name');
+    
+    if (error) {
+        console.error("Supabase-Fehler (Teams):", error);
+        alert("Fehler beim Laden der Teams: " + error.message);
+        return;
+    }
+    
+    console.log("Teams erfolgreich geladen:", data);
+    const select = document.getElementById('profile-team-select');
+    select.innerHTML = '<option value="">Keine Mannschaft</option>';
+    if (data) {
+        data.forEach(t => select.add(new Option(t.name, t.id)));
+    }
+}
+
+// 8. Profil speichern (mit Fehler-Ausgabe)
+async function updateProfile() {
+    if (!currentUserId) {
+        alert("Fehler: Kein User eingeloggt!");
+        return;
+    }
+
+    const name = document.getElementById('profile-name-input').value;
+    const teamId = document.getElementById('profile-team-select').value;
+    console.log("Versuche Profil zu speichern...", { name, teamId });
+
+    // Profil speichern
+    const { error: pError } = await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
+    if (pError) {
+        console.error("Fehler Profile:", pError);
+        alert("Datenbank-Fehler (Profil): " + pError.message);
+        return; // Bricht ab, wenn Fehler auftritt
+    }
+
+    // Mannschafts-Zuweisung speichern
+    if (teamId) {
+        const { error: tError } = await sb.from('team_members').upsert({ user_id: currentUserId, team_id: teamId });
+        if (tError) {
+            console.error("Fehler Team-Zuweisung:", tError);
+            alert("Datenbank-Fehler (Mannschaft): " + tError.message);
             return;
         }
-
-        console.log("Empfangene Daten:", data);
-
-        const select = document.getElementById('profile-team-select');
-        if (data && data.length > 0) {
-            select.innerHTML = '<option value="">Wähle deine Mannschaft</option>';
-            data.forEach(t => {
-                const option = new Option(t.name, t.id);
-                select.add(option);
-            });
-            console.log(data.length + " Teams ins Dropdown eingefügt.");
-        } else {
-            console.warn("Die Tabelle 'teams' scheint leer zu sein oder RLS blockiert.");
-            select.innerHTML = '<option value="">Keine Teams gefunden</option>';
-        }
-    } catch (err) {
-        console.error("Unerwarteter JavaScript Fehler:", err);
     }
+    
+    alert("Profil erfolgreich aktualisiert!");
 }
 
     // 5. User-Profil laden
