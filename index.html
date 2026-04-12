@@ -10,11 +10,12 @@
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 500px; box-sizing: border-box; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
-        h2, h4 { margin: 10px 0; color: #333; }
+        .btn-danger { background: #b71c1c !important; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
+        .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .tab.active { background: #2e7d32; color: white; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
-        .status-wait { color: #f39c12; }
-        .status-ok { color: #27ae60; }
     </style>
 </head>
 <body>
@@ -22,114 +23,117 @@
 <div class="card">
     <div id="auth-ui">
         <h2>Anmelden</h2>
-        <input type="email" id="email" placeholder="Deine E-Mail">
+        <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort">
         <button onclick="doLogin()">Login</button>
     </div>
 
     <div id="form-ui" style="display:none;">
-        <h2>Stunden melden</h2>
-        
-        <label>Datum:</label>
-        <input type="date" id="date">
-        
-        <label>Tätigkeit:</label>
-        <select id="activity">
-            <option>Standreinigung</option>
-            <option>Fahnenabordnung</option>
-            <option>Reinigungsarbeit</option>
-            <option>Feste</option>
-            <option>Sonstiges</option>
-        </select>
-        
-        <textarea id="description" placeholder="Kurze Beschreibung der Arbeit..."></textarea>
-        
-        <label>Stunden:</label>
-        <input type="number" id="hours" step="0.5" placeholder="z.B. 2.5">
-        
-        <button onclick="sendData()">Absenden</button>
-        
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-        
-        <h4>Deine Historie:</h4>
-        <table>
-            <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
-            <tbody id="history-body"></tbody>
-        </table>
-        
-        <button onclick="doLogout()" style="background:#7f8c8d; margin-top:20px;">Abmelden</button>
+        <div class="tabs">
+            <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
+            <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
+        </div>
+
+        <div id="view-home">
+            <input type="date" id="date">
+            <select id="activity">
+                <option>Standreinigung</option>
+                <option>Fahnenabordnung</option>
+                <option>Reinigungsarbeit</option>
+                <option>Feste</option>
+                <option>Sonstiges</option>
+            </select>
+            <textarea id="description" placeholder="Details zur Tätigkeit..."></textarea>
+            <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
+            <button onclick="sendData()">Absenden</button>
+            
+            <table>
+                <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
+                <tbody id="history-body"></tbody>
+            </table>
+        </div>
+
+        <div id="view-profile" style="display:none;">
+            <h3>Dein Profil</h3>
+            <label>E-Mail:</label>
+            <input type="text" id="profile-email-display" disabled>
+            <label>Dein Name:</label>
+            <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
+            <button onclick="updateProfile()">Name speichern</button>
+            <button onclick="doLogout()" class="btn-danger" style="margin-top: 40px;">Abmelden</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // Konfiguration aus deinen Screenshots
+    // Konfiguration
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
     const sb = supabase.createClient(S_URL, S_KEY);
 
     let currentUserId = null;
 
-    // Überwacht ob User eingeloggt ist
-    sb.auth.onAuthStateChange((event, session) => {
+    // Tab-Wechsel
+    function switchTab(tab) {
+        ['home', 'profile'].forEach(t => {
+            document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
+            document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
+        });
+    }
+
+    // Auth-Status
+    sb.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             currentUserId = session.user.id;
             document.getElementById('auth-ui').style.display = 'none';
             document.getElementById('form-ui').style.display = 'block';
-            loadHistory();
+            document.getElementById('profile-email-display').value = session.user.email;
+            await loadUserData();
+            await loadHistory();
         } else {
-            currentUserId = null;
             document.getElementById('auth-ui').style.display = 'block';
             document.getElementById('form-ui').style.display = 'none';
         }
     });
 
-    // Daten an Tabelle 'work_hours' senden
-    async function sendData() {
-        const d = document.getElementById('date').value;
-        const h = document.getElementById('hours').value;
-        
-        if(!d || !h) {
-            alert("Bitte Datum und Stunden ausfüllen!");
-            return;
-        }
-
-        const { error } = await sb.from('work_hours').insert([{
-            user_id: currentUserId,
-            date: d,
-            activity: document.getElementById('activity').value,
-            description: document.getElementById('description').value,
-            hours: parseFloat(h),
-            status: 'pending'
-        }]);
-
-        if (error) {
-            alert("Fehler: " + error.message);
-        } else {
-            alert("Erfolgreich gespeichert!");
-            document.getElementById('description').value = "";
-            document.getElementById('hours').value = "";
-            loadHistory();
-        }
+    // Profil laden
+    async function loadUserData() {
+        const { data: prof } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
+        if (prof) document.getElementById('profile-name-input').value = prof.full_name || '';
     }
 
-    // Zeigt die bisherigen Einträge an
-    async function loadHistory() {
-        const { data, error } = await sb.from('work_hours')
-            .select('*')
-            .eq('user_id', currentUserId)
-            .order('date', { ascending: false });
+    // Profil speichern
+    async function updateProfile() {
+        const name = document.getElementById('profile-name-input').value;
+        const { error } = await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
+        if (error) alert("Fehler: " + error.message);
+        else alert("Name gespeichert!");
+    }
 
+    // Stunden senden
+    async function sendData() {
+        const entry = {
+            user_id: currentUserId,
+            date: document.getElementById('date').value,
+            activity: document.getElementById('activity').value,
+            description: document.getElementById('description').value,
+            hours: parseFloat(document.getElementById('hours').value),
+            status: 'pending'
+        };
+        const { error } = await sb.from('work_hours').insert([entry]);
+        if (error) alert("Fehler: " + error.message);
+        else { alert("Gespeichert!"); loadHistory(); }
+    }
+
+    // Historie laden
+    async function loadHistory() {
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUserId).order('date', { ascending: false });
+        const body = document.getElementById('history-body');
+        body.innerHTML = "";
         if (data) {
-            const body = document.getElementById('history-body');
-            body.innerHTML = data.map(entry => `
-                <tr>
-                    <td>${entry.date}</td>
-                    <td>${entry.hours}h</td>
-                    <td><span class="${entry.status === 'approved' ? 'status-ok' : 'status-wait'}">
-                        ${entry.status === 'approved' ? 'Bestätigt' : 'Offen'}
-                    </span></td>
-                </tr>
-            `).join('');
+            data.forEach(h => {
+                body.innerHTML += `<tr><td>${h.date}</td><td>${h.hours}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`;
+            });
         }
     }
 
@@ -138,12 +142,10 @@
             email: document.getElementById('email').value,
             password: document.getElementById('password').value
         });
-        if (error) alert("Login fehlgeschlagen: " + error.message);
+        if (error) alert(error.message);
     }
 
-    async function doLogout() { 
-        await sb.auth.signOut(); 
-    }
+    async function doLogout() { await sb.auth.signOut(); location.reload(); }
 </script>
 </body>
 </html>
