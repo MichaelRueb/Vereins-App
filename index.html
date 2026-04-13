@@ -129,39 +129,52 @@ async function doLogin() {
     if (error) alert("Login Fehler: " + error.message);
 }
 
+// STUNDEN ABSENDEN (angepasst an deine Spalten: duration statt hours)
 async function sendData() {
-    const date = document.getElementById('date').value;
-    const hours = document.getElementById('hours').value;
+    const dVal = document.getElementById('date').value;
+    const hVal = document.getElementById('hours').value; // Input-Feld im HTML
+    const desc = document.getElementById('description').value;
+    const activity = document.getElementById('activity').value; // Dropdown-Wert
     
-    if(!date || !hours) return alert("Bitte Datum und Stunden angeben!");
+    if(!dVal || !hVal) return alert("Bitte Datum und Stunden angeben!");
+
+    // WICHTIG: Wir kombinieren Tätigkeit und Details für die 'description' Spalte,
+    // da 'activity' in deiner DB fehlt.
+    const fullDescription = `[${activity}] ${desc}`;
 
     const { error } = await sb.from('work_hours').insert([{
         user_id: currentUserId,
-        date: date,
-        activity: document.getElementById('activity').value,
-        description: document.getElementById('description').value,
-        hours: parseFloat(hours),
+        date: dVal,
+        duration: parseFloat(hVal), // Heißt bei dir 'duration'
+        description: fullDescription,
         status: 'pending'
     }]);
 
-    if (error) alert("Senden fehlgeschlagen: " + error.message);
-    else {
+    if (error) {
+        alert("Fehler: " + error.message);
+    } else {
         alert("Stunden erfolgreich gemeldet!");
         document.getElementById('hours').value = "";
+        document.getElementById('description').value = "";
         loadHistory();
     }
 }
 
+// HISTORIE LADEN (angepasst an deine Spalten)
 async function loadHistory() {
-    const { data } = await sb.from('work_hours')
-        .select('*')
+    const { data, error } = await sb.from('work_hours')
+        .select('date, duration, status') // 'duration' statt 'hours'
         .eq('user_id', currentUserId)
         .order('date', { ascending: false });
-    
+
     if (data) {
-        document.getElementById('history-body').innerHTML = data.map(h => 
-            `<tr><td>${h.date}</td><td>${h.hours}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`
-        ).join('');
+        document.getElementById('history-body').innerHTML = data.map(h => `
+            <tr>
+                <td>${h.date}</td>
+                <td>${h.duration}h</td>
+                <td>${h.status === 'approved' ? '✅' : '⏳'}</td>
+            </tr>
+        `).join('');
     }
 }
 
