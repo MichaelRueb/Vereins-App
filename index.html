@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hubertus Stunden-Tool</title>
+    <title>Hubertus Stunden-Tool Admin</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: -apple-system, sans-serif; padding: 15px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 500px; box-sizing: border-box; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 600px; box-sizing: border-box; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
-        button:active { opacity: 0.7; }
-        .btn-danger { background: #b71c1c !important; }
-        .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
-        .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; width: 100%; }
+        .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; min-width: 80px; }
         .tab.active { background: #2e7d32; color: white; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
+        .admin-only { display: none; background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 8px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="loading-ui" style="text-align:center; padding: 20px;">Lade App...</div>
+    <div id="loading-ui" style="text-align:center;">Lade App...</div>
 
     <div id="auth-ui" style="display:none;">
         <h2>Anmelden</h2>
@@ -35,6 +34,7 @@
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
             <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
+            <div id="tab-admin" class="tab admin-nav" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
 
         <div id="view-home">
@@ -50,159 +50,129 @@
             <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
             <button onclick="sendData()">Absenden</button>
             <table>
-                <thead><tr><th>Datum</th><th>Std.</th><th>Status</th></tr></thead>
+                <thead><tr><th>Datum</th><th>Tätigkeit</th><th>Std.</th><th>Status</th></tr></thead>
                 <tbody id="history-body"></tbody>
             </table>
         </div>
 
         <div id="view-profile" style="display:none;">
-            <h3>Profil</h3>
-            <label>E-Mail:</label>
+            <h3>Dein Profil</h3>
             <input type="text" id="profile-email-display" disabled>
-            <label>Dein Name:</label>
             <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
             <button onclick="updateProfile()">Speichern</button>
-            <button onclick="doLogout()" class="btn-danger" style="margin-top: 20px;">Abmelden</button>
+            <button onclick="doLogout()" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
+        </div>
+
+        <div id="view-admin" style="display:none;">
+            <h3>Mitglieder-Übersicht</h3>
+            <p>Liste aller registrierten Personen:</p>
+            <table>
+                <thead><tr><th>Name</th><th>Letzter Login (ID)</th></tr></thead>
+                <tbody id="member-list-body"></tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <script>
-  // Konfiguration
-const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
-const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
+    const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
+    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
+    const sb = supabase.createClient(S_URL, S_KEY, { auth: { persistSession: true, detectSessionInUrl: false } });
 
-// Client mit deaktiviertem Multi-Tab-Lock initialisieren, um den Fehler zu vermeiden
-const sb = supabase.createClient(S_URL, S_KEY, {
-  auth: {
-    persistSession: true,
-    detectSessionInUrl: false
-  }
-});
+    let currentUserId = null;
+    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com"; // Deine Admin E-Mail
 
-let currentUserId = null;
+    window.onload = async () => {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) setupUI(session.user);
+        else { document.getElementById('loading-ui').style.display = 'none'; document.getElementById('auth-ui').style.display = 'block'; }
+    };
 
-// Diese Funktion regelt ALLES für die Benutzeroberfläche
-async function initApp() {
-    const { data: { session }, error } = await sb.auth.getSession();
-    
-    if (session && session.user) {
-        currentUserId = session.user.id;
-        showUI(session.user);
-    } else {
-        showLogin();
-    }
-}
+    function setupUI(user) {
+        currentUserId = user.id;
+        document.getElementById('loading-ui').style.display = 'none';
+        document.getElementById('auth-ui').style.display = 'none';
+        document.getElementById('form-ui').style.display = 'block';
+        document.getElementById('profile-email-display').value = user.email;
 
-function showUI(user) {
-    document.getElementById('loading-ui').style.display = 'none';
-    document.getElementById('auth-ui').style.display = 'none';
-    document.getElementById('form-ui').style.display = 'block';
-    document.getElementById('profile-email-display').value = user.email;
-    loadUserData();
-    loadHistory();
-}
+        // Admin-Check
+        if(user.email === ADMIN_EMAIL) {
+            document.getElementById('tab-admin').style.display = 'block';
+            loadMemberList();
+        }
 
-function showLogin() {
-    document.getElementById('loading-ui').style.display = 'none';
-    document.getElementById('auth-ui').style.display = 'block';
-    document.getElementById('form-ui').style.display = 'none';
-}
-
-// Startet die App beim Laden der Seite
-window.addEventListener('DOMContentLoaded', initApp);
-
-// Reagiert auf Login/Logout Events
-sb.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' && session) {
-        currentUserId = session.user.id;
-        showUI(session.user);
-    } else if (event === 'SIGNED_OUT') {
-        location.reload(); // Sauberer Reset bei Logout
-    }
-});
-
-async function doLogin() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) alert("Login Fehler: " + error.message);
-}
-
-// STUNDEN ABSENDEN (angepasst an deine Spalten: duration statt hours)
-async function sendData() {
-    const dVal = document.getElementById('date').value;
-    const hVal = document.getElementById('hours').value; // Input-Feld im HTML
-    const desc = document.getElementById('description').value;
-    const activity = document.getElementById('activity').value; // Dropdown-Wert
-    
-    if(!dVal || !hVal) return alert("Bitte Datum und Stunden angeben!");
-
-    // WICHTIG: Wir kombinieren Tätigkeit und Details für die 'description' Spalte,
-    // da 'activity' in deiner DB fehlt.
-    const fullDescription = `[${activity}] ${desc}`;
-
-    const { error } = await sb.from('work_hours').insert([{
-        user_id: currentUserId,
-        date: dVal,
-        duration: parseFloat(hVal), // Heißt bei dir 'duration'
-        description: fullDescription,
-        status: 'pending'
-    }]);
-
-    if (error) {
-        alert("Fehler: " + error.message);
-    } else {
-        alert("Stunden erfolgreich gemeldet!");
-        document.getElementById('hours').value = "";
-        document.getElementById('description').value = "";
+        loadUserData();
         loadHistory();
     }
-}
 
-// HISTORIE LADEN (angepasst an deine Spalten)
-async function loadHistory() {
-    const { data, error } = await sb.from('work_hours')
-        .select('date, duration, description, status') // Jetzt mit description
-        .eq('user_id', currentUserId)
-        .order('date', { ascending: false });
-
-    if (data) {
-        const body = document.getElementById('history-body');
-        
-        // Tabellenkopf anpassen (optional im HTML, hier fügen wir die Info einfach ein)
-        document.querySelector('thead tr').innerHTML = '<th>Datum</th><th>Tätigkeit</th><th>Std.</th><th>Status</th>';
-
-        body.innerHTML = data.map(h => `
-            <tr>
-                <td>${h.date}</td>
-                <td style="font-size: 0.9em; color: #555;">${h.description || '-'}</td>
-                <td>${h.duration}h</td>
-                <td>${h.status === 'approved' ? '✅' : '⏳'}</td>
-            </tr>
-        `).join('');
+    async function loadMemberList() {
+        // Holt alle Namen aus der profiles-Tabelle
+        const { data, error } = await sb.from('profiles').select('full_name, id').order('full_name');
+        if (data) {
+            document.getElementById('member-list-body').innerHTML = data.map(m => 
+                `<tr><td>${m.full_name || 'Unbekannt'}</td><td><small>${m.id.substring(0,8)}...</small></td></tr>`
+            ).join('');
+        }
     }
-}
 
-async function loadUserData() {
-    const { data } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
-    if (data) document.getElementById('profile-name-input').value = data.full_name || '';
-}
+    async function sendData() {
+        const d = document.getElementById('date').value;
+        const h = document.getElementById('hours').value;
+        const act = document.getElementById('activity').value;
+        const desc = document.getElementById('description').value;
+        
+        if(!d || !h) return alert("Pflichtfelder ausfüllen!");
 
-async function updateProfile() {
-    const name = document.getElementById('profile-name-input').value;
-    await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
-    alert("Profil aktualisiert!");
-}
+        const { error } = await sb.from('work_hours').insert([{
+            user_id: currentUserId,
+            date: d,
+            duration: parseFloat(h), // Spalte aus deinem Schema
+            description: `[${act}] ${desc}`,
+            status: 'pending'
+        }]);
+        if (error) alert(error.message);
+        else { alert("Gesendet!"); loadHistory(); }
+    }
 
-async function doLogout() { await sb.auth.signOut(); }
+    async function loadHistory() {
+        const { data } = await sb.from('work_hours').select('date, duration, description, status').eq('user_id', currentUserId).order('date', { ascending: false });
+        if (data) {
+            document.getElementById('history-body').innerHTML = data.map(h => 
+                `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`
+            ).join('');
+        }
+    }
 
-function switchTab(tab) {
-    ['home', 'profile'].forEach(t => {
-        document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
-        document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
-    });
-}
+    async function loadUserData() {
+        const { data } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
+        if (data) document.getElementById('profile-name-input').value = data.full_name || '';
+    }
+
+    async function updateProfile() {
+        const name = document.getElementById('profile-name-input').value;
+        await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
+        alert("Gespeichert!");
+        if(document.getElementById('tab-admin').style.display === 'block') loadMemberList();
+    }
+
+    function switchTab(tab) {
+        ['home', 'profile', 'admin'].forEach(t => {
+            if(document.getElementById('view-' + t)) {
+                document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
+                document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
+            }
+        });
+    }
+
+    async function doLogin() {
+        const { error } = await sb.auth.signInWithPassword({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        });
+        if (error) alert(error.message);
+    }
+
+    async function doLogout() { await sb.auth.signOut(); location.reload(); }
 </script>
 </body>
 </html>
