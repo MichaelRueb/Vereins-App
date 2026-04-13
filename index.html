@@ -68,97 +68,122 @@
 </div>
 
 <script>
-    const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
-    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
-    const sb = supabase.createClient(S_URL, S_KEY);
+  // Konfiguration
+const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
+const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
 
-    let currentUserId = null;
+// Client mit deaktiviertem Multi-Tab-Lock initialisieren, um den Fehler zu vermeiden
+const sb = supabase.createClient(S_URL, S_KEY, {
+  auth: {
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+});
 
-    // 1. Sofortige Prüfung beim Start
-    window.onload = async () => {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) {
-            setupUI(session.user);
-        } else {
-            document.getElementById('loading-ui').style.display = 'none';
-            document.getElementById('auth-ui').style.display = 'block';
-        }
-    };
+let currentUserId = null;
 
-    // 2. Auth-Status Änderungen (für Login/Logout)
-    sb.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            setupUI(session.user);
-        } else if (event === 'SIGNED_OUT') {
-            location.reload();
-        }
-    });
+// Diese Funktion regelt ALLES für die Benutzeroberfläche
+async function initApp() {
+    const { data: { session }, error } = await sb.auth.getSession();
+    
+    if (session && session.user) {
+        currentUserId = session.user.id;
+        showUI(session.user);
+    } else {
+        showLogin();
+    }
+}
 
-    async function setupUI(user) {
-        currentUserId = user.id;
-        document.getElementById('loading-ui').style.display = 'none';
-        document.getElementById('auth-ui').style.display = 'none';
-        document.getElementById('form-ui').style.display = 'block';
-        document.getElementById('profile-email-display').value = user.email;
-        
-        // Daten im Hintergrund laden
-        loadUserData();
+function showUI(user) {
+    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('auth-ui').style.display = 'none';
+    document.getElementById('form-ui').style.display = 'block';
+    document.getElementById('profile-email-display').value = user.email;
+    loadUserData();
+    loadHistory();
+}
+
+function showLogin() {
+    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('auth-ui').style.display = 'block';
+    document.getElementById('form-ui').style.display = 'none';
+}
+
+// Startet die App beim Laden der Seite
+window.addEventListener('DOMContentLoaded', initApp);
+
+// Reagiert auf Login/Logout Events
+sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+        currentUserId = session.user.id;
+        showUI(session.user);
+    } else if (event === 'SIGNED_OUT') {
+        location.reload(); // Sauberer Reset bei Logout
+    }
+});
+
+async function doLogin() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) alert("Login Fehler: " + error.message);
+}
+
+async function sendData() {
+    const date = document.getElementById('date').value;
+    const hours = document.getElementById('hours').value;
+    
+    if(!date || !hours) return alert("Bitte Datum und Stunden angeben!");
+
+    const { error } = await sb.from('work_hours').insert([{
+        user_id: currentUserId,
+        date: date,
+        activity: document.getElementById('activity').value,
+        description: document.getElementById('description').value,
+        hours: parseFloat(hours),
+        status: 'pending'
+    }]);
+
+    if (error) alert("Senden fehlgeschlagen: " + error.message);
+    else {
+        alert("Stunden erfolgreich gemeldet!");
+        document.getElementById('hours').value = "";
         loadHistory();
     }
+}
 
-    function switchTab(tab) {
-        ['home', 'profile'].forEach(t => {
-            document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
-            document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
-        });
+async function loadHistory() {
+    const { data } = await sb.from('work_hours')
+        .select('*')
+        .eq('user_id', currentUserId)
+        .order('date', { ascending: false });
+    
+    if (data) {
+        document.getElementById('history-body').innerHTML = data.map(h => 
+            `<tr><td>${h.date}</td><td>${h.hours}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`
+        ).join('');
     }
+}
 
-    async function sendData() {
-        const date = document.getElementById('date').value;
-        const hours = document.getElementById('hours').value;
-        if(!date || !hours) return alert("Bitte Datum und Stunden ausfüllen!");
+async function loadUserData() {
+    const { data } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
+    if (data) document.getElementById('profile-name-input').value = data.full_name || '';
+}
 
-        const { error } = await sb.from('work_hours').insert([{
-            user_id: currentUserId,
-            date: date,
-            activity: document.getElementById('activity').value,
-            description: document.getElementById('description').value,
-            hours: parseFloat(hours),
-            status: 'pending'
-        }]);
-        if (error) alert(error.message);
-        else { alert("Gespeichert!"); loadHistory(); }
-    }
+async function updateProfile() {
+    const name = document.getElementById('profile-name-input').value;
+    await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
+    alert("Profil aktualisiert!");
+}
 
-    async function loadHistory() {
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUserId).order('date', { ascending: false });
-        if (data) {
-            document.getElementById('history-body').innerHTML = data.map(h => 
-                `<tr><td>${h.date}</td><td>${h.hours}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`
-            ).join('');
-        }
-    }
+async function doLogout() { await sb.auth.signOut(); }
 
-    async function loadUserData() {
-        const { data } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
-        if (data) document.getElementById('profile-name-input').value = data.full_name || '';
-    }
-
-    async function updateProfile() {
-        const name = document.getElementById('profile-name-input').value;
-        await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
-        alert("Name gespeichert!");
-    }
-
-    async function doLogin() {
-        const { error } = await sb.auth.signInWithPassword({
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value
-        });
-        if (error) alert(error.message);
-    }
-
-    async function doLogout() { await sb.auth.signOut(); }
+function switchTab(tab) {
+    ['home', 'profile'].forEach(t => {
+        document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
+        document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
+    });
+}
 </script>
 </body>
 </html>
