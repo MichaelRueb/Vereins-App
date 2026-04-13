@@ -163,14 +163,20 @@ async function sendData() {
 // HISTORIE LADEN (angepasst an deine Spalten)
 async function loadHistory() {
     const { data, error } = await sb.from('work_hours')
-        .select('date, duration, status') // 'duration' statt 'hours'
+        .select('date, duration, description, status') // Jetzt mit description
         .eq('user_id', currentUserId)
         .order('date', { ascending: false });
 
     if (data) {
-        document.getElementById('history-body').innerHTML = data.map(h => `
+        const body = document.getElementById('history-body');
+        
+        // Tabellenkopf anpassen (optional im HTML, hier fügen wir die Info einfach ein)
+        document.querySelector('thead tr').innerHTML = '<th>Datum</th><th>Tätigkeit</th><th>Std.</th><th>Status</th>';
+
+        body.innerHTML = data.map(h => `
             <tr>
                 <td>${h.date}</td>
+                <td style="font-size: 0.9em; color: #555;">${h.description || '-'}</td>
                 <td>${h.duration}h</td>
                 <td>${h.status === 'approved' ? '✅' : '⏳'}</td>
             </tr>
