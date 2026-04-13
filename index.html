@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hubertus Stunden-Tool Admin</title>
+    <title>Hubertus Admin Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: -apple-system, sans-serif; padding: 15px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 600px; box-sizing: border-box; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 800px; box-sizing: border-box; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; width: 100%; }
@@ -15,13 +15,14 @@
         .tab.active { background: #2e7d32; color: white; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
-        .admin-only { display: none; background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 8px; margin-top: 10px; }
+        .approve-btn { background: #1976d2; padding: 5px 10px; font-size: 11px; width: auto; margin: 0; }
+        .total-row { background: #e8f5e9; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="loading-ui" style="text-align:center;">Lade App...</div>
+    <div id="loading-ui" style="text-align:center;">Lade System...</div>
 
     <div id="auth-ui" style="display:none;">
         <h2>Anmelden</h2>
@@ -34,7 +35,7 @@
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
             <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
-            <div id="tab-admin" class="tab admin-nav" style="display:none;" onclick="switchTab('admin')">Admin</div>
+            <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
 
         <div id="view-home">
@@ -46,29 +47,33 @@
                 <option>Feste</option>
                 <option>Sonstiges</option>
             </select>
-            <textarea id="description" placeholder="Details..."></textarea>
-            <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
-            <button onclick="sendData()">Absenden</button>
-            <table>
+            <textarea id="description" placeholder="Details zur Arbeit..."></textarea>
+            <input type="number" id="hours" step="0.5" placeholder="Anzahl Stunden">
+            <button onclick="sendData()">Stunden melden</button>
+            <table id="user-history">
                 <thead><tr><th>Datum</th><th>Tätigkeit</th><th>Std.</th><th>Status</th></tr></thead>
                 <tbody id="history-body"></tbody>
             </table>
         </div>
 
         <div id="view-profile" style="display:none;">
-            <h3>Dein Profil</h3>
-            <input type="text" id="profile-email-display" disabled>
-            <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
+            <h3>Profil</h3>
+            <input type="text" id="profile-name-input" placeholder="Dein Name">
             <button onclick="updateProfile()">Speichern</button>
             <button onclick="doLogout()" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
-            <h3>Mitglieder-Übersicht</h3>
-            <p>Liste aller registrierten Personen:</p>
-            <table>
-                <thead><tr><th>Name</th><th>Letzter Login (ID)</th></tr></thead>
-                <tbody id="member-list-body"></tbody>
+            <h3>Mitglieder & Gesamtstunden</h3>
+            <table id="admin-member-table">
+                <thead><tr><th>Mitglied</th><th>Gesamt (h)</th></tr></thead>
+                <tbody id="admin-member-body"></tbody>
+            </table>
+
+            <h3 style="margin-top:30px;">Offene Bestätigungen</h3>
+            <table id="admin-approve-table">
+                <thead><tr><th>Name</th><th>Datum</th><th>Tätigkeit</th><th>Std.</th><th>Aktion</th></tr></thead>
+                <tbody id="admin-approve-body"></tbody>
             </table>
         </div>
     </div>
@@ -77,10 +82,10 @@
 <script>
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
-    const sb = supabase.createClient(S_URL, S_KEY, { auth: { persistSession: true, detectSessionInUrl: false } });
+    const sb = supabase.createClient(S_URL, S_KEY);
 
     let currentUserId = null;
-    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com"; // Deine Admin E-Mail
+    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -93,54 +98,69 @@
         document.getElementById('loading-ui').style.display = 'none';
         document.getElementById('auth-ui').style.display = 'none';
         document.getElementById('form-ui').style.display = 'block';
-        document.getElementById('profile-email-display').value = user.email;
-
-        // Admin-Check
+        
         if(user.email === ADMIN_EMAIL) {
             document.getElementById('tab-admin').style.display = 'block';
-            loadMemberList();
+            loadAdminData();
         }
-
-        loadUserData();
         loadHistory();
+        loadUserData();
     }
 
-    async function loadMemberList() {
-        // Holt alle Namen aus der profiles-Tabelle
-        const { data, error } = await sb.from('profiles').select('full_name, id').order('full_name');
-        if (data) {
-            document.getElementById('member-list-body').innerHTML = data.map(m => 
-                `<tr><td>${m.full_name || 'Unbekannt'}</td><td><small>${m.id.substring(0,8)}...</small></td></tr>`
-            ).join('');
-        }
+    // --- ADMIN FUNKTIONEN ---
+    async function loadAdminData() {
+        // 1. Alle Profile und Stunden für die Summe holen
+        const { data: profiles } = await sb.from('profiles').select('id, full_name');
+        const { data: hours } = await sb.from('work_hours').select('user_id, duration, status');
+
+        // Summen berechnen
+        const memberTable = document.getElementById('admin-member-body');
+        memberTable.innerHTML = profiles.map(p => {
+            const total = hours.filter(h => h.user_id === p.id && h.status === 'approved')
+                               .reduce((sum, current) => sum + (current.duration || 0), 0);
+            return `<tr class="${total > 0 ? 'total-row' : ''}"><td>${p.full_name || 'Anonym'}</td><td>${total} h</td></tr>`;
+        }).join('');
+
+        // 2. Offene Stunden zum Bestätigen laden
+        const { data: pending } = await sb.from('work_hours')
+            .select('id, date, duration, description, profiles(full_name)')
+            .eq('status', 'pending')
+            .order('date', { ascending: false });
+
+        const approveTable = document.getElementById('admin-approve-body');
+        approveTable.innerHTML = pending.map(p => `
+            <tr>
+                <td>${p.profiles?.full_name || 'Unbekannt'}</td>
+                <td>${p.date}</td>
+                <td><small>${p.description}</small></td>
+                <td>${p.duration}</td>
+                <td><button class="approve-btn" onclick="approveHours('${p.id}')">Bestätigen</button></td>
+            </tr>
+        `).join('');
     }
 
+    async function approveHours(id) {
+        const { error } = await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        if(!error) { alert("Bestätigt!"); loadAdminData(); loadHistory(); }
+    }
+
+    // --- USER FUNKTIONEN ---
     async function sendData() {
-        const d = document.getElementById('date').value;
-        const h = document.getElementById('hours').value;
-        const act = document.getElementById('activity').value;
-        const desc = document.getElementById('description').value;
-        
-        if(!d || !h) return alert("Pflichtfelder ausfüllen!");
-
         const { error } = await sb.from('work_hours').insert([{
             user_id: currentUserId,
-            date: d,
-            duration: parseFloat(h), // Spalte aus deinem Schema
-            description: `[${act}] ${desc}`,
+            date: document.getElementById('date').value,
+            duration: parseFloat(document.getElementById('hours').value),
+            description: `[${document.getElementById('activity').value}] ${document.getElementById('description').value}`,
             status: 'pending'
         }]);
-        if (error) alert(error.message);
-        else { alert("Gesendet!"); loadHistory(); }
+        if (error) alert(error.message); else { alert("Gesendet!"); loadHistory(); }
     }
 
     async function loadHistory() {
-        const { data } = await sb.from('work_hours').select('date, duration, description, status').eq('user_id', currentUserId).order('date', { ascending: false });
-        if (data) {
-            document.getElementById('history-body').innerHTML = data.map(h => 
-                `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`
-            ).join('');
-        }
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUserId).order('date', { ascending: false });
+        document.getElementById('history-body').innerHTML = data.map(h => `
+            <tr><td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>
+        `).join('');
     }
 
     async function loadUserData() {
@@ -149,19 +169,19 @@
     }
 
     async function updateProfile() {
-        const name = document.getElementById('profile-name-input').value;
-        await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
-        alert("Gespeichert!");
-        if(document.getElementById('tab-admin').style.display === 'block') loadMemberList();
+        await sb.from('profiles').upsert({ id: currentUserId, full_name: document.getElementById('profile-name-input').value });
+        alert("Profil gespeichert!");
     }
 
     function switchTab(tab) {
         ['home', 'profile', 'admin'].forEach(t => {
-            if(document.getElementById('view-' + t)) {
-                document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
+            const view = document.getElementById('view-' + t);
+            if(view) {
+                view.style.display = (t === tab) ? 'block' : 'none';
                 document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
             }
         });
+        if(tab === 'admin') loadAdminData();
     }
 
     async function doLogin() {
@@ -171,7 +191,6 @@
         });
         if (error) alert(error.message);
     }
-
     async function doLogout() { await sb.auth.signOut(); location.reload(); }
 </script>
 </body>
