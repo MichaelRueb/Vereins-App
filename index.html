@@ -48,7 +48,13 @@
             <button onclick="sendData()">Absenden</button>
             <table><thead><tr><th>Datum</th><th>Tätigkeit</th><th>Std.</th><th>Status</th></tr></thead><tbody id="history-body"></tbody></table>
         </div>
-
+<div id="progress-container" style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 10px; text-align: center;">
+    <span style="font-weight: bold; color: #2e7d32;">Dein Fortschritt: <span id="hours-stat">0</span> / 10 Std.</span>
+    <div style="width: 100%; background: #ddd; border-radius: 10px; height: 20px; margin-top: 8px; overflow: hidden;">
+        <div id="progress-bar" style="width: 0%; height: 100%; background: #4caf50; transition: width 0.5s ease-in-out;"></div>
+    </div>
+    <p id="goal-message" style="font-size: 0.85em; margin-top: 8px; font-style: italic;"></p>
+</div>
         <div id="view-profile" style="display:none;">
             <h3>Profil</h3>
             <input type="text" id="profile-email-display" disabled style="background: #eee;">
