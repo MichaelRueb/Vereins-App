@@ -143,9 +143,44 @@
     }
 
     async function loadHistory() {
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUserId).order('date', { ascending: false });
-        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`).join('');
+    const { data, error } = await sb.from('work_hours')
+        .select('date, duration, description, status') //
+        .eq('user_id', currentUserId)
+        .order('date', { ascending: false });
+
+    if (data) {
+        // 1. Tabelle füllen
+        document.getElementById('history-body').innerHTML = data.map(h => `
+            <tr>
+                <td>${h.date}</td>
+                <td><small>${h.description}</small></td>
+                <td>${h.duration}h</td>
+                <td>${h.status === 'approved' ? '✅' : '⏳'}</td>
+            </tr>
+        `).join('');
+
+        // 2. Grafik berechnen (Nur bestätigte Stunden zählen zum Soll)
+        const totalApproved = data
+            .filter(h => h.status === 'approved')
+            .reduce((sum, h) => sum + (h.duration || 0), 0);
+
+        const target = 10;
+        const percentage = Math.min((totalApproved / target) * 100, 100);
+
+        // 3. UI updaten
+        document.getElementById('hours-stat').innerText = totalApproved;
+        document.getElementById('progress-bar').style.width = percentage + "%";
+        
+        const msg = document.getElementById('goal-message');
+        if (totalApproved >= target) {
+            msg.innerText = "🎉 Ziel erreicht! Vielen Dank für deinen Einsatz.";
+            msg.style.color = "#2e7d32";
+        } else {
+            msg.innerText = `Noch ${target - totalApproved} Stunden bis zum Jahressoll.`;
+            msg.style.color = "#555";
+        }
     }
+}
 
     async function loadUserData() {
         const { data } = await sb.from('profiles').select('full_name').eq('id', currentUserId).maybeSingle();
