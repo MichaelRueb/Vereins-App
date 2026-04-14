@@ -26,13 +26,15 @@
         input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; margin: 0; }
         .auth-hint { font-size: 0.8em; color: #666; text-align: center; margin-top: 10px; margin-bottom: 5px; }
         .forgot-link { font-size: 0.75em; color: #1976d2; text-decoration: underline; cursor: pointer; display: block; text-align: right; margin-top: -5px; margin-bottom: 10px; }
-        .reg-box { border-top: 2px solid #eee; margin-top: 20px; padding-top: 15px; background: #fcfcfc; border-radius: 0 0 12px 12px; }
+        .reg-box { border-top: 2px solid #eee; margin-top: 20px; padding-top: 15px; background: #fcfcfc; }
+        .member-link { color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: bold; }
+        .explorer-card { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 10px; border: 1px solid #cfd8dc; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="loading-ui" style="text-align:center; padding: 20px;">System wird geladen...</div>
+    <div id="loading-ui" style="text-align:center; padding: 20px;">Daten werden geladen...</div>
 
     <div id="auth-ui" style="display:none;">
         <h2 style="text-align:center;">Hubertus Login</h2>
@@ -40,12 +42,11 @@
         <input type="password" id="password" placeholder="Passwort">
         <span class="forgot-link" onclick="forgotPasswordAtLogin()">Passwort vergessen?</span>
         <button onclick="doLogin()">Anmelden</button>
-
         <div class="reg-box">
-            <p class="auth-hint"><b>Noch kein Konto?</b> Jetzt registrieren:</p>
+            <p class="auth-hint"><b>Konto erstellen:</b></p>
             <input type="text" id="reg-firstname" placeholder="Vorname">
             <input type="text" id="reg-lastname" placeholder="Nachname">
-            <button onclick="doSignUp()" style="background: #555;">Konto erstellen</button>
+            <button onclick="doSignUp()" style="background: #555;">Registrieren</button>
         </div>
     </div>
 
@@ -61,21 +62,16 @@
             <input type="hidden" id="edit-id">
             <input type="date" id="date">
             <select id="activity">
-                <option>Standreinigung</option><option>Fahnenabordnung</option>
-                <option>Reinigungsarbeit</option><option>Feste</option><option>Sonstiges</option>
+                <option>Standreinigung</option><option>Fahnenabordnung</option><option>Reinigungsarbeit</option><option>Feste</option><option>Sonstiges</option>
             </select>
-            <textarea id="description" placeholder="Was genau hast du gemacht?"></textarea>
-            <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
+            <textarea id="description" placeholder="Beschreibung..."></textarea>
+            <input type="number" id="hours" step="0.5" placeholder="Stunden">
             <button id="btn-submit" onclick="sendData()">Absenden</button>
             <button id="btn-cancel-edit" onclick="resetForm()" style="display:none; background:#777;">Abbrechen</button>
-
             <div style="margin-top:20px; padding:15px; background:#e8f5e9; border-radius:10px; text-align:center;">
-                <b>Dein Fortschritt: <span id="hours-stat">0</span> / 10 Std.</b>
-                <div style="width:100%; background:#ddd; height:15px; border-radius:10px; margin-top:5px; overflow:hidden;">
-                    <div id="progress-bar" style="width:0%; height:100%; background:#4caf50; transition:0.5s;"></div>
-                </div>
+                <b>Status: <span id="hours-stat">0</span> / 10 Std.</b>
+                <div style="width:100%; background:#ddd; height:12px; border-radius:10px; margin-top:5px; overflow:hidden;"><div id="progress-bar" style="width:0%; height:100%; background:#4caf50; transition:0.5s;"></div></div>
             </div>
-
             <table>
                 <thead><tr><th>Datum</th><th>Info</th><th>Std.</th><th>Status</th></tr></thead>
                 <tbody id="history-body"></tbody>
@@ -84,12 +80,8 @@
 
         <div id="view-profile" style="display:none;">
             <h3>Profil</h3>
-            <label>Name ändern:</label>
-            <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
-            <button onclick="updateProfile()">Profil speichern</button>
-            <div style="margin-top: 20px; padding: 10px; background: #f9f9f9; border-radius: 8px;">
-                <button onclick="resetPassword()" style="background:#555;">Passwort-Reset E-Mail senden</button>
-            </div>
+            <input type="text" id="profile-name-input" placeholder="Name">
+            <button onclick="updateProfile()">Speichern</button>
             <button onclick="doLogout()" class="btn-danger" style="margin-top:40px;">Abmelden</button>
         </div>
 
@@ -100,11 +92,23 @@
                 <thead><tr><th>Name</th><th>Info</th><th>Std.</th><th>Aktion</th></tr></thead>
                 <tbody id="admin-approve-body"></tbody>
             </table>
-            <h3>Mitglieder & Rollen</h3>
+            
+            <h3 style="margin-top:30px;">Mitgliederliste (Name für Details anklicken)</h3>
             <table>
                 <thead><tr><th>Name</th><th>Stunden</th><th>Funktionär</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
             </table>
+
+            <div id="admin-explorer" class="explorer-card" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4 id="explorer-name" style="margin:0;">Nachweise für...</h4>
+                    <button onclick="document.getElementById('admin-explorer').style.display='none'" style="width:auto; padding:5px 10px; background:#777;">Schließen</button>
+                </div>
+                <table id="explorer-table">
+                    <thead><tr><th>Datum</th><th>Tätigkeit</th><th>Std.</th><th>Status</th></tr></thead>
+                    <tbody id="explorer-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -113,131 +117,99 @@
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
     const sb = supabase.createClient(S_URL, S_KEY);
-
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
-    let currentUser = null;
-    let isAdmin = false;
+    let currentUser = null; let isAdmin = false;
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
         if (session) setupUI(session.user);
-        else { 
-            document.getElementById('loading-ui').style.display = 'none'; 
-            document.getElementById('auth-ui').style.display = 'block'; 
-        }
+        else { document.getElementById('loading-ui').style.display = 'none'; document.getElementById('auth-ui').style.display = 'block'; }
     };
 
     async function setupUI(user) {
-        currentUser = user;
-        isAdmin = (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
-        
-        let { data: p } = await sb.from('profiles').select('is_official, full_name').eq('id', user.id).maybeSingle();
-        
-        document.getElementById('loading-ui').style.display = 'none';
-        document.getElementById('auth-ui').style.display = 'none';
-        document.getElementById('form-ui').style.display = 'block';
-
-        if(isAdmin || (p && p.is_official)) {
-            document.getElementById('tab-admin').style.display = 'block';
-        }
-        
-        loadHistory();
-        loadUserData();
+        currentUser = user; isAdmin = (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+        let { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        document.getElementById('loading-ui').style.display = 'none'; document.getElementById('auth-ui').style.display = 'none'; document.getElementById('form-ui').style.display = 'block';
+        if(isAdmin || (p && p.is_official)) document.getElementById('tab-admin').style.display = 'block';
+        loadHistory(); loadUserData();
     }
 
-    async function doLogin() {
-        const { error } = await sb.auth.signInWithPassword({ 
-            email: document.getElementById('email').value, 
-            password: document.getElementById('password').value 
-        });
-        if (error) alert("Login fehlgeschlagen: " + error.message); 
-        else location.reload();
-    }
-
-    async function doSignUp() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
-        const fname = document.getElementById('reg-firstname').value.trim();
-        const lname = document.getElementById('reg-lastname').value.trim();
-
-        if(!fname || !lname) return alert("Bitte Vor- und Nachname eingeben!");
-        if(pass.length < 6) return alert("Passwort zu kurz (min. 6 Zeichen)");
-
-        // 1. Auth SignUp
-        const { data, error } = await sb.auth.signUp({ email, password: pass });
-        
-        if (error) {
-            alert("Fehler: " + error.message);
-        } else if (data.user) {
-            // 2. Profil direkt anlegen
-            await sb.from('profiles').upsert({ 
-                id: data.user.id, 
-                full_name: fname + " " + lname,
-                is_official: false 
-            });
-            alert("Konto für " + fname + " erstellt! Du kannst dich jetzt einloggen.");
-        }
-    }
-
-    async function forgotPasswordAtLogin() {
-        const email = document.getElementById('email').value;
-        if(!email) return alert("Bitte gib deine E-Mail ein.");
-        await sb.auth.resetPasswordForEmail(email);
-        alert("E-Mail gesendet!");
-    }
-
-    // --- RESTLICHE FUNKTIONEN (ADMIN, HISTORY ETC.) BLEIBEN GLEICH ---
     async function loadAdminData() {
-        const { data: profiles } = await sb.from('profiles').select('id, full_name, is_official').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('user_id, duration, status');
+        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*');
+        
         document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
             const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
             const cb = isAdmin ? `<input type="checkbox" onchange="toggleOfficial('${m.id}', this.checked)" ${m.is_official ? 'checked' : ''}>` : (m.is_official ? '✅' : '❌');
-            return `<tr><td>${m.full_name || 'Unbekannt'}</td><td>${total}/10h</td><td style="text-align:center">${cb}</td></tr>`;
+            return `<tr>
+                <td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || 'Neu'}</span></td>
+                <td>${total}/10h</td>
+                <td style="text-align:center">${cb}</td>
+            </tr>`;
         }).join('');
-        const { data: pending } = await sb.from('work_hours').select('id, date, duration, description, profiles(full_name)').eq('status', 'pending').order('date', { ascending: false });
-        document.getElementById('admin-approve-body').innerHTML = pending.map(item => `<tr><td>${item.profiles?.full_name}</td><td><small>${item.date}: ${item.description}</small></td><td>${item.duration}</td><td><button class="btn-approve" onclick="updateStatus('${item.id}', 'approved')">OK</button><button class="btn-reject" onclick="rejectPrompt('${item.id}')">X</button></td></tr>`).join('');
+
+        const { data: pending } = await sb.from('work_hours').select('*, profiles(full_name)').eq('status', 'pending').order('date', { ascending: false });
+        document.getElementById('admin-approve-body').innerHTML = pending.map(item => `
+            <tr><td>${item.profiles?.full_name}</td><td><small>${item.date}: ${item.description}</small></td><td>${item.duration}</td>
+            <td><button class="btn-approve" onclick="updateStatus('${item.id}', 'approved')">OK</button><button class="btn-reject" onclick="rejectPrompt('${item.id}')">X</button></td></tr>
+        `).join('');
     }
 
+    async function openExplorer(uid, name) {
+        document.getElementById('admin-explorer').style.display = 'block';
+        document.getElementById('explorer-name').innerText = "Nachweise: " + name;
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { ascending: false });
+        document.getElementById('explorer-body').innerHTML = data.map(h => `
+            <tr><td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳')}</td></tr>
+        `).join('');
+        document.getElementById('admin-explorer').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function doSignUp() {
+        const email = document.getElementById('email').value; const pass = document.getElementById('password').value;
+        const fname = document.getElementById('reg-firstname').value.trim(); const lname = document.getElementById('reg-lastname').value.trim();
+        if(!fname || !lname || pass.length < 6) return alert("Daten unvollständig (Passwort min 6 Zeichen)");
+        const { data, error } = await sb.auth.signUp({ email, password: pass });
+        if (error) alert(error.message);
+        else if (data.user) { await sb.from('profiles').upsert({ id: data.user.id, full_name: fname + " " + lname, is_official: false }); alert("Konto erstellt! Bitte einloggen."); }
+    }
+
+    async function doLogin() { 
+        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
+        if (error) alert(error.message); else location.reload(); 
+    }
+    
     async function toggleOfficial(uid, status) { await sb.from('profiles').update({ is_official: status }).eq('id', uid); }
-    async function rejectPrompt(id) { const r = prompt("Grund:"); if (r !== null) updateStatus(id, 'rejected', r); }
     async function updateStatus(id, status, reason = null) { await sb.from('work_hours').update({ status, rejection_reason: reason }).eq('id', id); loadAdminData(); }
+    async function rejectPrompt(id) { const r = prompt("Grund:"); if (r !== null) updateStatus(id, 'rejected', r); }
     
     async function sendData() {
-        const payload = { user_id: currentUser.id, date: document.getElementById('date').value, duration: parseFloat(document.getElementById('hours').value), description: document.getElementById('description').value, status: 'pending' };
-        await sb.from('work_hours').insert([payload]);
-        resetForm(); loadHistory();
+        const payload = { user_id: currentUser.id, date: document.getElementById('date').value, duration: parseFloat(document.getElementById('hours').value), description: "[" + document.getElementById('activity').value + "] " + document.getElementById('description').value, status: 'pending' };
+        await sb.from('work_hours').insert([payload]); resetForm(); loadHistory();
     }
 
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
         if(!data) return;
-        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}${h.status==='rejected'?'<br><small>Ref: '+h.rejection_reason+'</small>':''}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
+        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td><small>${h.description}</small>${h.status==='rejected'?'<br><small style="color:red">Ref: '+h.rejection_reason+'</small>':''}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
         const total = data.filter(h => h.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
-        document.getElementById('hours-stat').innerText = total;
-        document.getElementById('progress-bar').style.width = Math.min((total/10)*100, 100) + "%";
+        document.getElementById('hours-stat').innerText = total; document.getElementById('progress-bar').style.width = Math.min((total/10)*100, 100) + "%";
     }
 
     function resetForm() { document.getElementById('date').value = ""; document.getElementById('hours').value = ""; document.getElementById('description').value = ""; }
     function switchTab(tab) {
-        ['home', 'profile', 'admin'].forEach(t => {
-            document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
-            document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
-        });
+        ['home', 'profile', 'admin'].forEach(t => { document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none'; document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab'; });
         if(tab === 'admin') loadAdminData();
     }
-    async function loadUserData() {
-        const { data } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).maybeSingle();
-        if (data) document.getElementById('profile-name-input').value = data.full_name || '';
-    }
+    async function loadUserData() { const { data } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).maybeSingle(); if (data) document.getElementById('profile-name-input').value = data.full_name || ''; }
     async function updateProfile() { await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('profile-name-input').value }); alert("Gespeichert!"); }
     async function doLogout() { await sb.auth.signOut(); location.reload(); }
-    async function resetPassword() { await sb.auth.resetPasswordForEmail(currentUser.email); alert("Reset-Link gesendet!"); }
+    async function forgotPasswordAtLogin() { const e = document.getElementById('email').value; if(!e) return alert("E-Mail angeben"); await sb.auth.resetPasswordForEmail(e); alert("Reset-Link gesendet"); }
+
     async function exportToPDF() {
-        const { data: p } = await sb.from('profiles').select('id, full_name').order('full_name');
-        const { data: h } = await sb.from('work_hours').select('user_id, duration, status').eq('status', 'approved');
-        const doc = new jspdf.jsPDF();
-        doc.text("Hubertus Strullendorf - Jahresübersicht", 14, 20);
+        const { data: p } = await sb.from('profiles').select('*').order('full_name');
+        const { data: h } = await sb.from('work_hours').select('*').eq('status', 'approved');
+        const doc = new jspdf.jsPDF(); doc.text("Hubertus Strullendorf - Stundenliste", 14, 20);
         doc.autoTable({ startY: 30, head: [['Name', 'Stunden']], body: p.map(m => [m.full_name, h.filter(x => x.user_id === m.id).reduce((s, c) => s + (c.duration || 0), 0) + " h"]) });
         doc.save("Vereinsstunden.pdf");
     }
