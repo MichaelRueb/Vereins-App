@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: -apple-system, sans-serif; padding: 15px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 800px; box-sizing: border-box; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 850px; box-sizing: border-box; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
         button:active { opacity: 0.8; }
@@ -21,6 +21,7 @@
         .btn-secondary { background: #555 !important; }
         label { font-size: 0.9em; font-weight: bold; color: #555; display: block; margin-top: 10px; }
         .admin-section { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        input[type="checkbox"] { width: auto; transform: scale(1.2); cursor: pointer; }
     </style>
 </head>
 <body>
@@ -53,9 +54,9 @@
                 <option>Feste</option>
                 <option>Sonstiges</option>
             </select>
-            <textarea id="description" placeholder="Was genau hast du gemacht?"></textarea>
+            <textarea id="description" placeholder="Details zur Arbeit..."></textarea>
             <label>Dauer (Stunden):</label>
-            <input type="number" id="hours" step="0.5" placeholder="z.B. 2.5">
+            <input type="number" id="hours" step="0.5" placeholder="z.B. 1.5">
             <button onclick="sendData()">Absenden</button>
             
             <table>
@@ -74,17 +75,17 @@
 
             <div style="margin-top: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
                 <h4>Sicherheit</h4>
-                <p style="font-size: 0.8em; color: #666;">Passwort vergessen? Wir senden dir einen Link zum Zurücksetzen.</p>
-                <button onclick="resetPassword()" class="btn-secondary">Passwort-Reset E-Mail senden</button>
+                <p style="font-size: 0.8em; color: #666;">Passwort vergessen?</p>
+                <button onclick="resetPassword()" class="btn-secondary">Reset-Link an E-Mail senden</button>
             </div>
 
             <button onclick="doLogout()" class="btn-danger" style="margin-top: 40px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
-            <h3>Mitglieder & Gesamtstunden</h3>
+            <h3>Mitglieder-Übersicht</h3>
             <table>
-                <thead><tr><th>Mitglied</th><th>Gesamt (h)</th><th>Funktionär?</th></tr></thead>
+                <thead><tr><th>Mitglied</th><th>Gesamt (h)</th><th>Funktionär</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
             </table>
 
@@ -105,9 +106,10 @@
     const sb = supabase.createClient(S_URL, S_KEY, { auth: { persistSession: true, detectSessionInUrl: false } });
 
     let currentUserId = null;
+    let currentUserEmail = "";
+    let cachedProfiles = []; // Speicher für die Checkbox-Zustände
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
 
-    // START
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
         if (session) setupUI(session.user);
@@ -119,6 +121,7 @@
 
     async function setupUI(user) {
         currentUserId = user.id;
+        currentUserEmail = user.email;
         document.getElementById('loading-ui').style.display = 'none';
         document.getElementById('auth-ui').style.display = 'none';
         document.getElementById('form-ui').style.display = 'block';
@@ -136,15 +139,17 @@
 
     // --- ADMIN LOGIK ---
     async function loadAdminData() {
-        const isMainAdmin = (document.getElementById('profile-email-display').value === ADMIN_EMAIL);
+        const isMainAdmin = (currentUserEmail === ADMIN_EMAIL);
         
         const { data: profiles } = await sb.from('profiles').select('id, full_name, is_official').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('user_id, duration, status');
 
-        // Mitgliederliste
-        document.getElementById('admin-member-body').innerHTML = profiles.map(p => {
-            const total = hours.filter(h => h.user_id === p.id && h.status === 'approved')
-                               .reduce((sum, curr) => sum + (curr.duration || 0), 0);
+        cachedProfiles = profiles || [];
+
+        // Mitgliederliste rendern
+        document.getElementById('admin-member-body').innerHTML = cachedProfiles.map(p => {
+            const total = (hours || []).filter(h => h.user_id === p.id && h.status === 'approved')
+                                      .reduce((sum, curr) => sum + (curr.duration || 0), 0);
             
             const checkbox = isMainAdmin ? 
                 `<input type="checkbox" ${p.is_official ? 'checked' : ''} onchange="toggleOfficial('${p.id}', this.checked)">` : 
@@ -153,12 +158,12 @@
             return `<tr><td>${p.full_name || 'Anonym'}</td><td>${total} h</td><td>${checkbox}</td></tr>`;
         }).join('');
 
-        // Offene Stunden
+        // Offene Stunden laden
         const { data: pending } = await sb.from('work_hours')
             .select('id, date, duration, description, profiles(full_name)')
             .eq('status', 'pending').order('date', { ascending: false });
 
-        document.getElementById('admin-approve-body').innerHTML = pending.map(p => `
+        document.getElementById('admin-approve-body').innerHTML = (pending || []).map(p => `
             <tr>
                 <td>${p.profiles?.full_name || 'Unbekannt'}</td>
                 <td>${p.date}</td>
@@ -170,12 +175,18 @@
     }
 
     async function toggleOfficial(userId, status) {
-        await sb.from('profiles').update({ is_official: status }).eq('id', userId);
+        // Sofort lokal im Cache speichern, damit Tab-Wechsel klappt
+        const idx = cachedProfiles.findIndex(p => p.id === userId);
+        if(idx !== -1) cachedProfiles[idx].is_official = status;
+
+        // In Datenbank speichern
+        const { error } = await sb.from('profiles').update({ is_official: status }).eq('id', userId);
+        if(error) alert("Fehler beim Speichern: " + error.message);
     }
 
     async function approveHours(id) {
-        const { error } = await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
-        if(!error) loadAdminData();
+        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        loadAdminData();
     }
 
     // --- NUTZER LOGIK ---
@@ -209,23 +220,22 @@
     }
 
     async function updateProfile() {
-        const name = document.getElementById('profile-name-input').value;
-        await sb.from('profiles').upsert({ id: currentUserId, full_name: name });
+        await sb.from('profiles').upsert({ id: currentUserId, full_name: document.getElementById('profile-name-input').value });
         alert("Name gespeichert!");
     }
 
     async function resetPassword() {
         const email = document.getElementById('profile-email-display').value;
-        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
-        alert(error ? error.message : "Link wurde gesendet!");
+        await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+        alert("Reset-Link wurde an dein Postfach gesendet!");
     }
 
     // --- NAVIGATION ---
     function switchTab(tab) {
         ['home', 'profile', 'admin'].forEach(t => {
-            const view = document.getElementById('view-' + t);
-            if(view) {
-                view.style.display = (t === tab) ? 'block' : 'none';
+            const v = document.getElementById('view-' + t);
+            if(v) {
+                v.style.display = (t === tab) ? 'block' : 'none';
                 document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
             }
         });
