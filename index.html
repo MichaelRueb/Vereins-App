@@ -203,6 +203,20 @@
         if (error) alert(error.message);
     }
     async function doLogout() { await sb.auth.signOut(); location.reload(); }
+    async function resetPassword() {
+    const email = document.getElementById('profile-email-display').value;
+    
+    // Supabase sendet eine E-Mail mit einem Link zum Passwort-Reset
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.href, // Der User kommt nach dem Klick zurück auf deine App
+    });
+
+    if (error) {
+        alert("Fehler: " + error.message);
+    } else {
+        alert("Überprüfe dein Postfach! Wir haben dir einen Link zum Zurücksetzen gesendet.");
+    }
+}
 </script>
 </body>
 </html>
