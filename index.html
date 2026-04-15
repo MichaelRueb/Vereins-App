@@ -19,8 +19,10 @@
         th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; vertical-align: middle; }
         .member-link { color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: bold; }
         .explorer-card { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 10px; border: 1px solid #cfd8dc; }
-        .btn-delete { background: #b71c1c; padding: 5px; width: auto; font-size: 11px; color: white; border-radius: 4px; border: none; }
+        .btn-delete { background: #b71c1c; padding: 5px; width: auto; font-size: 11px; color: white; border-radius: 4px; border: none; cursor: pointer; }
         .section-box { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px solid #eee; }
+        .event-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .badge-home { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 5px; border: 1px solid #c8e6c9; }
     </style>
 </head>
 <body>
@@ -63,7 +65,11 @@
             <div id="captain-form" style="display:none; background:#fff3e0; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid #ffe0b2;">
                 <h4>Neuer Termin für <span id="cap-team-name"></span></h4>
                 <input type="date" id="event-date">
-                <input type="text" id="event-opponent" placeholder="Gegner / Anlass">
+                <input type="text" id="event-opponent" placeholder="Gegner">
+                <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
+                    <input type="checkbox" id="event-is-home" style="width: auto; margin: 0; cursor: pointer;">
+                    <label for="event-is-home" style="font-size: 0.9em; cursor: pointer; user-select: none;">Heimwettkampf</label>
+                </div>
                 <button onclick="saveEvent()" style="background:#ef6c00;">Termin speichern</button>
             </div>
             <div id="event-list">Keine Termine vorhanden.</div>
@@ -87,10 +93,6 @@
                     <option value="Passiv / Sonstige">Passiv / Sonstige</option>
                 </select>
                 <button onclick="updateProfile()">Profil speichern</button>
-            </div>
-            <div class="section-box">
-                <input type="password" id="new-password" placeholder="Neues Passwort">
-                <button onclick="updatePassword()" style="background: #555;">Passwort ändern</button>
             </div>
             <button onclick="doLogout()" style="background:#b71c1c; margin-top:30px;">Abmelden</button>
         </div>
@@ -166,13 +168,6 @@
         if(error) alert(error.message); else { alert("Gespeichert!"); location.reload(); }
     }
 
-    async function updatePassword() {
-        const pass = document.getElementById('new-password').value;
-        if(pass.length < 6) return alert("Passwort zu kurz!");
-        const { error } = await sb.auth.updateUser({ password: pass });
-        if(error) alert(error.message); else alert("Passwort geändert!");
-    }
-
     async function loadAdminData() {
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
@@ -197,7 +192,6 @@
             <td>${h.status==='approved'?'✅':'⏳'}</td>
             <td><button class="btn-delete" onclick="deleteEntry('${h.id}', '${uid}', '${name}')">🗑️</button></td>
         </tr>`).join('');
-        document.getElementById('admin-explorer').scrollIntoView({ behavior: 'smooth' });
     }
 
     async function deleteEntry(id, uid, name) {
@@ -231,17 +225,42 @@
         let query = sb.from('tournaments').select('*').order('date', { ascending: true });
         if(!isAdmin) query = query.eq('team', userTeam);
         const { data } = await query;
+        const list = document.getElementById('event-list');
         if(data && data.length > 0) {
-            document.getElementById('event-list').innerHTML = data.map(e => `<div style="padding:10px; border-bottom:1px solid #eee;"><b>${e.date}</b>: ${e.opponent} (${e.team})</div>`).join('');
+            list.innerHTML = data.map(e => `
+                <div class="event-item">
+                    <div>
+                        <b>${new Date(e.date).toLocaleDateString('de-DE')}</b>: ${e.opponent}
+                        ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}
+                        <br><small style="color:#666;">Mannschaft: ${e.team}</small>
+                    </div>
+                    ${(isCaptain || isAdmin) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}
+                </div>`).join('');
+        } else {
+            list.innerHTML = "Keine Termine vorhanden.";
         }
     }
 
     async function saveEvent() {
         const date = document.getElementById('event-date').value;
         const opp = document.getElementById('event-opponent').value;
+        const isHome = document.getElementById('event-is-home').checked;
         if(!date || !opp) return alert("Daten unvollständig!");
-        await sb.from('tournaments').insert([{ date, opponent: opp, team: userTeam, created_by: currentUser.id }]);
-        alert("Termin erstellt!"); loadEvents();
+        const { error } = await sb.from('tournaments').insert([{ date, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
+        if(error) alert(error.message);
+        else {
+            alert("Termin erstellt!");
+            document.getElementById('event-opponent').value = "";
+            document.getElementById('event-is-home').checked = false;
+            loadEvents();
+        }
+    }
+
+    async function deleteEvent(id) {
+        if(confirm("Termin wirklich löschen?")) {
+            await sb.from('tournaments').delete().eq('id', id);
+            loadEvents();
+        }
     }
 
     function switchTab(tab) {
@@ -252,6 +271,7 @@
             if(tb) tb.className = (t === tab) ? 'tab active' : 'tab';
         });
         if(tab === 'admin') loadAdminData();
+        if(tab === 'events') loadEvents();
     }
 
     async function doLogin() {
@@ -262,22 +282,6 @@
     }
 
     async function doLogout() { await sb.auth.signOut(); location.reload(); }
-
-    async function exportToPDF() {
-        const { data: p } = await sb.from('profiles').select('*').order('full_name');
-        const { data: h } = await sb.from('work_hours').select('*').eq('status', 'approved');
-        const doc = new jspdf.jsPDF();
-        doc.text("Arbeitsnachweise Hubertus Strullendorf", 14, 20);
-        let y = 30;
-        p.forEach(m => {
-            const list = h.filter(x => x.user_id === m.id);
-            const total = list.reduce((s, c) => s + c.duration, 0);
-            if(y > 270) { doc.addPage(); y = 20; }
-            doc.setFontSize(12); doc.text(`${m.full_name} (${m.team || 'Kein Team'}) - Gesamt: ${total}h`, 14, y);
-            y += 10;
-        });
-        doc.save("Stundenliste.pdf");
-    }
 </script>
 </body>
 </html>
