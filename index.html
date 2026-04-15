@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hubertus Stunden-Tool Pro</title>
+    <title>Hubertus Stunden & Wettkampf Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -14,17 +14,15 @@
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
         button:active { opacity: 0.8; }
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
-        .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.85em; }
         .tab.active { background: #2e7d32; color: white; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; vertical-align: middle; }
-        .btn-approve { background: #1976d2; padding: 5px; width: auto; margin: 2px; font-size: 11px; }
-        .btn-reject { background: #d32f2f; padding: 5px; width: auto; margin: 2px; font-size: 11px; }
-        .btn-delete { background: #b71c1c; padding: 5px; width: auto; margin: 2px; font-size: 11px; }
-        .btn-danger { background: #b71c1c !important; }
+        .btn-delete { background: #b71c1c; padding: 5px; width: auto; font-size: 11px; }
         .section-box { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px solid #eee; }
-        .member-link { color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: bold; }
-        .explorer-card { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 10px; border: 1px solid #cfd8dc; }
+        .event-card { background: #fff; border-left: 5px solid #1976d2; padding: 12px; margin: 10px 0; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .event-team { font-size: 0.75em; background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .captain-area { background: #fff3e0; padding: 15px; border-radius: 10px; border: 1px solid #ffe0b2; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -37,10 +35,16 @@
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort">
         <button onclick="doLogin()">Anmelden</button>
-        <div style="border-top: 2px solid #eee; margin-top: 20px; padding-top: 15px;">
-            <p style="font-size: 0.8em; text-align:center;"><b>Neu hier? Registrieren:</b></p>
+        <div class="section-box">
+            <p style="text-align:center; font-size: 0.8em;"><b>Neu registrieren:</b></p>
             <input type="text" id="reg-firstname" placeholder="Vorname">
             <input type="text" id="reg-lastname" placeholder="Nachname">
+            <select id="reg-team">
+                <option value="">-- Mannschaft wählen --</option>
+                <option>Luftgewehr 1</option><option>Luftgewehr 2</option><option>Luftgewehr 3</option>
+                <option>Luftgewehr Auflage</option><option>Luftpistole 1</option><option>Luftpistole 2</option>
+                <option>Sportpistole</option><option>Großkaliber</option><option>Passiv / Sonstige</option>
+            </select>
             <button onclick="doSignUp()" style="background: #555;">Konto erstellen</button>
         </div>
     </div>
@@ -48,20 +52,21 @@
     <div id="form-ui" style="display:none;">
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
+            <div id="tab-events" class="tab" onclick="switchTab('events')">Wettkämpfe</div>
             <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
 
         <div id="view-home">
-            <h3 id="form-title">Stunden melden</h3>
+            <h3>Stunden melden</h3>
             <input type="date" id="date">
             <select id="activity">
                 <option>Standreinigung</option><option>Fahnenabordnung</option><option>Reinigungsarbeit</option><option>Feste</option><option>Sonstiges</option>
             </select>
-            <textarea id="description" placeholder="Was wurde gemacht?"></textarea>
+            <textarea id="description" placeholder="Kurze Beschreibung der Arbeit..."></textarea>
             <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
             <button onclick="sendData()">Absenden</button>
-            <div id="user-stats" style="margin-top:20px; padding:15px; background:#e8f5e9; border-radius:10px; text-align:center;">
+            <div id="progress-container" style="margin-top:20px; padding:15px; background:#e8f5e9; border-radius:10px; text-align:center;">
                 <b>Dein Fortschritt: <span id="hours-stat">0</span> / 10 Std.</b>
                 <div style="width:100%; background:#ddd; height:12px; border-radius:10px; margin-top:5px; overflow:hidden;"><div id="progress-bar" style="width:0%; height:100%; background:#4caf50; transition:0.5s;"></div></div>
             </div>
@@ -71,46 +76,51 @@
             </table>
         </div>
 
+        <div id="view-events" style="display:none;">
+            <h3>Wettkämpfe & Termine</h3>
+            <div id="captain-form" class="captain-area" style="display:none;">
+                <h4>Neuer Termin für <span id="cap-team-name"></span></h4>
+                <input type="date" id="event-date">
+                <input type="time" id="event-time">
+                <input type="text" id="event-opponent" placeholder="Gegner / Anlass">
+                <input type="text" id="event-location" placeholder="Ort / Schützenhaus">
+                <button onclick="saveEvent()" style="background: #ef6c00;">Termin speichern</button>
+            </div>
+            <div id="event-list">Lade Termine...</div>
+        </div>
+
         <div id="view-profile" style="display:none;">
-            <h3>Dein Profil</h3>
+            <h3>Profil</h3>
             <div class="section-box">
-                <label><b>Anzeigename:</b></label>
-                <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
-                <button onclick="updateProfile()">Name speichern</button>
+                <label>Anzeigename:</label>
+                <input type="text" id="profile-name-input">
+                <label>Mannschaft:</label>
+                <select id="profile-team-input">
+                    <option>Luftgewehr 1</option><option>Luftgewehr 2</option><option>Luftgewehr 3</option>
+                    <option>Luftgewehr Auflage</option><option>Luftpistole 1</option><option>Luftpistole 2</option>
+                    <option>Sportpistole</option><option>Großkaliber</option><option>Passiv / Sonstige</option>
+                </select>
+                <button onclick="updateProfile()">Speichern</button>
             </div>
-
             <div class="section-box">
-                <label><b>Passwort ändern:</b></label>
                 <input type="password" id="new-password" placeholder="Neues Passwort">
-                <input type="password" id="new-password-confirm" placeholder="Neues Passwort wiederholen">
-                <button onclick="updatePassword()" style="background: #555;">Passwort aktualisieren</button>
+                <button onclick="updatePassword()" style="background: #555;">Passwort ändern</button>
             </div>
-
             <button onclick="doLogout()" class="btn-danger" style="margin-top:40px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom: 20px;">📄 Detaillierter PDF-Export</button>
-            <h3>Offene Bestätigungen</h3>
-            <table id="admin-approve-table">
-                <thead><tr><th>Name</th><th>Info</th><th>Std.</th><th>Aktion</th></tr></thead>
-                <tbody id="admin-approve-body"></tbody>
-            </table>
-            <h3 style="margin-top:30px;">Mitgliederübersicht</h3>
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom: 20px;">📄 PDF Export</button>
+            <select id="admin-team-filter" onchange="loadAdminData()" style="margin-bottom: 10px;">
+                <option value="ALL">Alle Mannschaften</option>
+                <option>Luftgewehr 1</option><option>Luftgewehr 2</option><option>Luftgewehr 3</option>
+                <option>Luftgewehr Auflage</option><option>Luftpistole 1</option><option>Luftpistole 2</option>
+                <option>Sportpistole</option><option>Großkaliber</option>
+            </select>
             <table>
-                <thead><tr><th>Name</th><th>Stunden</th><th>Funktionär</th></tr></thead>
+                <thead><tr><th>Name</th><th>Mannschaft</th><th>Stunden</th><th>Kapitän</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
             </table>
-            <div id="admin-explorer" class="explorer-card" style="display:none;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h4 id="explorer-name" style="margin:0;">Details</h4>
-                    <button onclick="document.getElementById('admin-explorer').style.display='none'" style="width:auto; padding:5px 10px; background:#777;">X</button>
-                </div>
-                <table>
-                    <thead><tr><th>Datum</th><th>Info</th><th>Std.</th><th>Status</th><th>Aktion</th></tr></thead>
-                    <tbody id="explorer-body"></tbody>
-                </table>
-            </div>
         </div>
     </div>
 </div>
@@ -120,7 +130,7 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
     const sb = supabase.createClient(S_URL, S_KEY);
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
-    let currentUser = null; let isAdmin = false;
+    let currentUser = null, isAdmin = false, isCaptain = false, userTeam = "";
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -129,89 +139,67 @@
     };
 
     async function setupUI(user) {
-        currentUser = user; isAdmin = (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+        currentUser = user; 
+        isAdmin = (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
         let { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        document.getElementById('loading-ui').style.display = 'none'; document.getElementById('auth-ui').style.display = 'none'; document.getElementById('form-ui').style.display = 'block';
-        if(isAdmin || (p && p.is_official)) document.getElementById('tab-admin').style.display = 'block';
-        loadHistory(); loadUserData();
-    }
-
-    async function updatePassword() {
-        const pass1 = document.getElementById('new-password').value;
-        const pass2 = document.getElementById('new-password-confirm').value;
-        if (!pass1 || pass1.length < 6) return alert("Passwort muss mindestens 6 Zeichen lang sein.");
-        if (pass1 !== pass2) return alert("Die Passwörter stimmen nicht überein!");
-
-        const { error } = await sb.auth.updateUser({ password: pass1 });
-        if (error) alert("Fehler: " + error.message);
-        else {
-            alert("Passwort erfolgreich geändert!");
-            document.getElementById('new-password').value = "";
-            document.getElementById('new-password-confirm').value = "";
+        if(p) {
+            isCaptain = p.is_captain; userTeam = p.team;
+            if(isCaptain) { document.getElementById('captain-form').style.display = 'block'; document.getElementById('cap-team-name').innerText = userTeam; }
+            if(isAdmin || p.is_official) document.getElementById('tab-admin').style.display = 'block';
         }
+        document.getElementById('loading-ui').style.display = 'none'; document.getElementById('auth-ui').style.display = 'none'; document.getElementById('form-ui').style.display = 'block';
+        loadHistory(); loadUserData(); loadEvents();
     }
 
-    // --- RESTE DER LOGIK (ADMIN, HISTORY, LOGIN) ---
-    async function doLogin() { 
-        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
-        if (error) alert(error.message); else location.reload(); 
-    }
-    async function doSignUp() {
-        const email = document.getElementById('email').value; const pass = document.getElementById('password').value;
-        const fname = document.getElementById('reg-firstname').value.trim(); const lname = document.getElementById('reg-lastname').value.trim();
-        const { data, error } = await sb.auth.signUp({ email, password: pass });
-        if (data.user) { await sb.from('profiles').upsert({ id: data.user.id, full_name: fname + " " + lname, is_official: false }); alert("Konto erstellt!"); }
-    }
     async function loadAdminData() {
-        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
+        const filter = document.getElementById('admin-team-filter').value;
+        let { data: profiles } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
+        if(filter !== "ALL") profiles = profiles.filter(p => p.team === filter);
         document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
             const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
-            const cb = isAdmin ? `<input type="checkbox" onchange="toggleOfficial('${m.id}', this.checked)" ${m.is_official ? 'checked' : ''}>` : (m.is_official ? '✅' : '❌');
-            return `<tr><td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || 'Neu'}</span></td><td>${total}/10h</td><td style="text-align:center">${cb}</td></tr>`;
+            return `<tr><td>${m.full_name}</td><td><small>${m.team || '-'}</small></td><td>${total}/10h</td><td style="text-align:center"><input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}></td></tr>`;
         }).join('');
-        const { data: pending } = await sb.from('work_hours').select('*, profiles(full_name)').eq('status', 'pending');
-        document.getElementById('admin-approve-body').innerHTML = pending.map(item => `<tr><td>${item.profiles?.full_name}</td><td><small>${item.date}: ${item.description}</small></td><td>${item.duration}</td><td><button class="btn-approve" onclick="updateStatus('${item.id}', 'approved')">OK</button><button class="btn-delete" onclick="deleteEntry('${item.id}')">🗑️</button></td></tr>`).join('');
     }
-    async function openExplorer(uid, name) {
-        document.getElementById('admin-explorer').style.display = 'block';
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { ascending: false });
-        document.getElementById('explorer-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':(h.status==='rejected'?'❌':'⏳')}</td><td><button class="btn-delete" onclick="deleteEntry('${h.id}', '${uid}', '${name}')">🗑️</button></td></tr>`).join('');
+
+    async function toggleCaptain(uid, status) { await sb.from('profiles').update({ is_captain: status }).eq('id', uid); }
+
+    async function loadEvents() {
+        let query = sb.from('tournaments').select('*').order('date', { ascending: true });
+        if(!isAdmin) query = query.eq('team', userTeam);
+        const { data } = await query;
+        const list = document.getElementById('event-list');
+        if(!data || data.length === 0) { list.innerHTML = "<p>Keine Termine.</p>"; return; }
+        list.innerHTML = data.map(ev => `<div class="event-card"><div style="display:flex; justify-content:space-between;"><span class="event-team">${ev.team}</span><small>${ev.date}</small></div><strong>${ev.opponent}</strong><br><small>📍 ${ev.location} | 🕒 ${ev.time.substring(0,5)} Uhr</small>${(isCaptain || isAdmin) ? `<br><button class="btn-delete" style="margin-top:8px;" onclick="deleteEvent('${ev.id}')">Löschen</button>` : ''}</div>`).join('');
     }
-    async function deleteEntry(id, uid = null, name = null) {
-        if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); if(uid) openExplorer(uid, name); loadAdminData(); }
+
+    async function saveEvent() {
+        const date = document.getElementById('event-date').value, time = document.getElementById('event-time').value, opp = document.getElementById('event-opponent').value, loc = document.getElementById('event-location').value;
+        if(!date || !opp) return alert("Pflichtfelder fehlen!");
+        await sb.from('tournaments').insert([{ date, time, opponent: opp, location: loc, team: userTeam, created_by: currentUser.id }]);
+        loadEvents();
     }
-    async function sendData() {
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: parseFloat(document.getElementById('hours').value), description: "[" + document.getElementById('activity').value + "] " + document.getElementById('description').value, status: 'pending' }]);
-        loadHistory();
+
+    async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadEvents(); } }
+    async function doLogin() { const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value }); if (error) alert(error.message); else location.reload(); }
+    async function doSignUp() {
+        const { data, error } = await sb.auth.signUp({ email: document.getElementById('email').value, password: document.getElementById('password').value });
+        if (data.user) { await sb.from('profiles').upsert({ id: data.user.id, full_name: document.getElementById('reg-firstname').value + " " + document.getElementById('reg-lastname').value, team: document.getElementById('reg-team').value }); alert("Registriert!"); }
     }
+    async function updateProfile() { await sb.from('profiles').update({ full_name: document.getElementById('profile-name-input').value, team: document.getElementById('profile-team-input').value }).eq('id', currentUser.id); alert("Gespeichert!"); location.reload(); }
+    async function sendData() { await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: parseFloat(document.getElementById('hours').value), description: "[" + document.getElementById('activity').value + "] " + document.getElementById('description').value, status: 'pending' }]); loadHistory(); }
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td><td style="text-align:center">${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
+        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
         const total = data.filter(h => h.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
         document.getElementById('hours-stat').innerText = total; document.getElementById('progress-bar').style.width = Math.min((total/10)*100, 100) + "%";
     }
-    async function updateStatus(id, status) { await sb.from('work_hours').update({ status }).eq('id', id); loadAdminData(); }
-    async function toggleOfficial(uid, status) { await sb.from('profiles').update({ is_official: status }).eq('id', uid); }
     function switchTab(tab) {
-        ['home', 'profile', 'admin'].forEach(t => { document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none'; document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab'; });
-        if(tab === 'admin') loadAdminData();
+        ['home', 'events', 'profile', 'admin'].forEach(t => { if(document.getElementById('view-' + t)) document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none'; if(document.getElementById('tab-' + t)) document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab'; });
+        if(tab === 'admin') loadAdminData(); if(tab === 'events') loadEvents();
     }
-    async function loadUserData() { const { data } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).maybeSingle(); if (data) document.getElementById('profile-name-input').value = data.full_name || ''; }
-    async function updateProfile() { await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('profile-name-input').value }); alert("OK!"); }
+    async function loadUserData() { const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle(); if (data) { document.getElementById('profile-name-input').value = data.full_name; document.getElementById('profile-team-input').value = data.team; } }
     async function doLogout() { await sb.auth.signOut(); location.reload(); }
-    async function exportToPDF() {
-        const { data: p } = await sb.from('profiles').select('*').order('full_name');
-        const { data: h } = await sb.from('work_hours').select('*').eq('status', 'approved');
-        const doc = new jspdf.jsPDF(); doc.text("Nachweise Hubertus Strullendorf", 14, 20);
-        let y = 30; p.forEach(m => {
-            const list = h.filter(x => x.user_id === m.id); const total = list.reduce((s, c) => s + c.duration, 0);
-            if(y > 250) { doc.addPage(); y = 20; }
-            doc.setFont(undefined, 'bold'); doc.text(`${m.full_name} (${total}h)`, 14, y); y += 7; doc.setFont(undefined, 'normal');
-            list.forEach(i => { doc.text(`- ${i.date}: ${i.duration}h (${i.description})`, 20, y); y += 6; if(y>270){doc.addPage(); y=20;} }); y += 5;
-        });
-        doc.save("Stundenliste.pdf");
-    }
 </script>
 </body>
 </html>
