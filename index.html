@@ -65,7 +65,7 @@
             <div id="captain-form" style="display:none; background:#fff3e0; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid #ffe0b2;">
                 <h4>Neuer Termin für <span id="cap-team-name"></span></h4>
                 <input type="date" id="event-date">
-                <input type="text" id="event-opponent" placeholder="Gegner">
+                <input type="text" id="event-opponent" placeholder="Gegner / Anlass">
                 <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
                     <input type="checkbox" id="event-is-home" style="width: auto; margin: 0; cursor: pointer;">
                     <label for="event-is-home" style="font-size: 0.9em; cursor: pointer; user-select: none;">Heimwettkampf</label>
@@ -94,6 +94,13 @@
                 </select>
                 <button onclick="updateProfile()">Profil speichern</button>
             </div>
+            
+            <div class="section-box">
+                <label>Sicherheit:</label>
+                <input type="password" id="new-password" placeholder="Neues Passwort (min. 6 Zeichen)">
+                <button onclick="updatePassword()" style="background: #555;">Passwort jetzt ändern</button>
+            </div>
+
             <button onclick="doLogout()" style="background:#b71c1c; margin-top:30px;">Abmelden</button>
         </div>
 
@@ -166,6 +173,17 @@
         const team = document.getElementById('profile-team-input').value;
         const { error } = await sb.from('profiles').update({ full_name: name, team: team }).eq('id', currentUser.id);
         if(error) alert(error.message); else { alert("Gespeichert!"); location.reload(); }
+    }
+
+    async function updatePassword() {
+        const pass = document.getElementById('new-password').value;
+        if(pass.length < 6) return alert("Das Passwort muss mindestens 6 Zeichen lang sein!");
+        const { error } = await sb.auth.updateUser({ password: pass });
+        if(error) alert(error.message); 
+        else {
+            alert("Passwort erfolgreich geändert!");
+            document.getElementById('new-password').value = "";
+        }
     }
 
     async function loadAdminData() {
