@@ -6,6 +6,7 @@
     <title>Hubertus Stunden & Wettkampf Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; padding: 15px; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 850px; box-sizing: border-box; }
@@ -94,18 +95,16 @@
                 </select>
                 <button onclick="updateProfile()">Profil speichern</button>
             </div>
-            
             <div class="section-box">
                 <label>Sicherheit:</label>
                 <input type="password" id="new-password" placeholder="Neues Passwort (min. 6 Zeichen)">
                 <button onclick="updatePassword()" style="background: #555;">Passwort jetzt ändern</button>
             </div>
-
             <button onclick="doLogout()" style="background:#b71c1c; margin-top:30px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export</button>
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export (Gesamtliste)</button>
             <table>
                 <thead><tr><th>Name</th><th>Mannschaft</th><th>Stunden</th><th>Kapitän</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
@@ -142,7 +141,6 @@
         currentUser = user; 
         isAdmin = (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        
         if(p) { 
             isCaptain = p.is_captain; 
             userTeam = p.team || "Nicht zugewiesen";
@@ -152,11 +150,9 @@
             }
             if(isAdmin || p.is_official) document.getElementById('tab-admin').style.display='block';
         }
-        
         document.getElementById('loading-ui').style.display='none'; 
         document.getElementById('auth-ui').style.display='none'; 
         document.getElementById('form-ui').style.display='block';
-        
         loadHistory(); loadUserData(); loadEvents();
     }
 
@@ -171,25 +167,20 @@
     async function updateProfile() {
         const name = document.getElementById('profile-name-input').value;
         const team = document.getElementById('profile-team-input').value;
-        const { error } = await sb.from('profiles').update({ full_name: name, team: team }).eq('id', currentUser.id);
-        if(error) alert(error.message); else { alert("Gespeichert!"); location.reload(); }
+        await sb.from('profiles').update({ full_name: name, team: team }).eq('id', currentUser.id);
+        alert("Gespeichert!"); location.reload();
     }
 
     async function updatePassword() {
         const pass = document.getElementById('new-password').value;
-        if(pass.length < 6) return alert("Das Passwort muss mindestens 6 Zeichen lang sein!");
+        if(pass.length < 6) return alert("Min. 6 Zeichen!");
         const { error } = await sb.auth.updateUser({ password: pass });
-        if(error) alert(error.message); 
-        else {
-            alert("Passwort erfolgreich geändert!");
-            document.getElementById('new-password').value = "";
-        }
+        if(error) alert(error.message); else alert("Passwort geändert!");
     }
 
     async function loadAdminData() {
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
-        
         document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
             const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
             return `<tr>
@@ -213,24 +204,18 @@
     }
 
     async function deleteEntry(id, uid, name) {
-        if(confirm("Eintrag wirklich löschen?")) {
-            await sb.from('work_hours').delete().eq('id', id);
-            openExplorer(uid, name);
-            loadAdminData();
-        }
+        if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); openExplorer(uid, name); loadAdminData(); }
     }
 
-    async function toggleCaptain(uid, status) {
-        await sb.from('profiles').update({ is_captain: status }).eq('id', uid);
-    }
+    async function toggleCaptain(uid, status) { await sb.from('profiles').update({ is_captain: status }).eq('id', uid); }
 
     async function sendData() {
         const date = document.getElementById('date').value;
         const dur = parseFloat(document.getElementById('hours').value);
         const desc = document.getElementById('description').value;
         const act = document.getElementById('activity').value;
-        if(!date || !dur) return alert("Datum/Stunden fehlen!");
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: dur, description: "["+act+"] "+desc, status: 'pending' }]);
+        if(!date || !dur) return alert("Daten fehlen!");
+        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: dur, description: "["+act+"] "+desc, status: 'approved' }]);
         alert("Gesendet!"); loadHistory();
     }
 
@@ -243,19 +228,8 @@
         let query = sb.from('tournaments').select('*').order('date', { ascending: true });
         if(!isAdmin) query = query.eq('team', userTeam);
         const { data } = await query;
-        const list = document.getElementById('event-list');
         if(data && data.length > 0) {
-            list.innerHTML = data.map(e => `
-                <div class="event-item">
-                    <div>
-                        <b>${new Date(e.date).toLocaleDateString('de-DE')}</b>: ${e.opponent}
-                        ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}
-                        <br><small style="color:#666;">Mannschaft: ${e.team}</small>
-                    </div>
-                    ${(isCaptain || isAdmin) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}
-                </div>`).join('');
-        } else {
-            list.innerHTML = "Keine Termine vorhanden.";
+            document.getElementById('event-list').innerHTML = data.map(e => `<div class="event-item"><div><b>${new Date(e.date).toLocaleDateString('de-DE')}</b>: ${e.opponent} ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}<br><small>Mannschaft: ${e.team}</small></div>${(isCaptain || isAdmin) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}</div>`).join('');
         }
     }
 
@@ -263,33 +237,48 @@
         const date = document.getElementById('event-date').value;
         const opp = document.getElementById('event-opponent').value;
         const isHome = document.getElementById('event-is-home').checked;
-        if(!date || !opp) return alert("Daten unvollständig!");
-        const { error } = await sb.from('tournaments').insert([{ date, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
-        if(error) alert(error.message);
-        else {
-            alert("Termin erstellt!");
-            document.getElementById('event-opponent').value = "";
-            document.getElementById('event-is-home').checked = false;
-            loadEvents();
-        }
+        await sb.from('tournaments').insert([{ date, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
+        loadEvents();
     }
 
-    async function deleteEvent(id) {
-        if(confirm("Termin wirklich löschen?")) {
-            await sb.from('tournaments').delete().eq('id', id);
-            loadEvents();
-        }
-    }
+    async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadEvents(); } }
 
     function switchTab(tab) {
         ['home', 'events', 'profile', 'admin'].forEach(t => {
-            const v = document.getElementById('view-' + t);
-            if(v) v.style.display = (t === tab) ? 'block' : 'none';
-            const tb = document.getElementById('tab-' + t);
-            if(tb) tb.className = (t === tab) ? 'tab active' : 'tab';
+            if(document.getElementById('view-' + t)) document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
+            if(document.getElementById('tab-' + t)) document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
         });
         if(tab === 'admin') loadAdminData();
         if(tab === 'events') loadEvents();
+    }
+
+    async function exportToPDF() {
+        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(18);
+        doc.text("Hubertus Strullendorf - Arbeitsstunden", 14, 20);
+        doc.setFontSize(10);
+        doc.text("Erstellt am: " + new Date().toLocaleDateString('de-DE'), 14, 28);
+
+        const tableBody = profiles.map(p => {
+            const userHours = hours.filter(h => h.user_id === p.id);
+            const total = userHours.reduce((sum, h) => sum + (h.duration || 0), 0);
+            return [p.full_name, p.team || '-', total + " h"];
+        });
+
+        doc.autoTable({
+            startY: 35,
+            head: [['Name', 'Mannschaft', 'Gesamtstunden']],
+            body: tableBody,
+            theme: 'striped',
+            headStyles: { fillColor: [46, 125, 50] }
+        });
+
+        doc.save("Hubertus_Stundenliste.pdf");
     }
 
     async function doLogin() {
