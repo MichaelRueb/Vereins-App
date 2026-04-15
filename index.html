@@ -151,15 +151,45 @@
         loadHistory(); loadUserData(); loadEvents();
     }
 
-    async function loadAdminData() {
+   async function loadAdminData() {
         const filter = document.getElementById('admin-team-filter').value;
         let { data: profiles } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
+        
         if(filter !== "ALL") profiles = profiles.filter(p => p.team === filter);
+        
         document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
             const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
-            return `<tr><td>${m.full_name}</td><td><small>${m.team || '-'}</small></td><td>${total}/10h</td><td style="text-align:center"><input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}></td></tr>`;
+            
+            // Namen wieder anklickbar machen für die Stundenübersicht
+            return `<tr>
+                <td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || 'Neu'}</span></td>
+                <td><small>${m.team || '-'}</small></td>
+                <td>${total}/10h</td>
+                <td style="text-align:center">
+                    <input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}>
+                </td>
+            </tr>`;
         }).join('');
+    }
+
+    // Diese Funktion stellt sicher, dass der Explorer (Stunden-Details) gefüllt wird
+    async function openExplorer(uid, name) {
+        document.getElementById('admin-explorer').style.display = 'block';
+        document.getElementById('explorer-name').innerText = "Nachweise: " + name;
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { ascending: false });
+        
+        document.getElementById('explorer-body').innerHTML = data.map(h => {
+            let statusMarkup = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
+            return `<tr>
+                <td>${h.date}</td>
+                <td><small>${h.description}</small></td>
+                <td>${h.duration}h</td>
+                <td style="text-align:center">${statusMarkup}</td>
+                <td><button class="btn-delete" onclick="deleteEntry('${h.id}', '${uid}', '${name}')">🗑️</button></td>
+            </tr>`;
+        }).join('');
+        document.getElementById('admin-explorer').scrollIntoView({ behavior: 'smooth' });
     }
 
     async function toggleCaptain(uid, status) { await sb.from('profiles').update({ is_captain: status }).eq('id', uid); }
