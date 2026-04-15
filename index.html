@@ -19,8 +19,7 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; vertical-align: middle; }
         .member-link { color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: bold; }
-        .explorer-card { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 10px; border: 1px solid #cfd8dc; }
-        .btn-delete { background: #b71c1c; padding: 5px; width: auto; font-size: 11px; color: white; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-delete { background: #b71c1c; padding: 5px 10px; width: auto; font-size: 14px; color: white; border-radius: 4px; border: none; cursor: pointer; }
         .section-box { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px solid #eee; }
         .event-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .badge-home { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 5px; border: 1px solid #c8e6c9; }
@@ -71,12 +70,12 @@
                 </div>
                 <input type="text" id="event-opponent" placeholder="Gegner / Anlass">
                 <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
-                    <input type="checkbox" id="event-is-home" style="width: auto; margin: 0; cursor: pointer;">
-                    <label for="event-is-home" style="font-size: 0.9em; cursor: pointer; user-select: none;">Heimwettkampf</label>
+                    <input type="checkbox" id="event-is-home" style="width: auto; margin: 0;">
+                    <label for="event-is-home" style="font-size: 0.9em;">Heimwettkampf</label>
                 </div>
                 <button onclick="saveEvent()" style="background:#ef6c00;">Termin speichern</button>
             </div>
-            <div id="event-list">Keine Termine vorhanden.</div>
+            <div id="event-list">Lade Termine...</div>
         </div>
 
         <div id="view-profile" style="display:none;">
@@ -99,9 +98,10 @@
                 <button onclick="updateProfile()">Profil speichern</button>
             </div>
             <div class="section-box">
-                <label>Sicherheit:</label>
-                <input type="password" id="new-password" placeholder="Neues Passwort (min. 6 Zeichen)">
-                <button onclick="updatePassword()" style="background: #555;">Passwort jetzt ändern</button>
+                <label>Passwort ändern:</label>
+                <input type="password" id="new-password" placeholder="Neues Passwort">
+                <input type="password" id="new-password-confirm" placeholder="Passwort wiederholen">
+                <button onclick="updatePassword()" style="background: #555;">Passwort aktualisieren</button>
             </div>
             <button onclick="doLogout()" style="background:#b71c1c; margin-top:30px;">Abmelden</button>
         </div>
@@ -109,20 +109,9 @@
         <div id="view-admin" style="display:none;">
             <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export (Detailliert)</button>
             <table>
-                <thead><tr><th>Name</th><th>Mannschaft</th><th>Stunden</th><th>Kapitän</th></tr></thead>
+                <thead><tr><th>Name</th><th>Stunden</th><th>Kapitän</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
             </table>
-
-            <div id="admin-explorer" class="explorer-card" style="display:none;">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ccc; padding-bottom:5px;">
-                    <h4 id="explorer-name" style="margin:0;">Stunden-Details</h4>
-                    <button onclick="document.getElementById('admin-explorer').style.display='none'" style="width:auto; padding:2px 8px; background:#777;">X</button>
-                </div>
-                <table>
-                    <thead><tr><th>Datum</th><th>Info</th><th>Std.</th><th>Status</th><th>Aktion</th></tr></thead>
-                    <tbody id="explorer-body"></tbody>
-                </table>
-            </div>
         </div>
     </div>
 </div>
@@ -147,29 +136,33 @@
         if(p) { 
             isCaptain = p.is_captain; 
             userTeam = p.team || "Nicht zugewiesen";
+            document.getElementById('profile-name-input').value = p.full_name || '';
+            document.getElementById('profile-team-input').value = userTeam;
             if(isCaptain) { 
                 document.getElementById('captain-form').style.display='block'; 
                 document.getElementById('cap-team-name').innerText = userTeam; 
             }
-            if(isAdmin || p.is_official) document.getElementById('tab-admin').style.display='block';
+            if(isAdmin) document.getElementById('tab-admin').style.display='block';
         }
         document.getElementById('loading-ui').style.display='none'; 
         document.getElementById('auth-ui').style.display='none'; 
         document.getElementById('form-ui').style.display='block';
-        loadHistory(); loadUserData(); loadEvents();
+        loadHistory(); loadEvents();
     }
 
     async function updateProfile() {
         const name = document.getElementById('profile-name-input').value;
         const team = document.getElementById('profile-team-input').value;
         await sb.from('profiles').update({ full_name: name, team: team }).eq('id', currentUser.id);
-        alert("Profil aktualisiert!"); location.reload();
+        alert("Profil gespeichert!");
+        location.reload();
     }
 
     async function updatePassword() {
-        const pass = document.getElementById('new-password').value;
-        if(pass.length < 6) return alert("Min. 6 Zeichen!");
-        const { error } = await sb.auth.updateUser({ password: pass });
+        const p1 = document.getElementById('new-password').value;
+        const p2 = document.getElementById('new-password-confirm').value;
+        if(!p1 || p1 !== p2) return alert("Passwörter stimmen nicht überein!");
+        const { error } = await sb.auth.updateUser({ password: p1 });
         if(error) alert(error.message); else alert("Passwort geändert!");
     }
 
@@ -178,14 +171,28 @@
         const dur = parseFloat(document.getElementById('hours').value);
         const desc = document.getElementById('description').value;
         const act = document.getElementById('activity').value;
-        if(!date || !dur) return alert("Bitte Datum und Stunden angeben!");
+        if(!date || !dur) return alert("Daten unvollständig!");
         await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: dur, description: "["+act+"] "+desc, status: 'approved' }]);
-        alert("Stunden gemeldet!"); loadHistory();
+        alert("Gesendet!"); loadHistory();
     }
 
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
+        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>✅</td></tr>`).join('');
+    }
+
+    async function loadEvents() {
+        let query = sb.from('tournaments').select('*').order('date', { ascending: true });
+        if(!isAdmin) query = query.eq('team', userTeam);
+        const { data } = await query;
+        const list = document.getElementById('event-list');
+        if(data && data.length > 0) {
+            list.innerHTML = data.map(e => `
+                <div class="event-item">
+                    <div><b>${new Date(e.date).toLocaleDateString('de-DE')}</b> - ${e.time || ''} Uhr<br>${e.opponent} ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}</div>
+                    ${(isCaptain || isAdmin) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">Löschen</button>` : ''}
+                </div>`).join('');
+        } else { list.innerHTML = "Keine Termine."; }
     }
 
     async function saveEvent() {
@@ -193,101 +200,80 @@
         const time = document.getElementById('event-time').value;
         const opp = document.getElementById('event-opponent').value;
         const isHome = document.getElementById('event-is-home').checked;
-        if(!date || !opp || !time) return alert("Datum, Zeit und Gegner fehlen!");
         const { error } = await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
-        if(error) alert(error.message); else { alert("Termin gespeichert!"); loadEvents(); }
+        if(error) alert(error.message); else loadEvents();
     }
 
-    async function loadEvents() {
-        let query = sb.from('tournaments').select('*').order('date', { ascending: true });
-        if(!isAdmin) query = query.eq('team', userTeam);
-        const { data } = await query;
-        if(data) {
-            document.getElementById('event-list').innerHTML = data.map(e => `
-                <div class="event-item">
-                    <div>
-                        <b>${new Date(e.date).toLocaleDateString('de-DE')} um ${e.time || '--:--'}</b>: ${e.opponent}
-                        ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}
-                    </div>
-                    ${(isCaptain || isAdmin) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}
-                </div>`).join('');
+    async function deleteEvent(id) {
+        if(confirm("Wettkampf löschen?")) {
+            const { error } = await sb.from('tournaments').delete().eq('id', id);
+            if(error) alert(error.message); else loadEvents();
         }
     }
 
-    async function exportToPDF() {
-        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', { ascending: false });
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        // Titel
-        doc.setFontSize(18);
-        doc.text("Hubertus Strullendorf - Arbeitsstunden", 14, 20);
-        doc.setFontSize(10);
-        doc.text("Stichtag: " + new Date().toLocaleDateString('de-DE'), 14, 28);
-
-        // Tabelle 1: Übersicht pro Mitglied
-        const summaryBody = profiles.map(p => {
-            const total = hours.filter(h => h.user_id === p.id).reduce((s, h) => s + (h.duration || 0), 0);
-            return [p.full_name, p.team || '-', total + " h"];
-        });
-
-        doc.autoTable({
-            startY: 35,
-            head: [['Mitglied', 'Mannschaft', 'Gesamt']],
-            body: summaryBody,
-            headStyles: { fillColor: [46, 125, 50] }
-        });
-
-        // Tabelle 2: Einzelpositionen (Detailliert)
-        doc.addPage();
-        doc.setFontSize(16);
-        doc.text("Detaillierte Einzelpositionen", 14, 20);
-
-        const detailBody = hours.map(h => {
-            const user = profiles.find(p => p.id === h.user_id);
-            return [
-                user ? user.full_name : 'Unbekannt',
-                h.date,
-                h.description,
-                h.duration + " h"
-            ];
-        });
-
-        doc.autoTable({
-            startY: 30,
-            head: [['Mitglied', 'Datum', 'Tätigkeit', 'Dauer']],
-            body: detailBody,
-            headStyles: { fillColor: [2, 119, 189] } // Blau für Details
-        });
-
-        doc.save("Hubertus_Stunden_Detailliert.pdf");
-    }
-
-    // Hilfsfunktionen (Logout, Login, Admin-Liste laden) bleiben identisch zum vorherigen Stand
     async function loadAdminData() {
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
         document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
-            const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
-            return `<tr><td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || 'Unbekannt'}</span></td><td>${m.team || '-'}</td><td>${total}/10h</td><td><input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}></td></tr>`;
+            const total = hours.filter(x => x.user_id === m.id).reduce((s, c) => s + (c.duration || 0), 0);
+            return `<tr><td>${m.full_name || 'Unbekannt'}</td><td>${total}h</td><td><input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}></td></tr>`;
         }).join('');
+    }
+
+    async function toggleCaptain(uid, status) { await sb.from('profiles').update({ is_captain: status }).eq('id', uid); }
+
+    async function exportToPDF() {
+        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').order('date', { ascending: false });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(16);
+        doc.text("Hubertus Strullendorf - Arbeitsstunden Detailbericht", 14, 20);
+        
+        let yPos = 30;
+
+        profiles.forEach((p, index) => {
+            const userHours = hours.filter(h => h.user_id === p.id);
+            const total = userHours.reduce((s, h) => s + (h.duration || 0), 0);
+
+            // Prüfen ob neue Seite nötig
+            if (yPos > 250) { doc.addPage(); yPos = 20; }
+
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(`${p.full_name} (Gesamt: ${total}h)`, 14, yPos);
+            yPos += 5;
+
+            const rows = userHours.map(h => [h.date, h.description, h.duration + "h"]);
+            
+            doc.autoTable({
+                startY: yPos,
+                head: [['Datum', 'Tätigkeit', 'Dauer']],
+                body: rows.length > 0 ? rows : [['-', 'Keine Einträge', '0h']],
+                theme: 'plain',
+                styles: { fontSize: 9 },
+                headStyles: { fillColor: [240, 240, 240], textColor: [0,0,0] },
+                margin: { left: 14 }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 15;
+        });
+
+        doc.save("Stundenliste_Detailliert.pdf");
     }
 
     function switchTab(tab) {
         ['home', 'events', 'profile', 'admin'].forEach(t => {
-            if(document.getElementById('view-' + t)) document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
-            if(document.getElementById('tab-' + t)) document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
+            document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
+            document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
         });
         if(tab === 'admin') loadAdminData();
         if(tab === 'events') loadEvents();
     }
 
     async function doLogin() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
-        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
         if(error) alert(error.message); else location.reload();
     }
 
