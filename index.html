@@ -65,7 +65,10 @@
             <h3>Wettkämpfe & Termine</h3>
             <div id="captain-form" style="display:none; background:#fff3e0; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid #ffe0b2;">
                 <h4>Neuer Termin für <span id="cap-team-name"></span></h4>
-                <input type="date" id="event-date">
+                <div style="display: flex; gap: 10px;">
+                    <input type="date" id="event-date" style="flex: 2;">
+                    <input type="time" id="event-time" style="flex: 1;">
+                </div>
                 <input type="text" id="event-opponent" placeholder="Gegner / Anlass">
                 <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
                     <input type="checkbox" id="event-is-home" style="width: auto; margin: 0; cursor: pointer;">
@@ -104,7 +107,7 @@
         </div>
 
         <div id="view-admin" style="display:none;">
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export (Gesamtliste)</button>
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export (Detailliert)</button>
             <table>
                 <thead><tr><th>Name</th><th>Mannschaft</th><th>Stunden</th><th>Kapitän</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
@@ -156,19 +159,11 @@
         loadHistory(); loadUserData(); loadEvents();
     }
 
-    async function loadUserData() {
-        const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
-        if (data) {
-            document.getElementById('profile-name-input').value = data.full_name || '';
-            if(data.team) document.getElementById('profile-team-input').value = data.team;
-        }
-    }
-
     async function updateProfile() {
         const name = document.getElementById('profile-name-input').value;
         const team = document.getElementById('profile-team-input').value;
         await sb.from('profiles').update({ full_name: name, team: team }).eq('id', currentUser.id);
-        alert("Gespeichert!"); location.reload();
+        alert("Profil aktualisiert!"); location.reload();
     }
 
     async function updatePassword() {
@@ -178,45 +173,14 @@
         if(error) alert(error.message); else alert("Passwort geändert!");
     }
 
-    async function loadAdminData() {
-        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*');
-        document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
-            const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
-            return `<tr>
-                <td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || 'Unbekannt'}</span></td>
-                <td>${m.team || '-'}</td>
-                <td>${total}/10h</td>
-                <td style="text-align:center"><input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}></td>
-            </tr>`;
-        }).join('');
-    }
-
-    async function openExplorer(uid, name) {
-        document.getElementById('admin-explorer').style.display = 'block';
-        document.getElementById('explorer-name').innerText = "Stunden: " + name;
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { ascending: false });
-        document.getElementById('explorer-body').innerHTML = data.map(h => `<tr>
-            <td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td>
-            <td>${h.status==='approved'?'✅':'⏳'}</td>
-            <td><button class="btn-delete" onclick="deleteEntry('${h.id}', '${uid}', '${name}')">🗑️</button></td>
-        </tr>`).join('');
-    }
-
-    async function deleteEntry(id, uid, name) {
-        if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); openExplorer(uid, name); loadAdminData(); }
-    }
-
-    async function toggleCaptain(uid, status) { await sb.from('profiles').update({ is_captain: status }).eq('id', uid); }
-
     async function sendData() {
         const date = document.getElementById('date').value;
         const dur = parseFloat(document.getElementById('hours').value);
         const desc = document.getElementById('description').value;
         const act = document.getElementById('activity').value;
-        if(!date || !dur) return alert("Daten fehlen!");
+        if(!date || !dur) return alert("Bitte Datum und Stunden angeben!");
         await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: dur, description: "["+act+"] "+desc, status: 'approved' }]);
-        alert("Gesendet!"); loadHistory();
+        alert("Stunden gemeldet!"); loadHistory();
     }
 
     async function loadHistory() {
@@ -224,24 +188,92 @@
         document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
     }
 
+    async function saveEvent() {
+        const date = document.getElementById('event-date').value;
+        const time = document.getElementById('event-time').value;
+        const opp = document.getElementById('event-opponent').value;
+        const isHome = document.getElementById('event-is-home').checked;
+        if(!date || !opp || !time) return alert("Datum, Zeit und Gegner fehlen!");
+        const { error } = await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
+        if(error) alert(error.message); else { alert("Termin gespeichert!"); loadEvents(); }
+    }
+
     async function loadEvents() {
         let query = sb.from('tournaments').select('*').order('date', { ascending: true });
         if(!isAdmin) query = query.eq('team', userTeam);
         const { data } = await query;
-        if(data && data.length > 0) {
-            document.getElementById('event-list').innerHTML = data.map(e => `<div class="event-item"><div><b>${new Date(e.date).toLocaleDateString('de-DE')}</b>: ${e.opponent} ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}<br><small>Mannschaft: ${e.team}</small></div>${(isCaptain || isAdmin) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}</div>`).join('');
+        if(data) {
+            document.getElementById('event-list').innerHTML = data.map(e => `
+                <div class="event-item">
+                    <div>
+                        <b>${new Date(e.date).toLocaleDateString('de-DE')} um ${e.time || '--:--'}</b>: ${e.opponent}
+                        ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}
+                    </div>
+                    ${(isCaptain || isAdmin) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}
+                </div>`).join('');
         }
     }
 
-    async function saveEvent() {
-        const date = document.getElementById('event-date').value;
-        const opp = document.getElementById('event-opponent').value;
-        const isHome = document.getElementById('event-is-home').checked;
-        await sb.from('tournaments').insert([{ date, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
-        loadEvents();
+    async function exportToPDF() {
+        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', { ascending: false });
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Titel
+        doc.setFontSize(18);
+        doc.text("Hubertus Strullendorf - Arbeitsstunden", 14, 20);
+        doc.setFontSize(10);
+        doc.text("Stichtag: " + new Date().toLocaleDateString('de-DE'), 14, 28);
+
+        // Tabelle 1: Übersicht pro Mitglied
+        const summaryBody = profiles.map(p => {
+            const total = hours.filter(h => h.user_id === p.id).reduce((s, h) => s + (h.duration || 0), 0);
+            return [p.full_name, p.team || '-', total + " h"];
+        });
+
+        doc.autoTable({
+            startY: 35,
+            head: [['Mitglied', 'Mannschaft', 'Gesamt']],
+            body: summaryBody,
+            headStyles: { fillColor: [46, 125, 50] }
+        });
+
+        // Tabelle 2: Einzelpositionen (Detailliert)
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.text("Detaillierte Einzelpositionen", 14, 20);
+
+        const detailBody = hours.map(h => {
+            const user = profiles.find(p => p.id === h.user_id);
+            return [
+                user ? user.full_name : 'Unbekannt',
+                h.date,
+                h.description,
+                h.duration + " h"
+            ];
+        });
+
+        doc.autoTable({
+            startY: 30,
+            head: [['Mitglied', 'Datum', 'Tätigkeit', 'Dauer']],
+            body: detailBody,
+            headStyles: { fillColor: [2, 119, 189] } // Blau für Details
+        });
+
+        doc.save("Hubertus_Stunden_Detailliert.pdf");
     }
 
-    async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadEvents(); } }
+    // Hilfsfunktionen (Logout, Login, Admin-Liste laden) bleiben identisch zum vorherigen Stand
+    async function loadAdminData() {
+        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*');
+        document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
+            const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
+            return `<tr><td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || 'Unbekannt'}</span></td><td>${m.team || '-'}</td><td>${total}/10h</td><td><input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}></td></tr>`;
+        }).join('');
+    }
 
     function switchTab(tab) {
         ['home', 'events', 'profile', 'admin'].forEach(t => {
@@ -250,35 +282,6 @@
         });
         if(tab === 'admin') loadAdminData();
         if(tab === 'events') loadEvents();
-    }
-
-    async function exportToPDF() {
-        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        doc.setFontSize(18);
-        doc.text("Hubertus Strullendorf - Arbeitsstunden", 14, 20);
-        doc.setFontSize(10);
-        doc.text("Erstellt am: " + new Date().toLocaleDateString('de-DE'), 14, 28);
-
-        const tableBody = profiles.map(p => {
-            const userHours = hours.filter(h => h.user_id === p.id);
-            const total = userHours.reduce((sum, h) => sum + (h.duration || 0), 0);
-            return [p.full_name, p.team || '-', total + " h"];
-        });
-
-        doc.autoTable({
-            startY: 35,
-            head: [['Name', 'Mannschaft', 'Gesamtstunden']],
-            body: tableBody,
-            theme: 'striped',
-            headStyles: { fillColor: [46, 125, 50] }
-        });
-
-        doc.save("Hubertus_Stundenliste.pdf");
     }
 
     async function doLogin() {
