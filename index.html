@@ -183,18 +183,12 @@
         <div id="view-profile" style="display:none;">
             <h3>Dein Profil</h3>
             <input type="text" id="prof-name" placeholder="Voller Name">
-            <select id="prof-team">
-                <option value="Luftgewehr 1">Luftgewehr 1</option>
-                <option value="Luftgewehr 2">Luftgewehr 2</option>
-                <option value="Luftgewehr 3">Luftgewehr 3</option>
-                <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
-                <option value="Luftpistole 1">Luftpistole 1</option>
-                <option value="Luftpistole 2">Luftpistole 2</option>
-                <option value="Sportpistole">Sportpistole</option>
-                <option value="Großkaliber">Großkaliber</option>
-                <option value="Passiv / Sonstige">Passiv / Sonstige</option>
-            </select>
-            <button onclick="updateProfile()">Speichern</button>
+            
+            <label style="font-weight:bold; display:block; margin-top:10px;">Meine Mannschaften:</label>
+            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top:5px;">
+                </div>
+
+            <button onclick="updateProfile()" style="margin-top:15px;">Profil Speichern</button>
             <hr>
             <h4>Passwort ändern</h4>
             <input type="password" id="new-password" placeholder="Neues Passwort">
@@ -241,6 +235,11 @@
     const sb = supabase.createClient(S_URL, S_KEY);
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
 
+    const ALL_TEAMS = [
+        "Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage",
+        "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"
+    ];
+
     let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
     let editingEventTeam = ""; 
@@ -270,6 +269,18 @@
         }
     }
 
+    function renderTeamCheckboxes(selectedTeamsStr = "") {
+        const container = document.getElementById('team-checkboxes');
+        const selectedArray = selectedTeamsStr ? selectedTeamsStr.split(', ') : [];
+        
+        container.innerHTML = ALL_TEAMS.map(team => `
+            <div style="display:flex; align-items:center; font-size: 0.85em;">
+                <input type="checkbox" name="prof-teams" value="${team}" id="team-${team}" style="width:auto; margin-right:6px;" ${selectedArray.includes(team) ? 'checked' : ''}>
+                <label for="team-${team}">${team}</label>
+            </div>
+        `).join('');
+    }
+
     async function setupApp(user) {
         currentUser = user;
         isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -277,12 +288,15 @@
         if (p) {
             userTeam = p.team || ""; isCaptain = p.is_captain;
             document.getElementById('prof-name').value = p.full_name || "";
-            document.getElementById('prof-team').value = userTeam;
+            renderTeamCheckboxes(userTeam); // Initial Checkboxen rendern
+            
             if(isAdmin) document.getElementById('tab-admin').style.display = 'block';
             if(isCaptain || isAdmin) {
                 document.getElementById('captain-form').style.display = 'block';
                 document.getElementById('form-event-title').innerText = "Wettkampf eintragen ("+userTeam+")";
             }
+        } else {
+            renderTeamCheckboxes("");
         }
         document.getElementById('loading-ui').style.display='none';
         document.getElementById('form-ui').style.display='block';
@@ -308,21 +322,15 @@
 
     async function loadHistory() {
     const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-    
-    // Summe nur aus genehmigten Stunden berechnen
     const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + parseFloat(h.duration), 0) : 0;
     
     document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
     document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
     
     document.getElementById('history-body').innerHTML = data ? data.map(h => {
-        // Status-Icon Logik
-        let statusIcon = '⏳'; // Standard: Pending
-        if (h.status === 'approved') {
-            statusIcon = '✅';
-        } else if (h.status === 'rejected') {
-            statusIcon = '❌';
-        }
+        let statusIcon = '⏳'; 
+        if (h.status === 'approved') statusIcon = '✅';
+        else if (h.status === 'rejected') statusIcon = '❌';
         
         return `<tr>
             <td>${h.date}</td>
@@ -337,7 +345,6 @@
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: hours } = await sb.from('work_hours').select('*');
     
-    // Sektion für offene Anträge (mit Ablehnen-Funktion)
     const pending = hours ? hours.filter(h => h.status === 'pending') : [];
     document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
     document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
@@ -353,24 +360,23 @@
         </tr>`;
     }).join('');
 
-    // Mitglieder-Tabelle (Jetzt ohne Status-Badge)
     document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
         const userHours = hours ? hours.filter(h => h.user_id === p.id) : [];
         const genSum = userHours.filter(h => h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
 
         return `<tr>
             <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
-            <td>${p.team || '-'}</td>
+            <td><small>${p.team || '-'}</small></td>
             <td><b>${genSum}/10</b></td>
             <td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td>
         </tr>`;
     }).join('');
 }
+
    async function showAdminMemberDetails(userId, userName) {
     const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', userId).order('date', {ascending: false});
     document.getElementById('admin-detail-name').innerText = userName;
     document.getElementById('admin-detail-body').innerHTML = hours.map(h => {
-        // Status-Icon Logik für die Details
         let st = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
         return `
             <tr>
@@ -385,32 +391,31 @@
     document.getElementById('admin-detail-view').style.display = 'block';
 }
 
-
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
     async function reject(id) {
-    const reason = prompt("Grund für die Ablehnung (wird dem Mitglied angezeigt):");
-    if (reason === null) return; // Abbrechen gewählt
-    
-    // Aktuelle Beschreibung holen, um den Grund anzuhängen
+    const reason = prompt("Grund für die Ablehnung:");
+    if (reason === null) return; 
     const { data: current } = await sb.from('work_hours').select('description').eq('id', id).single();
     const updatedDescription = `${current.description} | ABGELEHNT: ${reason || "Kein Grund angegeben"}`;
-
-    const { error } = await sb.from('work_hours')
-        .update({ 
-            status: 'rejected', 
-            description: updatedDescription 
-        })
-        .eq('id', id);
-
-    if (error) alert("Fehler beim Ablehnen: " + error.message);
+    await sb.from('work_hours').update({ status: 'rejected', description: updatedDescription }).eq('id', id);
     loadAdmin();
 }
     async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
     async function deleteHoursAdmin(id, uid, name) { if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); showAdminMemberDetails(uid, name); loadAdmin(); } }
 
     async function updateProfile() {
-        await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: document.getElementById('prof-team').value });
-        alert("Gespeichert!"); location.reload();
+        const checkedTeams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked'))
+                                  .map(cb => cb.value);
+        const teamString = checkedTeams.join(', ');
+
+        const { error } = await sb.from('profiles').upsert({ 
+            id: currentUser.id, 
+            full_name: document.getElementById('prof-name').value, 
+            team: teamString 
+        });
+
+        if(error) alert(error.message);
+        else { alert("Gespeichert!"); location.reload(); }
     }
 
     async function loadAllEvents() {
@@ -422,11 +427,10 @@
     function renderTournamentList() {
         const filter = document.getElementById('event-view-filter').value;
         const listBody = document.getElementById('tournament-list-body');
-        
         const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === filter);
         
         listBody.innerHTML = filteredEvents.map(e => {
-            const canEdit = isAdmin || (isCaptain && e.team === userTeam);
+            const canEdit = isAdmin || (isCaptain && userTeam.includes(e.team));
             const actions = canEdit ? `
                 <span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span>
                 <span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>
@@ -487,34 +491,18 @@
   async function exportToPDF() {
     try {
         const { jsPDF } = window.jspdf;
-        if (!jsPDF) {
-            alert("PDF-Bibliothek nicht geladen.");
-            return;
-        }
-
         const doc = new jsPDF();
-        const { data: profs, error: pError } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours, error: hError } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-        if (pError || hError) throw new Error("Datenbank-Fehler.");
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
         doc.setFontSize(18);
         doc.text("Arbeitsstunden Einzelnachweis - Hubertus", 14, 15);
-        doc.setFontSize(10);
-        doc.text("Erstellt am: " + new Date().toLocaleDateString('de-DE'), 14, 22);
-
         let currentY = 30;
 
         profs.forEach((p) => {
             const memberHours = hours.filter(h => h.user_id === p.id);
             const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-
-            // Platzprüfung: Wenn weniger als 50mm bis zum Seitenende, neue Seite
-            if (currentY > 240) {
-                doc.addPage();
-                currentY = 20;
-            }
-
+            if (currentY > 240) { doc.addPage(); currentY = 20; }
             doc.setFont(undefined, 'bold');
             doc.setFillColor(240, 240, 240);
             doc.rect(14, currentY, 182, 8, 'F');
@@ -522,12 +510,7 @@
             doc.text(`${total} / 10 h`, 175, currentY + 6);
             doc.setFont(undefined, 'normal');
 
-            const tableRows = memberHours.map(h => [
-                new Date(h.date).toLocaleDateString('de-DE'),
-                h.description,
-                h.duration + " h"
-            ]);
-
+            const tableRows = memberHours.map(h => [new Date(h.date).toLocaleDateString('de-DE'), h.description, h.duration + " h"]);
             doc.autoTable({
                 startY: currentY + 10,
                 head: [['Datum', 'Tätigkeit', 'Dauer']],
@@ -537,23 +520,10 @@
                 styles: { fontSize: 9 },
                 margin: { left: 14, right: 14 }
             });
-
-            // SICHERHEITS-CHECK für 'y':
-            // Wenn autoTable fertig ist, nutzen wir den Cursor. 
-            // Falls autoTable fehlschlägt, nehmen wir die alte Position + 20
-            if (doc.lastAutoTable && doc.lastAutoTable.cursor) {
-                currentY = doc.lastAutoTable.cursor.y + 15;
-            } else {
-                currentY += 30; 
-            }
+            currentY = doc.lastAutoTable.cursor.y + 15;
         });
-
         doc.save(`Hubertus_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-        
-    } catch (err) {
-        console.error(err);
-        alert("Ein unerwarteter Fehler ist aufgetreten: " + err.message);
-    }
+    } catch (err) { alert("Fehler: " + err.message); }
 }
 
     async function deleteEvent(id) { if(confirm("Termin wirklich löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
@@ -567,7 +537,6 @@
         document.getElementById('save-event-btn').innerText = "Update";
         document.getElementById('cancel-edit-btn').style.display = 'block';
         document.getElementById('captain-form').style.display = 'block';
-        document.getElementById('captain-form').scrollIntoView({behavior: "smooth"});
     }
     
     function resetEventForm() { 
@@ -583,7 +552,10 @@
         const id = document.getElementById('edit-event-id').value;
         let opp = document.getElementById('ev-opp').value;
         if(document.getElementById('ev-home-check').checked) opp += " (Heim)";
-        const d = { date: document.getElementById('ev-date').value, opponent: opp, team: id ? editingEventTeam : userTeam };
+        
+        // Wenn neu, nimm die erste Mannschaft des Users als Default
+        const defaultTeam = userTeam.split(', ')[0];
+        const d = { date: document.getElementById('ev-date').value, opponent: opp, team: id ? editingEventTeam : defaultTeam };
         if(id) await sb.from('tournaments').update(d).eq('id', id); else await sb.from('tournaments').insert([d]);
         resetEventForm(); loadAllEvents();
     }
