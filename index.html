@@ -18,19 +18,26 @@
         .tab { flex: 1; padding: 12px; text-align: center; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .tab.active { background: #2e7d32; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95em; }
         th { background: #f8f9fa; padding: 12px 10px; text-align: left; border-bottom: 2px solid #dee2e6; }
         td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
 
+        /* Status & Kalender */
         .status-ok { color: #2e7d32; font-weight: bold; }
         .status-wait { color: #f57c00; font-weight: bold; }
 
-        /* Kalender & Progress */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #dee2e6; border-radius: 8px; overflow: hidden; }
-        .calendar-day { background: white; min-height: 90px; padding: 5px; position: relative; }
-        .event-dot { font-size: 0.75em; padding: 3px 6px; border-radius: 4px; margin: 2px 0; color: white; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-weight: bold; font-size: 1.2em; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #dee2e6; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+        .calendar-day-head { background: #e9ecef; text-align: center; padding: 10px; font-weight: bold; font-size: 0.8em; }
+        .calendar-day { background: white; min-height: 90px; padding: 5px; position: relative; font-size: 0.9em; }
+        .calendar-day.today { background: #fff9c4; }
         
-        .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; }
+        .event-dot { font-size: 0.75em; padding: 3px 6px; border-radius: 4px; margin: 2px 0; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .team-lg1 { background: #2e7d32; } .team-lg2 { background: #4caf50; } 
+        .team-lp1 { background: #1565c0; } .team-lp2 { background: #2196f3; }
+        .team-auflage { background: #ef6c00; } .team-default { background: #78909c; }
+
+        .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
     </style>
@@ -38,7 +45,7 @@
 <body>
 
 <div class="card">
-    <div id="loading-ui" style="text-align:center; padding:40px;">Laden...</div>
+    <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro wird geladen...</div>
 
     <div id="auth-ui" style="display:none;">
         <h2 style="text-align:center;">Login</h2>
@@ -62,8 +69,10 @@
                 <div id="my-progress-label" class="progress-text">0 / 10 h</div>
             </div>
             <h4>Neue Meldung</h4>
-            <input type="date" id="date">
-            <input type="number" id="hours" step="0.5" placeholder="Stunden">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="date" id="date">
+                <input type="number" id="hours" step="0.5" placeholder="Stunden">
+            </div>
             <textarea id="description" placeholder="Was wurde gemacht?"></textarea>
             <button onclick="sendHours()">Senden</button>
             <h4>Historie</h4>
@@ -73,17 +82,62 @@
             </table>
         </div>
 
+        <div id="view-events" style="display:none;">
+            <div style="margin-bottom:15px; background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6;">
+                <label style="font-weight:bold;">Anzeige:</label>
+                <select id="event-view-filter" onchange="renderCalendar()">
+                    <option value="my_team">Nur meine Mannschaft</option>
+                    <option value="all_teams">Gesamter Verein</option>
+                </select>
+            </div>
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)" style="width:50px;">&lt;</button>
+                <span id="current-month-display"></span>
+                <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
+            </div>
+            <div id="calendar-container" class="calendar-grid"></div>
+            
+            <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:20px; margin-top:30px; border-radius:12px; background: #fff8e1;">
+                <h4 style="margin:0 0 15px 0; color:#e65100;">Wettkampf eintragen als <span id="cap-team-name"></span>-Kapitän</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="ev-date">
+                    <input type="time" id="ev-time">
+                </div>
+                <input type="text" id="ev-opp" placeholder="Gegner & Ort">
+                <button onclick="saveEvent()" style="background:#ef6c00;">Termin speichern</button>
+            </div>
+        </div>
+
+        <div id="view-profile" style="display:none;">
+            <h3>Profil-Einstellungen</h3>
+            <label>Name:</label><input type="text" id="prof-name">
+            <label>Mannschaft:</label>
+            <select id="prof-team">
+                <option value="Luftgewehr 1">Luftgewehr 1</option>
+                <option value="Luftgewehr 2">Luftgewehr 2</option>
+                <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
+                <option value="Luftpistole 1">Luftpistole 1</option>
+                <option value="Sportpistole">Sportpistole</option>
+                <option value="Passiv / Sonstige">Passiv / Sonstige</option>
+            </select>
+            <button onclick="updateProfile()">Stammdaten speichern</button>
+            <div style="margin-top:20px; padding:15px; background:#f9f9f9; border-radius:8px;">
+                <label>Neues Passwort:</label>
+                <input type="password" id="new-password" placeholder="Mind. 6 Zeichen">
+                <button onclick="updatePassword()" style="background:#555;">Passwort ändern</button>
+            </div>
+            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
+        </div>
+
         <div id="view-admin" style="display:none;">
             <div id="admin-pending-section" style="background:#fff3e0; padding:15px; border-radius:12px; margin-bottom:25px; border:1px solid #ffe0b2; display:none;">
                 <h4 style="margin:0;">⏳ Offene Genehmigungen</h4>
-                <table id="admin-pending-table">
+                <table>
                     <thead><tr><th>Name</th><th>Datum</th><th>Tätigkeit</th><th>Dauer</th><th>Aktion</th></tr></thead>
                     <tbody id="admin-pending-body"></tbody>
                 </table>
             </div>
-            
             <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Export</button>
-            
             <h4>Mitgliederübersicht</h4>
             <table>
                 <thead>
@@ -97,24 +151,6 @@
                 <tbody id="admin-member-table"></tbody>
             </table>
         </div>
-
-        <div id="view-events" style="display:none;">
-            <div class="calendar-grid" id="calendar-container"></div>
-            <div id="captain-form" style="display:none;">...</div>
-        </div>
-        <div id="view-profile" style="display:none;">
-            <input type="text" id="prof-name" placeholder="Name">
-            <select id="prof-team">
-                <option value="Luftgewehr 1">Luftgewehr 1</option>
-                <option value="Luftgewehr 2">Luftgewehr 2</option>
-                <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
-                <option value="Luftpistole 1">Luftpistole 1</option>
-                <option value="Sportpistole">Sportpistole</option>
-                <option value="Passiv / Sonstige">Passiv / Sonstige</option>
-            </select>
-            <button onclick="updateProfile()">Speichern</button>
-            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c;">Abmelden</button>
-        </div>
     </div>
 </div>
 
@@ -123,7 +159,8 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
-    let currentUser;
+
+    let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -140,11 +177,30 @@
 
     async function setupApp(user) {
         currentUser = user;
-        const isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        if(p && isAdmin) document.getElementById('tab-admin').style.display = 'block';
+        if (p) {
+            userTeam = p.team || ""; isCaptain = p.is_captain;
+            document.getElementById('prof-name').value = p.full_name || "";
+            document.getElementById('prof-team').value = userTeam;
+            if(isAdmin) document.getElementById('tab-admin').style.display = 'block';
+            if(isCaptain || isAdmin) {
+                document.getElementById('captain-form').style.display = 'block';
+                document.getElementById('cap-team-name').innerText = userTeam;
+            }
+        }
         document.getElementById('loading-ui').style.display='none';
         document.getElementById('form-ui').style.display='block';
+        loadHistory(); loadAllEvents();
+    }
+
+    /* STUNDEN LOGIK */
+    async function sendHours() {
+        const date = document.getElementById('date').value;
+        const h = document.getElementById('hours').value;
+        const d = document.getElementById('description').value;
+        if(!date || !h) return alert("Datum/Stunden fehlen");
+        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: h, description: d, status: 'pending' }]);
         loadHistory();
     }
 
@@ -153,42 +209,75 @@
         const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + h.duration, 0) : 0;
         document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
         document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
-        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
+        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('') : "";
     }
 
+    /* KALENDER LOGIK */
+    async function loadAllEvents() {
+        const { data } = await sb.from('tournaments').select('*');
+        allEvents = data || []; renderCalendar();
+    }
+
+    function getTeamClass(team) {
+        const t = team?.toLowerCase() || "";
+        if(t.includes("gewehr 1")) return "team-lg1";
+        if(t.includes("gewehr 2")) return "team-lg2";
+        if(t.includes("pistole 1")) return "team-lp1";
+        if(t.includes("auflage")) return "team-auflage";
+        return "team-default";
+    }
+
+    function changeMonth(step) { currentViewDate.setMonth(currentViewDate.getMonth() + step); renderCalendar(); }
+
+    function renderCalendar() {
+        const container = document.getElementById('calendar-container');
+        const filter = document.getElementById('event-view-filter').value;
+        container.innerHTML = '';
+        const year = currentViewDate.getFullYear();
+        const month = currentViewDate.getMonth();
+        document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentViewDate);
+        ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => {
+            const h = document.createElement('div'); h.className = 'calendar-day-head'; h.innerText = d; container.appendChild(h);
+        });
+        const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let i = 0; i < firstDay; i++) { const empty = document.createElement('div'); empty.className = 'calendar-day'; container.appendChild(empty); }
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayEl = document.createElement('div');
+            dayEl.className = 'calendar-day';
+            if(new Date().toISOString().split('T')[0] === dateStr) dayEl.classList.add('today');
+            dayEl.innerHTML = `<b>${d}</b>`;
+            allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam)).forEach(e => {
+                const ev = document.createElement('div'); ev.className = `event-dot ${getTeamClass(e.team)}`; ev.innerText = e.opponent; dayEl.appendChild(ev);
+            });
+            container.appendChild(dayEl);
+        }
+    }
+
+    async function saveEvent() {
+        const date = document.getElementById('ev-date').value;
+        const time = document.getElementById('ev-time').value;
+        const opp = document.getElementById('ev-opp').value;
+        await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam }]);
+        loadAllEvents();
+    }
+
+    /* ADMIN LOGIK */
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').order('date', { ascending: false });
-        
-        // 1. Offene Anträge mit Details
+        const { data: hours } = await sb.from('work_hours').select('*');
         const pending = hours ? hours.filter(h => h.status === 'pending') : [];
-        if(pending.length > 0) {
+        if(pending.length) {
             document.getElementById('admin-pending-section').style.display = 'block';
             document.getElementById('admin-pending-body').innerHTML = pending.map(h => {
-                const user = profs.find(p => p.id === h.user_id);
-                return `<tr>
-                    <td><b>${user ? user.full_name : 'Unbekannt'}</b></td>
-                    <td>${h.date}</td>
-                    <td>${h.description}</td>
-                    <td>${h.duration}h</td>
-                    <td><button onclick="approve('${h.id}')" style="padding:5px 10px;">Genehmigen</button></td>
-                </tr>`;
+                const u = profs.find(p => p.id === h.user_id);
+                return `<tr><td>${u?u.full_name:'?'}</td><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')">OK</button></td></tr>`;
             }).join('');
-        } else {
-            document.getElementById('admin-pending-section').style.display = 'none';
         }
-
-        // 2. Mitgliederliste mit Mannschaft
         document.getElementById('admin-member-table').innerHTML = profs.map(p => {
             const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + h.duration, 0) : 0;
-            return `<tr>
-                <td>${p.full_name || 'Gast'}</td>
-                <td><small>${p.team || '-'}</small></td>
-                <td><b>${sum} / 10 h</b></td>
-                <td style="text-align:center;">
-                    <input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="transform:scale(1.2);">
-                </td>
-            </tr>`;
+            return `<tr><td>${p.full_name || 'Gast'}</td><td><small>${p.team || '-'}</small></td><td><b>${sum}/10h</b></td><td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td></tr>`;
         }).join('');
     }
 
@@ -202,6 +291,7 @@
             document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
         });
         if(tab === 'admin') loadAdmin();
+        if(tab === 'events') renderCalendar();
     }
 
     async function updateProfile() {
@@ -211,12 +301,11 @@
         alert("Gespeichert");
     }
 
-    async function sendHours() {
-        const date = document.getElementById('date').value;
-        const h = document.getElementById('hours').value;
-        const d = document.getElementById('description').value;
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: h, description: d, status: 'pending' }]);
-        loadHistory();
+    async function updatePassword() {
+        const p1 = document.getElementById('new-password').value;
+        if(p1.length < 6) return alert("Zu kurz");
+        await sb.auth.updateUser({ password: p1 });
+        alert("Passwort geändert");
     }
 </script>
 </body>
