@@ -22,10 +22,13 @@
         .explorer-card { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 10px; border: 1px solid #cfd8dc; }
         .btn-delete { background: #b71c1c; padding: 5px 10px; width: auto; font-size: 14px; color: white; border-radius: 4px; border: none; cursor: pointer; }
         .btn-approve { background: #2e7d32; padding: 5px 10px; width: auto; font-size: 14px; color: white; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-reject { background: #e65100; padding: 5px 10px; width: auto; font-size: 14px; color: white; border-radius: 4px; border: none; cursor: pointer; }
         .section-box { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px solid #eee; }
         .event-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .badge-home { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 5px; border: 1px solid #c8e6c9; }
         .pending-container { background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 10px; margin-bottom: 20px; }
+        .status-rejected { color: #b71c1c; font-weight: bold; }
+        .reason-text { color: #d32f2f; font-style: italic; display: block; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -196,14 +199,17 @@
         const desc = document.getElementById('description').value;
         const act = document.getElementById('activity').value;
         if(!date || !dur) return alert("Daten unvollständig!");
-        // Status wird beim Absenden auf 'pending' gesetzt
         await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: dur, description: "["+act+"] "+desc, status: 'pending' }]);
         alert("Stunden zur Freigabe gesendet!"); loadHistory();
     }
 
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`).join('');
+        document.getElementById('history-body').innerHTML = data.map(h => {
+            const statusIcon = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
+            const reason = h.rejection_reason ? `<br><small class="reason-text">Grund: ${h.rejection_reason}</small>` : '';
+            return `<tr><td>${h.date}</td><td>${h.description}${reason}</td><td>${h.duration}h</td><td>${statusIcon}</td></tr>`;
+        }).join('');
     }
 
     async function loadEvents() {
@@ -241,7 +247,6 @@
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').order('date', { ascending: false });
         
-        // 1. Wartende Anträge filtern
         const pending = hours.filter(h => h.status === 'pending');
         const pendingSection = document.getElementById('pending-section');
         if(pending.length > 0) {
@@ -254,13 +259,12 @@
                     <td>${h.duration}h</td>
                     <td>
                         <button class="btn-approve" onclick="approveEntry('${h.id}')">✅</button>
-                        <button class="btn-delete" style="font-size:10px;" onclick="deleteAdminEntry('${h.id}')">🗑️</button>
+                        <button class="btn-reject" onclick="rejectEntry('${h.id}')">✖</button>
                     </td>
                 </tr>`;
             }).join('');
         } else { pendingSection.style.display = 'none'; }
 
-        // 2. Mitgliederliste
         document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
             const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
             return `<tr>
@@ -272,8 +276,16 @@
     }
 
     async function approveEntry(id, uid = null, name = null) {
-        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
-        if(uid) openExplorer(uid, name); // Wenn aus Explorer gerufen, Explorer offen halten
+        await sb.from('work_hours').update({ status: 'approved', rejection_reason: null }).eq('id', id);
+        if(uid) openExplorer(uid, name);
+        loadAdminData();
+    }
+
+    async function rejectEntry(id, uid = null, name = null) {
+        const reason = prompt("Grund für die Ablehnung:");
+        if (reason === null) return; // Abbrechen gedrückt
+        await sb.from('work_hours').update({ status: 'rejected', rejection_reason: reason }).eq('id', id);
+        if(uid) openExplorer(uid, name);
         loadAdminData();
     }
 
@@ -281,18 +293,23 @@
         document.getElementById('admin-explorer').style.display = 'block';
         document.getElementById('explorer-name').innerText = "Stunden: " + name;
         const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { ascending: false });
-        document.getElementById('explorer-body').innerHTML = data.map(h => `<tr>
-            <td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td>
-            <td style="text-align:center;">${h.status === 'approved' ? '✅' : '⏳'}</td>
-            <td>
-                ${h.status === 'pending' ? `<button class="btn-approve" style="font-size:10px;" onclick="approveEntry('${h.id}', '${uid}', '${name}')">✅</button>` : ''}
-                <button class="btn-delete" style="font-size:10px;" onclick="deleteAdminEntry('${h.id}', '${uid}', '${name}')">🗑️</button>
-            </td>
-        </tr>`).join('');
+        document.getElementById('explorer-body').innerHTML = data.map(h => {
+            const statusIcon = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
+            const reason = h.rejection_reason ? `<br><small class="reason-text">Grund: ${h.rejection_reason}</small>` : '';
+            return `<tr>
+                <td>${h.date}</td><td><small>${h.description}</small>${reason}</td><td>${h.duration}h</td>
+                <td style="text-align:center;">${statusIcon}</td>
+                <td>
+                    ${h.status === 'pending' ? `<button class="btn-approve" style="font-size:10px;" onclick="approveEntry('${h.id}', '${uid}', '${name}')">✅</button>` : ''}
+                    ${h.status === 'pending' ? `<button class="btn-reject" style="font-size:10px;" onclick="rejectEntry('${h.id}', '${uid}', '${name}')">✖</button>` : ''}
+                    <button class="btn-delete" style="font-size:10px;" onclick="deleteAdminEntry('${h.id}', '${uid}', '${name}')">🗑️</button>
+                </td>
+            </tr>`;
+        }).join('');
     }
 
     async function deleteAdminEntry(id, uid = null, name = null) {
-        if(confirm("Eintrag löschen?")) {
+        if(confirm("Eintrag unwiderruflich löschen?")) {
             await sb.from('work_hours').delete().eq('id', id);
             if(uid) openExplorer(uid, name);
             loadAdminData();
@@ -306,10 +323,8 @@
         const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', { ascending: false });
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
         doc.setFontSize(16);
         doc.text("Hubertus Strullendorf - Genehmigte Arbeitsstunden", 14, 20);
-        
         let yPos = 30;
         profiles.forEach((p) => {
             const userHours = hours.filter(h => h.user_id === p.id);
