@@ -67,7 +67,7 @@
                 <label>Fortschritt (Soll: 10 Stunden)</label>
                 <div class="progress-container">
                     <div id="my-progress-bar" class="progress-bar" style="width: 0%;"></div>
-                    <div id="my-progress-label" class="progress-text">0 / 10 Stunden</div>
+                    <div id="my-progress-label" class="progress-text">0 / 10 h</div>
                 </div>
             </div>
             <h4 style="margin-top:20px;">Stunden melden</h4>
@@ -111,12 +111,10 @@
 
         <div id="view-profile" style="display:none;">
             <h3>Dein Profil</h3>
-            <div id="profile-warning" style="display:none; color: #b71c1c; background: #ffcdd2; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-weight: bold;">
-                ⚠️ Bitte trage deinen Namen und deine Mannschaft ein!
-            </div>
+            <div id="profile-warning" style="display:none; color: #b71c1c; background: #ffcdd2; padding: 10px; border-radius: 8px; margin-bottom: 10px;">⚠️ Bitte Profil vervollständigen!</div>
             <div class="section-box">
                 <label>Name:</label>
-                <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
+                <input type="text" id="profile-name-input">
                 <label>Mannschaft:</label>
                 <select id="profile-team-input">
                     <option value="">-- Bitte wählen --</option>
@@ -132,38 +130,23 @@
                 </select>
                 <button onclick="updateProfile()">Profil speichern</button>
             </div>
-            <div class="section-box">
-                <label>Passwort ändern:</label>
-                <input type="password" id="new-password" placeholder="Neues Passwort">
-                <input type="password" id="new-password-confirm" placeholder="Passwort wiederholen">
-                <button onclick="updatePassword()" style="background: #555;">Passwort aktualisieren</button>
-            </div>
             <button onclick="doLogout()" style="background:#b71c1c; margin-top:30px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
             <div class="pending-container" id="pending-section" style="display:none;">
-                <h4 style="margin:0 0 10px 0; color:#e65100;">⏳ Wartende Anträge</h4>
-                <table>
-                    <thead><tr><th>Name</th><th>Info</th><th>Std.</th><th>Aktion</th></tr></thead>
-                    <tbody id="admin-pending-body"></tbody>
-                </table>
+                <h4>⏳ Wartende Anträge</h4>
+                <table><tbody id="admin-pending-body"></tbody></table>
             </div>
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export (Detailliert)</button>
-            <h4>Mitglieder Übersicht</h4>
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export</button>
             <table>
-                <thead><tr><th>Name</th><th>Stunden (genehmigt)</th><th>Kapitän</th></tr></thead>
+                <thead><tr><th>Name</th><th>Std.</th><th>Kapitän</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
             </table>
             <div id="admin-explorer" class="explorer-card" style="display:none;">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ccc; padding-bottom:5px;">
-                    <h4 id="explorer-name" style="margin:0;">Stunden-Details</h4>
-                    <button onclick="document.getElementById('admin-explorer').style.display='none'" style="width:auto; padding:2px 8px; background:#777;">X</button>
-                </div>
-                <table>
-                    <thead><tr><th>Datum</th><th>Info</th><th>Std.</th><th>Status</th><th>Aktion</th></tr></thead>
-                    <tbody id="explorer-body"></tbody>
-                </table>
+                <h4 id="explorer-name"></h4>
+                <table><tbody id="explorer-body"></tbody></table>
+                <button onclick="document.getElementById('admin-explorer').style.display='none'">Schließen</button>
             </div>
         </div>
     </div>
@@ -186,22 +169,15 @@
         isLoginMode = !isLoginMode;
         document.getElementById('auth-title').innerText = isLoginMode ? 'Hubertus Login' : 'Konto erstellen';
         document.getElementById('auth-btn').innerText = isLoginMode ? 'Anmelden' : 'Registrieren';
-        document.getElementById('auth-toggle').innerText = isLoginMode ? 'Noch kein Konto? Hier registrieren' : 'Bereits ein Konto? Zum Login';
         document.getElementById('reg-only').style.display = isLoginMode ? 'none' : 'block';
-        if(!isLoginMode) checkPasswords(); else {
-            document.getElementById('auth-btn').disabled = false;
-            document.getElementById('pw-msg').style.display = 'none';
-        }
     }
 
     function checkPasswords() {
-        if(isLoginMode) return;
         const p1 = document.getElementById('password').value;
         const p2 = document.getElementById('password-confirm').value;
         const btn = document.getElementById('auth-btn');
-        const msg = document.getElementById('pw-msg');
-        if(p1 === p2 && p1.length >= 6) { btn.disabled = false; msg.style.display = 'none'; }
-        else { btn.disabled = true; msg.style.display = 'block'; msg.innerText = p1.length < 6 ? "Mind. 6 Zeichen" : "Ungleich"; msg.style.color = "red"; }
+        btn.disabled = (p1 !== p2 || p1.length < 6);
+        document.getElementById('pw-msg').style.display = (p1 === p2) ? 'none' : 'block';
     }
 
     async function handleAuth() {
@@ -212,7 +188,7 @@
             if(error) alert(error.message); else location.reload();
         } else {
             const { error } = await sb.auth.signUp({ email, password });
-            if(error) alert(error.message); else { alert("Registriert! Bitte Profil ausfüllen."); location.reload(); }
+            if(error) alert(error.message); else { alert("Registriert!"); location.reload(); }
         }
     }
 
@@ -220,38 +196,37 @@
         currentUser = user; 
         isAdmin = (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        
         if(p) { 
-            isCaptain = p.is_captain; 
-            userTeam = p.team || ""; // Fallback für leere Teams
+            isCaptain = p.is_captain; userTeam = p.team || "";
             document.getElementById('profile-name-input').value = p.full_name || '';
             document.getElementById('profile-team-input').value = userTeam;
-            
-            if(!p.full_name || !userTeam) { 
-                document.getElementById('profile-warning').style.display = 'block'; 
-                switchTab('profile'); 
-            }
-
             if(isCaptain || isAdmin) { 
                 document.getElementById('event-filter-ui').style.display = 'block'; 
-                if(isCaptain) { 
-                    document.getElementById('captain-form').style.display='block'; 
-                    document.getElementById('cap-team-name').innerText = userTeam; 
-                } 
+                if(isCaptain) { document.getElementById('captain-form').style.display='block'; document.getElementById('cap-team-name').innerText = userTeam; }
             }
             if(isAdmin) document.getElementById('tab-admin').style.display='block';
-        } else { 
-            switchTab('profile'); 
-            document.getElementById('profile-warning').style.display = 'block'; 
         }
+        document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='none'; document.getElementById('form-ui').style.display='block';
+        loadHistory(); loadEvents();
+    }
+
+    async function loadEvents() {
+        const filterEl = document.getElementById('event-view-filter');
+        const filterVal = filterEl ? filterEl.value : 'my_team';
+        let query = sb.from('tournaments').select('*').order('date', { ascending: true });
         
-        document.getElementById('loading-ui').style.display='none'; 
-        document.getElementById('auth-ui').style.display='none'; 
-        document.getElementById('form-ui').style.display='block';
-        
-        // Reihenfolge wichtig: Erst Daten laden
-        loadHistory(); 
-        loadEvents();
+        // FIX: Auch Admins können jetzt auf "Meine Mannschaft" filtern
+        if (filterVal === 'my_team' && userTeam) {
+            query = query.eq('team', userTeam);
+        }
+
+        const { data } = await query;
+        const list = document.getElementById('event-list');
+        list.innerHTML = data && data.length ? data.map(e => `
+            <div class="event-item" style="border-left: 4px solid ${e.team === userTeam ? '#2e7d32' : '#999'}; padding-left: 10px;">
+                <div style="flex-grow:1;"><small>${e.team}</small><br><b>${new Date(e.date).toLocaleDateString('de-DE')}</b> - ${e.time || '--:--'}<br>vs. ${e.opponent} ${e.is_home ? '(H)' : '(A)'}</div>
+                ${(isAdmin || (isCaptain && e.team === userTeam)) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}
+            </div>`).join('') : "<p>Keine Termine.</p>";
     }
 
     async function sendData() {
@@ -259,69 +234,23 @@
         const dur = parseFloat(document.getElementById('hours').value);
         const desc = document.getElementById('description').value;
         const act = document.getElementById('activity').value;
-        if(!date || !dur) return alert("Fehlende Daten");
         await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: dur, description: "["+act+"] "+desc, status: 'pending' }]);
         loadHistory();
     }
 
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        const approvedHours = data.filter(h => h.status === 'approved').reduce((sum, h) => sum + (h.duration || 0), 0);
-        updateProgressBar(approvedHours);
-        document.getElementById('history-body').innerHTML = data.map(h => {
-            const statusIcon = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
-            return `<tr><td>${h.date}</td><td>${h.description}${h.rejection_reason ? '<br><small style="color:red">'+h.rejection_reason+'</small>' : ''}</td><td>${h.duration}h</td><td>${statusIcon}</td></tr>`;
-        }).join('');
-    }
-
-    function updateProgressBar(hours) {
-        const goal = 10;
-        const percent = Math.min((hours / goal) * 100, 100);
-        document.getElementById('my-progress-bar').style.width = percent + "%";
-        document.getElementById('my-progress-label').innerText = `${hours} / ${goal} h`;
-        if(hours >= goal) document.getElementById('my-progress-bar').classList.add('goal-reached');
-    }
-
-    async function loadEvents() {
-        const filterEl = document.getElementById('event-view-filter');
-        const filterVal = filterEl ? filterEl.value : 'my_team';
-        
-        let query = sb.from('tournaments').select('*').order('date', { ascending: true });
-        
-        // KORREKTUR: Filter nur anwenden, wenn NICHT "all_teams" ausgewählt wurde UND kein Admin
-        if (filterVal === 'my_team' && !isAdmin) {
-            // Falls userTeam leer ist (mobil), laden wir zur Sicherheit alle, 
-            // sonst würden Kapitäne gar nichts sehen.
-            if(userTeam) {
-                query = query.eq('team', userTeam);
-            }
-        }
-
-        const { data, error } = await query;
-        const list = document.getElementById('event-list');
-        
-        if(data && data.length > 0) {
-            list.innerHTML = data.map(e => `
-                <div class="event-item" style="border-left: 4px solid ${e.team === userTeam ? '#2e7d32' : '#999'}; padding-left: 10px; margin-bottom: 8px;">
-                    <div style="flex-grow:1;">
-                        <small style="color:#666; font-weight:bold;">${e.team}</small><br>
-                        <b>${new Date(e.date).toLocaleDateString('de-DE')}</b> - ${e.time || '--:--'}<br>
-                        vs. ${e.opponent} ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}
-                    </div>
-                    ${(isAdmin || (isCaptain && e.team === userTeam)) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}
-                </div>`).join('');
-        } else {
-            list.innerHTML = "<p style='text-align:center; color:#777;'>Keine Termine gefunden.</p>";
-        }
+        const approved = data.filter(h => h.status === 'approved').reduce((sum, h) => sum + (h.duration || 0), 0);
+        document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
+        document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
+        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`).join('');
     }
 
     async function saveEvent() {
         const date = document.getElementById('event-date').value;
         const time = document.getElementById('event-time').value;
         const opp = document.getElementById('event-opponent').value;
-        const isHome = document.getElementById('event-is-home').checked;
-        if(!date || !opp) return alert("Bitte Datum und Gegner angeben");
-        await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
+        await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam, is_home: document.getElementById('event-is-home').checked, created_by: currentUser.id }]);
         loadEvents();
     }
 
@@ -331,48 +260,16 @@
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').order('date', { ascending: false });
         const pending = hours.filter(h => h.status === 'pending');
-        if(pending.length > 0) {
-            document.getElementById('pending-section').style.display = 'block';
-            document.getElementById('admin-pending-body').innerHTML = pending.map(h => {
-                const u = profiles.find(p => p.id === h.user_id);
-                return `<tr><td>${u?u.full_name:'?'}</td><td><small>${h.description}</small></td><td>${h.duration}h</td><td><button class="btn-approve" onclick="approveEntry('${h.id}')">✅</button><button class="btn-reject" onclick="rejectEntry('${h.id}')">✖</button></td></tr>`;
-            }).join('');
-        } else document.getElementById('pending-section').style.display = 'none';
-
+        document.getElementById('pending-section').style.display = pending.length ? 'block' : 'none';
+        document.getElementById('admin-pending-body').innerHTML = pending.map(h => `<tr><td>${profiles.find(p=>p.id===h.user_id)?.full_name}</td><td>${h.duration}h</td><td><button onclick="approveEntry('${h.id}')">✅</button></td></tr>`).join('');
         document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
             const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
-            return `<tr><td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || '?'}</span></td><td>${total}/10h</td><td><input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}></td></tr>`;
+            return `<tr><td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || '?'}</span></td><td>${total}h</td><td><input type="checkbox" onchange="toggleCaptain('${m.id}', this.checked)" ${m.is_captain ? 'checked' : ''}></td></tr>`;
         }).join('');
     }
 
     async function approveEntry(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdminData(); }
-    async function rejectEntry(id) { const r = prompt("Grund:"); if(r) await sb.from('work_hours').update({ status: 'rejected', rejection_reason: r }).eq('id', id); loadAdminData(); }
     async function toggleCaptain(uid, s) { await sb.from('profiles').update({ is_captain: s }).eq('id', uid); }
-
-    async function openExplorer(uid, name) {
-        document.getElementById('admin-explorer').style.display = 'block';
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { ascending: false });
-        document.getElementById('explorer-name').innerText = name;
-        document.getElementById('explorer-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status}</td><td><button class="btn-delete" onclick="deleteAdminEntry('${h.id}','${uid}','${name}')">🗑️</button></td></tr>`).join('');
-    }
-
-    async function deleteAdminEntry(id, uid, n) { if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); openExplorer(uid, n); loadAdminData(); } }
-
-    async function exportToPDF() {
-        const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
-        const doc = new jspdf.jsPDF();
-        doc.text("Hubertus Strullendorf - Stundenliste", 14, 20);
-        let y = 30;
-        profiles.forEach(p => {
-            const uh = hours.filter(h => h.user_id === p.id);
-            const total = uh.reduce((s, h) => s + h.duration, 0);
-            doc.text(`${p.full_name} (${total}h)`, 14, y);
-            doc.autoTable({ startY: y + 2, head: [['Datum', 'Was', 'Dauer']], body: uh.map(h => [h.date, h.description, h.duration + "h"]), theme: 'plain', styles: { fontSize: 8 } });
-            y = doc.lastAutoTable.finalY + 10;
-        });
-        doc.save("Hubertus_Stunden.pdf");
-    }
 
     function switchTab(tab) {
         ['home', 'events', 'profile', 'admin'].forEach(t => { document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none'; document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab'; });
@@ -381,7 +278,6 @@
 
     async function doLogout() { await sb.auth.signOut(); location.reload(); }
     async function updateProfile() { const n = document.getElementById('profile-name-input').value; const t = document.getElementById('profile-team-input').value; if(n && t) { await sb.from('profiles').upsert({ id: currentUser.id, full_name: n, team: t }); location.reload(); } }
-    async function updatePassword() { const p1 = document.getElementById('new-password').value; const p2 = document.getElementById('new-password-confirm').value; if(p1 === p2) { await sb.auth.updateUser({ password: p1 }); alert("Geändert"); } }
 </script>
 </body>
 </html>
