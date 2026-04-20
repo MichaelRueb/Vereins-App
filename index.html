@@ -15,21 +15,39 @@
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
         .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
         .tab.active { background: #2e7d32; color: white; }
+        
+        /* KALENDER */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; font-weight: bold; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ddd; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
         .calendar-day-head { background: #eee; text-align: center; padding: 5px; font-size: 0.7em; font-weight: bold; }
         .calendar-day { background: white; min-height: 70px; padding: 2px; font-size: 0.8em; position: relative; }
         .calendar-day.today { background: #fff9c4; }
         .event-dot { font-size: 0.65em; padding: 2px 4px; border-radius: 3px; margin: 1px 0; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        /* TEAM FARBEN */
         .team-lg1 { background: #2e7d32; } .team-lg2 { background: #4caf50; } 
         .team-lp1 { background: #1565c0; } .team-lp2 { background: #2196f3; }
         .team-auflage { background: #ef6c00; } .team-default { background: #78909c; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
-        th, td { border-bottom: 1px solid #eee; padding: 8px 4px; text-align: left; }
+
+        /* ADMIN & LISTEN */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; table-layout: fixed; }
+        th, td { border-bottom: 1px solid #eee; padding: 12px 5px; text-align: left; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; }
+        
+        /* Spezifische Breiten für Admin-Tabelle */
+        .col-name { width: auto; }
+        .col-hours { width: 65px; text-align: right; font-weight: bold; }
+        .col-cap { width: 50px; text-align: center; }
+
         .progress-container { background: #eee; border-radius: 10px; height: 20px; width: 100%; position: relative; overflow: hidden; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.5s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 20px; font-size: 11px; font-weight: bold; }
         .section-box { border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; }
+        
+        @media (max-width: 600px) {
+            table { font-size: 0.8em; }
+            .col-hours { width: 55px; }
+            .col-cap { width: 45px; }
+        }
     </style>
 </head>
 <body>
@@ -66,7 +84,7 @@
             <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
             <textarea id="description" placeholder="Tätigkeit..."></textarea>
             <button onclick="sendHours()">Absenden</button>
-            <table>
+            <table style="table-layout: auto;">
                 <thead><tr><th>Datum</th><th>Was</th><th>Std.</th><th>Status</th></tr></thead>
                 <tbody id="history-body"></tbody>
             </table>
@@ -108,28 +126,36 @@
                     <option value="Luftpistole 1">Luftpistole 1</option>
                     <option value="Luftpistole 2">Luftpistole 2</option>
                     <option value="Sportpistole">Sportpistole</option>
+                    <option value="Passiv / Sonstige">Passiv / Sonstige</option>
                 </select>
                 <button onclick="updateProfile()">Stammdaten speichern</button>
             </div>
-
             <div class="section-box" style="background: #f9f9f9; padding: 10px; border-radius: 8px;">
                 <label>Neues Passwort:</label>
                 <input type="password" id="new-password" placeholder="Mind. 6 Zeichen">
                 <input type="password" id="new-password-confirm" placeholder="Passwort wiederholen">
                 <button onclick="updatePassword()" style="background: #555;">Passwort ändern</button>
             </div>
-
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:30px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
             <div id="admin-pending-section" style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:20px; display:none;">
                 <h4>⏳ Offene Anträge</h4>
-                <table id="admin-pending-table"></table>
+                <table id="admin-pending-table" style="table-layout: auto;"></table>
             </div>
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:10px;">📄 PDF Export</button>
-            <h4>Mitglieder-Übersicht</h4>
-            <table id="admin-member-table"></table>
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export</button>
+            <h4 style="margin-bottom: 5px;">Mitglieder-Übersicht</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-name">Name</th>
+                        <th class="col-hours">Std.</th>
+                        <th class="col-cap">Cap</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-member-table"></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -186,10 +212,10 @@
 
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        const approved = data.filter(h => h.status === 'approved').reduce((sum, h) => sum + h.duration, 0);
+        const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + h.duration, 0) : 0;
         document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
         document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
-        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`).join('');
+        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`).join('') : "";
     }
 
     async function loadAllEvents() {
@@ -245,24 +271,27 @@
     async function updatePassword() {
         const p1 = document.getElementById('new-password').value;
         const p2 = document.getElementById('new-password-confirm').value;
-        if (p1.length < 6) return alert("Das Passwort muss mindestens 6 Zeichen lang sein.");
-        if (p1 !== p2) return alert("Die Passwörter stimmen nicht überein.");
+        if (p1.length < 6) return alert("Passwort zu kurz.");
+        if (p1 !== p2) return alert("Differenz.");
         const { error } = await sb.auth.updateUser({ password: p1 });
-        if (error) alert("Fehler: " + error.message);
-        else { alert("Passwort erfolgreich geändert!"); document.getElementById('new-password').value = ""; document.getElementById('new-password-confirm').value = ""; }
+        if (error) alert(error.message); else alert("OK");
     }
 
     async function loadAdmin() {
-        const { data: profs } = await sb.from('profiles').select('*');
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
-        const pending = hours.filter(h => h.status === 'pending');
+        const pending = hours ? hours.filter(h => h.status === 'pending') : [];
         if(pending.length) {
             document.getElementById('admin-pending-section').style.display = 'block';
-            document.getElementById('admin-pending-table').innerHTML = pending.map(h => `<tr><td>${profs.find(p=>p.id===h.user_id)?.full_name}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')">✅</button></td></tr>`).join('');
+            document.getElementById('admin-pending-table').innerHTML = pending.map(h => `<tr><td>${profs.find(p=>p.id===h.user_id)?.full_name}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:5px; width:auto;">✅</button></td></tr>`).join('');
         }
         document.getElementById('admin-member-table').innerHTML = profs.map(p => {
-            const sum = hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + h.duration, 0);
-            return `<tr><td>${p.full_name}</td><td>${sum}/10h</td><td><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}> Cap</td></tr>`;
+            const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + h.duration, 0) : 0;
+            return `<tr>
+                <td class="col-name">${p.full_name || 'Unbekannt'}</td>
+                <td class="col-hours">${sum}/10h</td>
+                <td class="col-cap"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:20px; height:20px; margin:0;"></td>
+            </tr>`;
         }).join('');
     }
 
@@ -282,8 +311,7 @@
         const name = document.getElementById('prof-name').value;
         const team = document.getElementById('prof-team').value;
         await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, team: team });
-        alert("Profil aktualisiert!");
-        location.reload();
+        alert("OK"); location.reload();
     }
 </script>
 </body>
