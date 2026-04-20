@@ -48,6 +48,8 @@
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
         
         .auth-switch { text-align: center; margin-top: 15px; cursor: pointer; color: #2e7d32; text-decoration: underline; font-size: 0.9em; }
+        .checkbox-container { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 0.9em; }
+        .checkbox-container input { width: auto; margin: 0; }
     </style>
 </head>
 <body>
@@ -60,7 +62,6 @@
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort (min. 6 Zeichen)">
         <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
-        
         <button id="auth-btn" onclick="handleAuth()">Einloggen</button>
         <div id="auth-toggle" class="auth-switch" onclick="toggleAuthMode()">Noch kein Konto? Hier registrieren</div>
     </div>
@@ -100,10 +101,12 @@
                 <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
             </div>
             <div id="calendar-container" class="calendar-grid"></div>
+
             <div id="calendar-selection-details">
                 <h4 id="selection-date-label" style="margin-top:0;">Termine</h4>
                 <div id="selection-content"></div>
             </div>
+
             <div id="tournament-list-section" style="margin-top:30px;">
                 <h3>Deine Übersicht</h3>
                 <div style="background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6; margin-bottom:10px;">
@@ -120,17 +123,22 @@
                     </select>
                 </div>
                 <table>
-                    <thead><tr><th>Datum</th><th>Mannschaft</th><th>Gegner / Ort</th></tr></thead>
+                    <thead><tr><th>Datum</th><th>Mannschaft</th><th>Gegner</th></tr></thead>
                     <tbody id="tournament-list-body"></tbody>
                 </table>
             </div>
+
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:20px; margin-top:30px; border-radius:12px; background: #fff8e1;">
                 <h4 style="margin:0 0 15px 0; color:#e65100;">Wettkampf eintragen (<span id="cap-team-name"></span>)</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <input type="date" id="ev-date">
                     <input type="time" id="ev-time">
                 </div>
-                <input type="text" id="ev-opp" placeholder="Gegner & Ort">
+                <input type="text" id="ev-opp" placeholder="Gegner">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="ev-home-check">
+                    <label for="ev-home-check">Heimwettkampf</label>
+                </div>
                 <button onclick="saveEvent()" style="background:#ef6c00;">Termin speichern</button>
             </div>
         </div>
@@ -186,8 +194,6 @@
         document.getElementById('auth-title').innerText = isRegisterMode ? "Registrieren" : "Anmelden";
         document.getElementById('auth-btn').innerText = isRegisterMode ? "Konto erstellen" : "Einloggen";
         document.getElementById('auth-toggle').innerText = isRegisterMode ? "Bereits ein Konto? Hier anmelden" : "Noch kein Konto? Hier registrieren";
-        
-        // Passwort bestätigen Feld ein/ausblenden
         document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
     }
 
@@ -195,23 +201,16 @@
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('password-confirm').value;
-
         if(isRegisterMode) {
-            // Check ob Passwörter übereinstimmen
-            if(password !== confirmPassword) {
-                alert("Die Passwörter stimmen nicht überein!");
-                return;
-            }
+            if(password !== confirmPassword) return alert("Passwörter nicht identisch!");
             const { error } = await sb.auth.signUp({ email, password });
-            if(error) alert(error.message);
-            else { alert("Registrierung erfolgreich! Du wirst nun eingeloggt."); location.reload(); }
+            if(error) alert(error.message); else { alert("Registrierung erfolgreich!"); location.reload(); }
         } else {
             const { error } = await sb.auth.signInWithPassword({ email, password });
             if(error) alert(error.message); else location.reload();
         }
     }
 
-    // --- (Rest der Funktionen: setupApp, Kalender, Stunden, etc. bleiben identisch) ---
     async function setupApp(user) {
         currentUser = user;
         isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -320,8 +319,20 @@
     }
 
     async function saveEvent() {
-        await sb.from('tournaments').insert([{ date: document.getElementById('ev-date').value, time: document.getElementById('ev-time').value, opponent: document.getElementById('ev-opp').value, team: userTeam }]);
+        let opponent = document.getElementById('ev-opp').value;
+        if(document.getElementById('ev-home-check').checked) {
+            opponent += " (Heim)";
+        }
+        await sb.from('tournaments').insert([{ 
+            date: document.getElementById('ev-date').value, 
+            time: document.getElementById('ev-time').value, 
+            opponent: opponent, 
+            team: userTeam 
+        }]);
         loadAllEvents();
+        // Reset Felder
+        document.getElementById('ev-opp').value = "";
+        document.getElementById('ev-home-check').checked = false;
     }
 
     async function loadAdmin() {
