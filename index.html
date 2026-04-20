@@ -69,7 +69,7 @@
                     <input type="date" id="event-date" style="flex: 2;">
                     <input type="time" id="event-time" style="flex: 1;">
                 </div>
-                <input type="text" id="event-opponent" placeholder="Gegner">
+                <input type="text" id="event-opponent" placeholder="Gegner / Anlass">
                 <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
                     <input type="checkbox" id="event-is-home" style="width: auto; margin: 0;">
                     <label for="event-is-home" style="font-size: 0.9em;">Heimwettkampf</label>
@@ -120,7 +120,7 @@
                     <button onclick="document.getElementById('admin-explorer').style.display='none'" style="width:auto; padding:2px 8px; background:#777;">X</button>
                 </div>
                 <table>
-                    <thead><tr><th>Datum</th><th>Info</th><th>Std.</th><th>Aktion</th></tr></thead>
+                    <thead><tr><th>Datum</th><th>Info</th><th>Std.</th><th>Status</th><th>Aktion</th></tr></thead>
                     <tbody id="explorer-body"></tbody>
                 </table>
             </div>
@@ -242,6 +242,7 @@
         const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { ascending: false });
         document.getElementById('explorer-body').innerHTML = data.map(h => `<tr>
             <td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td>
+            <td>${h.status === 'approved' ? '✅' : '⏳'}</td>
             <td><button class="btn-delete" style="font-size:10px;" onclick="deleteAdminEntry('${h.id}', '${uid}', '${name}')">🗑️</button></td>
         </tr>`).join('');
     }
