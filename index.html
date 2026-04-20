@@ -303,26 +303,56 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
         doc.setFontSize(18);
-        doc.text("Arbeitsstunden Hubertus Schützen", 14, 20);
+        doc.text("Detaillierter Stunden-Report Hubertus", 14, 20);
         doc.setFontSize(10);
-        doc.text("Stand: " + new Date().toLocaleDateString(), 14, 28);
+        doc.text("Erstellt am: " + new Date().toLocaleDateString(), 14, 28);
 
-        const tableData = profs.map(p => {
-            const sum = hours.filter(h => h.user_id === p.id).reduce((s, h) => s + h.duration, 0);
-            return [p.full_name, p.team || '-', sum + " h"];
+        let currentY = 35;
+
+        profs.forEach((p, index) => {
+            const userHours = hours.filter(h => h.user_id === p.id);
+            const totalSum = userHours.reduce((s, h) => s + h.duration, 0);
+
+            // Prüfen, ob eine neue Seite benötigt wird
+            if (currentY > 240) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(`${p.full_name} (${p.team || '-'}) - Gesamt: ${totalSum} h`, 14, currentY);
+            currentY += 5;
+
+            const bodyData = userHours.map(h => [
+                new Date(h.date).toLocaleDateString('de-DE'),
+                h.description || '-',
+                h.duration + " h"
+            ]);
+
+            if (bodyData.length > 0) {
+                doc.autoTable({
+                    startY: currentY,
+                    head: [['Datum', 'Tätigkeit', 'Dauer']],
+                    body: bodyData,
+                    theme: 'grid',
+                    styles: { fontSize: 9 },
+                    headStyles: { fillGray: [200, 200, 200], textColor: 0 },
+                    margin: { left: 14 }
+                });
+                currentY = doc.lastAutoTable.finalY + 15;
+            } else {
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                doc.text("Keine Einträge vorhanden.", 14, currentY + 5);
+                currentY += 15;
+            }
         });
 
-        doc.autoTable({
-            startY: 35,
-            head: [['Mitglied', 'Mannschaft', 'Stunden Gesamt']],
-            body: tableData,
-            theme: 'striped'
-        });
-
-        doc.save("Hubertus_Stunden_Report.pdf");
+        doc.save(`Hubertus_Detail_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
