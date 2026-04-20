@@ -53,6 +53,8 @@
         
         .edit-btn { cursor: pointer; background: #f0f0f0; border-radius: 4px; padding: 4px 8px; font-size: 1.2em; border: 1px solid #ccc; }
         .edit-btn:hover { background: #e0e0e0; }
+        
+        .section-divider { margin: 25px 0 15px 0; border-top: 2px solid #eee; padding-top: 15px; }
     </style>
 </head>
 <body>
@@ -163,8 +165,16 @@
                 <option value="Großkaliber">Großkaliber</option>
                 <option value="Passiv / Sonstige">Passiv / Sonstige</option>
             </select>
-            <button onclick="updateProfile()">Speichern</button>
-            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
+            <button onclick="updateProfile()">Profil speichern</button>
+
+            <div class="section-divider">
+                <h4>Passwort ändern</h4>
+                <input type="password" id="new-password" placeholder="Neues Passwort">
+                <input type="password" id="new-password-confirm" placeholder="Neues Passwort bestätigen">
+                <button onclick="changePassword()" style="background:#0277bd;">Passwort aktualisieren</button>
+            </div>
+
+            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:30px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
@@ -187,7 +197,7 @@
 
     let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
-    let editingEventTeam = ""; // Speichert das Team des aktuell bearbeiteten Termins
+    let editingEventTeam = ""; 
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -236,6 +246,24 @@
         loadHistory(); loadAllEvents();
     }
 
+    async function changePassword() {
+        const newPass = document.getElementById('new-password').value;
+        const confirmPass = document.getElementById('new-password-confirm').value;
+        
+        if (newPass.length < 6) return alert("Das Passwort muss mindestens 6 Zeichen lang sein.");
+        if (newPass !== confirmPass) return alert("Die Passwörter stimmen nicht überein.");
+
+        const { error } = await sb.auth.updateUser({ password: newPass });
+        
+        if (error) {
+            alert("Fehler beim Ändern des Passworts: " + error.message);
+        } else {
+            alert("Passwort erfolgreich geändert!");
+            document.getElementById('new-password').value = "";
+            document.getElementById('new-password-confirm').value = "";
+        }
+    }
+
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*').order('date', {ascending: true});
         allEvents = data || []; 
@@ -266,7 +294,7 @@
         const ev = allEvents.find(e => e.id == id);
         if(!ev) return;
         
-        editingEventTeam = ev.team; // Mannschaft für den Update-Prozess sichern
+        editingEventTeam = ev.team; 
         document.getElementById('edit-event-id').value = ev.id;
         document.getElementById('ev-date').value = ev.date;
         document.getElementById('ev-time').value = ev.time || "";
