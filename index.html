@@ -52,6 +52,9 @@
         
         .delete-btn { color: #c62828; cursor: pointer; font-size: 1.2em; }
         .edit-btn { color: #1976d2; cursor: pointer; font-size: 1.2em; margin-right: 10px; }
+
+        .btn-reject { background: #c62828 !important; padding: 4px 8px; font-size: 11px; margin-left: 5px; }
+        .btn-reject:hover { background: #a51a1a !important; }
     </style>
 </head>
 <body>
@@ -279,35 +282,45 @@
         document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('') : "";
     }
 
-    async function loadAdmin() {
-        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*');
+   async function loadAdmin() {
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*');
+    
+    const pending = hours ? hours.filter(h => h.status === 'pending') : [];
+    document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
+    
+    document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
+        const u = profs.find(p => p.id === h.user_id);
+        return `<tr>
+            <td>${u?.full_name || 'Gast'}</td>
+            <td>${h.description}</td>
+            <td>${h.duration}h</td>
+            <td>
+                <button onclick="approve('${h.id}')" style="padding:4px; font-size:11px; width:auto; display:inline-block;">OK</button>
+                <button onclick="reject('${h.id}')" class="btn-reject" style="width:auto; display:inline-block;">X</button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    // Rest der Funktion (Mitglieder-Übersicht) bleibt gleich
+    document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
+        const userHours = hours ? hours.filter(h => h.user_id === p.id) : [];
+        const genSum = userHours.filter(h => h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
+        const hasPending = userHours.some(h => h.status === 'pending');
         
-        const pending = hours ? hours.filter(h => h.status === 'pending') : [];
-        document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
-        document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
-            const u = profs.find(p => p.id === h.user_id);
-            return `<tr><td>${u?.full_name || 'Gast'}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:4px; font-size:11px;">OK</button></td></tr>`;
-        }).join('');
+        let statusBadge = `<span class="badge badge-open">Offen</span>`;
+        if (genSum >= 10) statusBadge = `<span class="badge badge-done">Erledigt</span>`;
+        else if (hasPending) statusBadge = `<span class="badge badge-pending">In Prüfung</span>`;
 
-        document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
-            const userHours = hours ? hours.filter(h => h.user_id === p.id) : [];
-            const genSum = userHours.filter(h => h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
-            const hasPending = userHours.some(h => h.status === 'pending');
-            
-            let statusBadge = `<span class="badge badge-open">Offen</span>`;
-            if (genSum >= 10) statusBadge = `<span class="badge badge-done">Erledigt</span>`;
-            else if (hasPending) statusBadge = `<span class="badge badge-pending">In Prüfung</span>`;
-
-            return `<tr>
-                <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
-                <td>${p.team || '-'}</td>
-                <td><b>${genSum}/10</b></td>
-                <td>${statusBadge}</td>
-                <td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td>
-            </tr>`;
-        }).join('');
-    }
+        return `<tr>
+            <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
+            <td>${p.team || '-'}</td>
+            <td><b>${genSum}/10</b></td>
+            <td>${statusBadge}</td>
+            <td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td>
+        </tr>`;
+    }).join('');
+}
 
     async function showAdminMemberDetails(userId, userName) {
         const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', userId).order('date', {ascending: false});
@@ -325,6 +338,24 @@
     }
 
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
+    async function reject(id) {
+    const reason = prompt("Grund für die Ablehnung (wird dem Mitglied angezeigt):");
+    if (reason === null) return; // Abbrechen gewählt
+    
+    // Aktuelle Beschreibung holen, um den Grund anzuhängen
+    const { data: current } = await sb.from('work_hours').select('description').eq('id', id).single();
+    const updatedDescription = `${current.description} | ABGELEHNT: ${reason || "Kein Grund angegeben"}`;
+
+    const { error } = await sb.from('work_hours')
+        .update({ 
+            status: 'rejected', 
+            description: updatedDescription 
+        })
+        .eq('id', id);
+
+    if (error) alert("Fehler beim Ablehnen: " + error.message);
+    loadAdmin();
+}
     async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
     async function deleteHoursAdmin(id, uid, name) { if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); showAdminMemberDetails(uid, name); loadAdmin(); } }
 
