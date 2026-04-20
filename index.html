@@ -25,16 +25,45 @@
         .status-ok { color: #2e7d32; font-weight: bold; }
         .status-wait { color: #f57c00; font-weight: bold; }
 
+        /* Kalender Design (Mobil optimiert) */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-weight: bold; font-size: 1.2em; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #dee2e6; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
-        .calendar-day-head { background: #e9ecef; text-align: center; padding: 10px; font-weight: bold; font-size: 0.8em; }
-        .calendar-day { background: white; min-height: 90px; padding: 5px; position: relative; font-size: 0.9em; }
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 1px; 
+            background: #ccc; 
+            border: 1px solid #ccc; 
+            border-radius: 8px; 
+            overflow: hidden;
+            width: 100%;
+        }
+        .calendar-day-head { background: #e9ecef; text-align: center; padding: 10px; font-weight: bold; font-size: 0.7em; text-transform: uppercase; }
+        .calendar-day { 
+            background: white; 
+            min-height: 60px; 
+            padding: 2px; 
+            position: relative; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         .calendar-day.today { background: #fff9c4; }
         
-        .event-dot { font-size: 0.75em; padding: 3px 6px; border-radius: 4px; margin: 2px 0; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .team-lg1 { background: #2e7d32; } .team-lg2 { background: #4caf50; } 
-        .team-lp1 { background: #1565c0; } .team-lp2 { background: #2196f3; }
-        .team-auflage { background: #ef6c00; } .team-default { background: #78909c; }
+        /* Event-Markierungen */
+        .event-dot { width: 8px; height: 8px; border-radius: 50%; margin: 2px auto; display: block; flex-shrink: 0; }
+
+        @media (min-width: 600px) {
+            .calendar-day { min-height: 90px; padding: 5px; }
+            .event-dot { width: 90%; height: 4px; border-radius: 2px; }
+            .calendar-day-head { font-size: 0.8em; }
+        }
+
+        .team-lg1 { background-color: #2e7d32 !important; }
+        .team-lg2 { background-color: #4caf50 !important; } 
+        .team-lp1 { background-color: #1565c0 !important; } 
+        .team-lp2 { background-color: #2196f3 !important; }
+        .team-auflage { background-color: #ef6c00 !important; } 
+        .team-default { background-color: #78909c !important; }
 
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
@@ -109,7 +138,7 @@
         </div>
 
         <div id="view-profile" style="display:none;">
-            <h3>Profil-Einstellungen</h3>
+            <h3>Profil</h3>
             <label>Name:</label><input type="text" id="prof-name">
             <label>Mannschaft:</label>
             <select id="prof-team">
@@ -120,39 +149,27 @@
                 <option value="Sportpistole">Sportpistole</option>
                 <option value="Passiv / Sonstige">Passiv / Sonstige</option>
             </select>
-            <button onclick="updateProfile()">Stammdaten speichern</button>
-            <div style="margin-top:20px; padding:15px; background:#f9f9f9; border-radius:8px;">
-                <label>Neues Passwort:</label>
-                <input type="password" id="new-password" placeholder="Mind. 6 Zeichen">
-                <button onclick="updatePassword()" style="background:#555;">Passwort ändern</button>
-            </div>
+            <button onclick="updateProfile()">Speichern</button>
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
             <div id="admin-pending-section" style="background:#fff3e0; padding:15px; border-radius:12px; margin-bottom:25px; border:1px solid #ffe0b2; display:none;">
                 <h4 style="margin:0;">⏳ Offene Genehmigungen</h4>
-                <table>
+                <table id="admin-pending-table">
                     <thead><tr><th>Name</th><th>Datum</th><th>Tätigkeit</th><th>Dauer</th><th>Aktion</th></tr></thead>
                     <tbody id="admin-pending-body"></tbody>
                 </table>
             </div>
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Report generieren</button>
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Detail-Report generieren</button>
             <h4>Mitgliederübersicht</h4>
             <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Mannschaft</th>
-                        <th>Stunden</th>
-                        <th style="text-align:center;">Kapitän</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Name</th><th>Mannschaft</th><th>Stunden</th><th style="text-align:center;">Kapitän</th></tr></thead>
                 <tbody id="admin-member-table"></tbody>
             </table>
             
             <div id="admin-detail-view" style="margin-top:30px; display:none; padding:15px; background:#e8f5e9; border-radius:12px;">
-                <h4 id="detail-name">Stunden-Details</h4>
+                <h4 id="detail-name">Details</h4>
                 <table id="detail-table">
                     <thead><tr><th>Datum</th><th>Tätigkeit</th><th>Dauer</th></tr></thead>
                     <tbody id="detail-body"></tbody>
@@ -247,15 +264,20 @@
         });
         const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        for (let i = 0; i < firstDay; i++) { const empty = document.createElement('div'); empty.className = 'calendar-day'; container.appendChild(empty); }
+        for (let i = 0; i < firstDay; i++) { 
+            const empty = document.createElement('div'); empty.className = 'calendar-day'; container.appendChild(empty); 
+        }
         for (let d = 1; d <= daysInMonth; d++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const dayEl = document.createElement('div');
             dayEl.className = 'calendar-day';
             if(new Date().toISOString().split('T')[0] === dateStr) dayEl.classList.add('today');
-            dayEl.innerHTML = `<b>${d}</b>`;
+            dayEl.innerHTML = `<b style="font-size: 0.8em; margin-bottom: 4px;">${d}</b>`;
             allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam)).forEach(e => {
-                const ev = document.createElement('div'); ev.className = `event-dot ${getTeamClass(e.team)}`; ev.innerText = e.opponent; dayEl.appendChild(ev);
+                const ev = document.createElement('div'); 
+                ev.className = `event-dot ${getTeamClass(e.team)}`;
+                ev.title = `${e.team}: ${e.opponent}`;
+                dayEl.appendChild(ev);
             });
             container.appendChild(dayEl);
         }
@@ -279,7 +301,8 @@
                 const u = profs.find(p => p.id === h.user_id);
                 return `<tr><td>${u?u.full_name:'?'}</td><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')">OK</button></td></tr>`;
             }).join('');
-        }
+        } else { document.getElementById('admin-pending-section').style.display = 'none'; }
+        
         document.getElementById('admin-member-table').innerHTML = profs.map(p => {
             const userHours = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved') : [];
             const sum = userHours.reduce((s, h) => s + h.duration, 0);
@@ -311,48 +334,20 @@
         doc.text("Erstellt am: " + new Date().toLocaleDateString(), 14, 28);
 
         let currentY = 35;
-
-        profs.forEach((p, index) => {
+        profs.forEach((p) => {
             const userHours = hours.filter(h => h.user_id === p.id);
             const totalSum = userHours.reduce((s, h) => s + h.duration, 0);
-
-            // Prüfen, ob eine neue Seite benötigt wird
-            if (currentY > 240) {
-                doc.addPage();
-                currentY = 20;
-            }
-
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
+            if (currentY > 240) { doc.addPage(); currentY = 20; }
+            doc.setFontSize(12); doc.setFont(undefined, 'bold');
             doc.text(`${p.full_name} (${p.team || '-'}) - Gesamt: ${totalSum} h`, 14, currentY);
             currentY += 5;
-
-            const bodyData = userHours.map(h => [
-                new Date(h.date).toLocaleDateString('de-DE'),
-                h.description || '-',
-                h.duration + " h"
-            ]);
-
+            const bodyData = userHours.map(h => [new Date(h.date).toLocaleDateString('de-DE'), h.description || '-', h.duration + " h"]);
             if (bodyData.length > 0) {
-                doc.autoTable({
-                    startY: currentY,
-                    head: [['Datum', 'Tätigkeit', 'Dauer']],
-                    body: bodyData,
-                    theme: 'grid',
-                    styles: { fontSize: 9 },
-                    headStyles: { fillGray: [200, 200, 200], textColor: 0 },
-                    margin: { left: 14 }
-                });
+                doc.autoTable({ startY: currentY, head: [['Datum', 'Tätigkeit', 'Dauer']], body: bodyData, theme: 'grid', styles: { fontSize: 9 } });
                 currentY = doc.lastAutoTable.finalY + 15;
-            } else {
-                doc.setFontSize(9);
-                doc.setFont(undefined, 'normal');
-                doc.text("Keine Einträge vorhanden.", 14, currentY + 5);
-                currentY += 15;
-            }
+            } else { doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text("Keine Einträge.", 14, currentY + 5); currentY += 15; }
         });
-
-        doc.save(`Hubertus_Detail_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save("Hubertus_Detailliste.pdf");
     }
 
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
@@ -373,13 +368,6 @@
         const team = document.getElementById('prof-team').value;
         await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, team: team });
         alert("Gespeichert");
-    }
-
-    async function updatePassword() {
-        const p1 = document.getElementById('new-password').value;
-        if(p1.length < 6) return alert("Zu kurz");
-        await sb.auth.updateUser({ password: p1 });
-        alert("Passwort geändert");
     }
 </script>
 </body>
