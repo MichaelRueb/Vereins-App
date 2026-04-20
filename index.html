@@ -459,67 +459,74 @@
         if(t==='events') loadAllEvents();
     }
 
-    async function exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Daten laden
-    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-    doc.setFontSize(18);
-    doc.text("Arbeitsstunden Einzelnachweis - Hubertus", 14, 15);
-    doc.setFontSize(10);
-    doc.text("Erstellt am: " + new Date().toLocaleDateString('de-DE'), 14, 22);
-
-    let currentY = 30;
-
-    profs.forEach((p) => {
-        // Nur genehmigte Stunden für dieses Mitglied filtern
-        const memberHours = hours.filter(h => h.user_id === p.id);
-        const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-
-        // Prüfen, ob genug Platz auf der Seite ist, sonst neue Seite
-        if (currentY > 240) { 
-            doc.addPage(); 
-            currentY = 20; 
+   async function exportToPDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        if (!jsPDF) {
+            alert("PDF-Bibliothek konnte nicht geladen werden. Bitte Seite neu laden.");
+            return;
         }
+        
+        const doc = new jsPDF();
+        
+        // Daten laden
+        const { data: profs, error: pError } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours, error: hError } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
-        // Header für das Mitglied
-        doc.setFont(undefined, 'bold');
-        doc.setFillColor(240, 240, 240);
-        doc.rect(14, currentY, 182, 8, 'F');
-        doc.text(`${p.full_name} (${p.team || 'Kein Team'})`, 16, currentY + 6);
-        doc.text(`${total} / 10 h`, 175, currentY + 6);
-        doc.setFont(undefined, 'normal');
+        if (pError || hError) throw new Error("Datenbank-Fehler beim Laden.");
 
-        // Tabelle mit Einzelauflistung
-        const tableRows = memberHours.map(h => [
-            new Date(h.date).toLocaleDateString('de-DE'),
-            h.description,
-            h.duration + " h"
-        ]);
+        doc.setFontSize(18);
+        doc.text("Arbeitsstunden Einzelnachweis - Hubertus", 14, 15);
+        doc.setFontSize(10);
+        doc.text("Erstellt am: " + new Date().toLocaleDateString('de-DE'), 14, 22);
 
-        doc.autoTable({
-            startY: currentY + 10,
-            head: [['Datum', 'Tätigkeit', 'Dauer']],
-            body: tableRows.length > 0 ? tableRows : [['-', 'Keine genehmigten Stunden vorhanden', '-']],
-            theme: 'striped',
-            headStyles: { fillColor: [46, 125, 50] },
-            styles: { fontSize: 9 },
-            margin: { left: 14, right: 14 },
-            didDrawPage: (data) => {
-                currentY = data.cursor.y + 15;
+        let currentY = 30;
+
+        profs.forEach((p) => {
+            const memberHours = hours.filter(h => h.user_id === p.id);
+            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+
+            // Seitencheck
+            if (currentY > 240) { 
+                doc.addPage(); 
+                currentY = 20; 
             }
+
+            // Mitglied-Header
+            doc.setFont(undefined, 'bold');
+            doc.setFillColor(240, 240, 240);
+            doc.rect(14, currentY, 182, 8, 'F');
+            doc.text(`${p.full_name} (${p.team || 'Kein Team'})`, 16, currentY + 6);
+            doc.text(`${total} / 10 h`, 175, currentY + 6);
+            doc.setFont(undefined, 'normal');
+
+            // Tabelle
+            const tableRows = memberHours.map(h => [
+                new Date(h.date).toLocaleDateString('de-DE'),
+                h.description,
+                h.duration + " h"
+            ]);
+
+            doc.autoTable({
+                startY: currentY + 10,
+                head: [['Datum', 'Tätigkeit', 'Dauer']],
+                body: tableRows.length > 0 ? tableRows : [['-', 'Keine genehmigten Stunden vorhanden', '-']],
+                theme: 'striped',
+                headStyles: { fillColor: [46, 125, 50] },
+                styles: { fontSize: 9 },
+                margin: { left: 14, right: 14 }
+            });
+
+            currentY = doc.lastAutoTable.cursor.y + 15;
         });
 
-        currentY = doc.lastAutoTable.cursor.y + 15;
-    });
-
-    const fileName = `Stunden_Details_${new Date().toISOString().slice(0,10)}.pdf`;
-    doc.save(fileName);
+        doc.save(`Hubertus_Einzelnachweis_${new Date().toISOString().slice(0,10)}.pdf`);
+        
+    } catch (err) {
+        console.error(err);
+        alert("PDF-Fehler: " + err.message);
+    }
 }
-
 
     async function deleteEvent(id) { if(confirm("Termin wirklich löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
     
