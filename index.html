@@ -187,6 +187,7 @@
 
     let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
+    let editingEventTeam = ""; // Speichert das Team des aktuell bearbeiteten Termins
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -248,10 +249,8 @@
         const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === filter);
         
         listBody.innerHTML = filteredEvents.map(e => {
-            // Nur Admin oder der Kapitän des Teams darf editieren
             const canEdit = isAdmin || (isCaptain && e.team === userTeam);
             const editIcon = canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span>` : '';
-            
             return `
                 <tr>
                     <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
@@ -267,12 +266,11 @@
         const ev = allEvents.find(e => e.id == id);
         if(!ev) return;
         
-        // Formular füllen
+        editingEventTeam = ev.team; // Mannschaft für den Update-Prozess sichern
         document.getElementById('edit-event-id').value = ev.id;
         document.getElementById('ev-date').value = ev.date;
         document.getElementById('ev-time').value = ev.time || "";
         
-        // " (Heim)" Part für Checkbox erkennen
         if(ev.opponent.includes(" (Heim)")) {
             document.getElementById('ev-opp').value = ev.opponent.replace(" (Heim)", "");
             document.getElementById('ev-home-check').checked = true;
@@ -281,17 +279,15 @@
             document.getElementById('ev-home-check').checked = false;
         }
 
-        // UI anpassen
-        document.getElementById('form-event-title').innerText = "Wettkampf bearbeiten";
+        document.getElementById('form-event-title').innerText = "Wettkampf bearbeiten (" + editingEventTeam + ")";
         document.getElementById('save-event-btn').innerText = "Änderungen speichern";
         document.getElementById('cancel-edit-btn').style.display = "inline-block";
-        
-        // Zum Formular scrollen
         document.getElementById('captain-form').scrollIntoView({behavior: "smooth"});
     }
 
     function resetEventForm() {
         document.getElementById('edit-event-id').value = "";
+        editingEventTeam = "";
         document.getElementById('ev-date').value = "";
         document.getElementById('ev-time').value = "";
         document.getElementById('ev-opp').value = "";
@@ -304,22 +300,19 @@
     async function saveEvent() {
         const id = document.getElementById('edit-event-id').value;
         let opponent = document.getElementById('ev-opp').value;
-        if(document.getElementById('ev-home-check').checked) {
-            opponent += " (Heim)";
-        }
+        if(document.getElementById('ev-home-check').checked) { opponent += " (Heim)"; }
 
+        const targetTeam = id ? editingEventTeam : userTeam;
         const eventData = { 
             date: document.getElementById('ev-date').value, 
             time: document.getElementById('ev-time').value, 
             opponent: opponent, 
-            team: userTeam 
+            team: targetTeam 
         };
 
         if(id) {
-            // Update
             await sb.from('tournaments').update(eventData).eq('id', id);
         } else {
-            // Insert
             await sb.from('tournaments').insert([eventData]);
         }
 
