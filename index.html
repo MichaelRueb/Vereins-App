@@ -50,6 +50,9 @@
         .auth-switch { text-align: center; margin-top: 15px; cursor: pointer; color: #2e7d32; text-decoration: underline; font-size: 0.9em; }
         .checkbox-container { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 0.9em; }
         .checkbox-container input { width: auto; margin: 0; }
+        
+        .edit-btn { cursor: pointer; background: #f0f0f0; border-radius: 4px; padding: 4px 8px; font-size: 1.2em; border: 1px solid #ccc; }
+        .edit-btn:hover { background: #e0e0e0; }
     </style>
 </head>
 <body>
@@ -108,7 +111,7 @@
             </div>
 
             <div id="tournament-list-section" style="margin-top:30px;">
-                <h3>Deine Übersicht</h3>
+                <h3>Wettkampf-Übersicht</h3>
                 <div style="background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6; margin-bottom:10px;">
                     <select id="event-view-filter" onchange="renderTournamentList()">
                         <option value="all_teams">Alle Mannschaften</option>
@@ -123,13 +126,14 @@
                     </select>
                 </div>
                 <table>
-                    <thead><tr><th>Datum</th><th>Mannschaft</th><th>Gegner</th></tr></thead>
+                    <thead><tr><th>Datum</th><th>Mannschaft</th><th>Gegner</th><th>Aktion</th></tr></thead>
                     <tbody id="tournament-list-body"></tbody>
                 </table>
             </div>
 
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:20px; margin-top:30px; border-radius:12px; background: #fff8e1;">
-                <h4 style="margin:0 0 15px 0; color:#e65100;">Wettkampf eintragen (<span id="cap-team-name"></span>)</h4>
+                <h4 id="form-event-title" style="margin:0 0 15px 0; color:#e65100;">Wettkampf eintragen (<span id="cap-team-name"></span>)</h4>
+                <input type="hidden" id="edit-event-id">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <input type="date" id="ev-date">
                     <input type="time" id="ev-time">
@@ -139,7 +143,8 @@
                     <input type="checkbox" id="ev-home-check">
                     <label for="ev-home-check">Heimwettkampf</label>
                 </div>
-                <button onclick="saveEvent()" style="background:#ef6c00;">Termin speichern</button>
+                <button id="save-event-btn" onclick="saveEvent()" style="background:#ef6c00;">Termin speichern</button>
+                <button id="cancel-edit-btn" onclick="resetEventForm()" style="background:#757575; display:none;">Abbrechen</button>
             </div>
         </div>
 
@@ -241,13 +246,85 @@
         const filter = document.getElementById('event-view-filter').value;
         const listBody = document.getElementById('tournament-list-body');
         const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === filter);
-        listBody.innerHTML = filteredEvents.map(e => `
-            <tr>
-                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                <td><span style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td>
-                <td>${e.opponent} ${e.time ? '('+e.time+' Uhr)' : ''}</td>
-            </tr>
-        `).join('');
+        
+        listBody.innerHTML = filteredEvents.map(e => {
+            // Nur Admin oder der Kapitän des Teams darf editieren
+            const canEdit = isAdmin || (isCaptain && e.team === userTeam);
+            const editIcon = canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span>` : '';
+            
+            return `
+                <tr>
+                    <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                    <td><span style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td>
+                    <td>${e.opponent} ${e.time ? '('+e.time+' Uhr)' : ''}</td>
+                    <td style="text-align:center;">${editIcon}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function editEvent(id) {
+        const ev = allEvents.find(e => e.id == id);
+        if(!ev) return;
+        
+        // Formular füllen
+        document.getElementById('edit-event-id').value = ev.id;
+        document.getElementById('ev-date').value = ev.date;
+        document.getElementById('ev-time').value = ev.time || "";
+        
+        // " (Heim)" Part für Checkbox erkennen
+        if(ev.opponent.includes(" (Heim)")) {
+            document.getElementById('ev-opp').value = ev.opponent.replace(" (Heim)", "");
+            document.getElementById('ev-home-check').checked = true;
+        } else {
+            document.getElementById('ev-opp').value = ev.opponent;
+            document.getElementById('ev-home-check').checked = false;
+        }
+
+        // UI anpassen
+        document.getElementById('form-event-title').innerText = "Wettkampf bearbeiten";
+        document.getElementById('save-event-btn').innerText = "Änderungen speichern";
+        document.getElementById('cancel-edit-btn').style.display = "inline-block";
+        
+        // Zum Formular scrollen
+        document.getElementById('captain-form').scrollIntoView({behavior: "smooth"});
+    }
+
+    function resetEventForm() {
+        document.getElementById('edit-event-id').value = "";
+        document.getElementById('ev-date').value = "";
+        document.getElementById('ev-time').value = "";
+        document.getElementById('ev-opp').value = "";
+        document.getElementById('ev-home-check').checked = false;
+        document.getElementById('form-event-title').innerHTML = `Wettkampf eintragen (<span id="cap-team-name">${userTeam}</span>)`;
+        document.getElementById('save-event-btn').innerText = "Termin speichern";
+        document.getElementById('cancel-edit-btn').style.display = "none";
+    }
+
+    async function saveEvent() {
+        const id = document.getElementById('edit-event-id').value;
+        let opponent = document.getElementById('ev-opp').value;
+        if(document.getElementById('ev-home-check').checked) {
+            opponent += " (Heim)";
+        }
+
+        const eventData = { 
+            date: document.getElementById('ev-date').value, 
+            time: document.getElementById('ev-time').value, 
+            opponent: opponent, 
+            team: userTeam 
+        };
+
+        if(id) {
+            // Update
+            await sb.from('tournaments').update(eventData).eq('id', id);
+        } else {
+            // Insert
+            await sb.from('tournaments').insert([eventData]);
+        }
+
+        resetEventForm();
+        loadAllEvents();
     }
 
     function renderCalendar() {
@@ -316,23 +393,6 @@
         document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
         document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
         document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('') : "";
-    }
-
-    async function saveEvent() {
-        let opponent = document.getElementById('ev-opp').value;
-        if(document.getElementById('ev-home-check').checked) {
-            opponent += " (Heim)";
-        }
-        await sb.from('tournaments').insert([{ 
-            date: document.getElementById('ev-date').value, 
-            time: document.getElementById('ev-time').value, 
-            opponent: opponent, 
-            team: userTeam 
-        }]);
-        loadAllEvents();
-        // Reset Felder
-        document.getElementById('ev-opp').value = "";
-        document.getElementById('ev-home-check').checked = false;
     }
 
     async function loadAdmin() {
