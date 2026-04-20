@@ -47,7 +47,6 @@
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
-        .admin-link { color: #1976d2; cursor: pointer; text-decoration: underline; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -92,11 +91,12 @@
 
         <div id="view-events" style="display:none;">
             <div style="margin-bottom:15px; background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6;">
-                <label style="font-weight:bold;">Filter:</label>
-                <select id="event-view-filter" onchange="updateCalendarView()">
+                <label style="font-weight:bold;">Listen-Filter:</label>
+                <select id="event-view-filter" onchange="renderTournamentList()">
                     <option value="my_team">Nur meine Mannschaft</option>
                     <option value="all_teams" selected>Gesamter Verein</option>
                 </select>
+                <small style="display:block; margin-top:5px; color:#666;">(Der Kalender oben zeigt zur Übersicht immer alle Termine)</small>
             </div>
             
             <div class="calendar-header">
@@ -148,26 +148,14 @@
         </div>
 
         <div id="view-admin" style="display:none;">
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Detail-Report generieren</button>
             <div id="admin-pending-section" style="background:#fff3e0; padding:15px; border-radius:12px; margin-bottom:25px; border:1px solid #ffe0b2; display:none;">
                 <h4 style="margin:0;">⏳ Offene Genehmigungen</h4>
-                <table>
-                    <thead><tr><th>Name</th><th>Datum</th><th>Tätigkeit</th><th>Dauer</th><th>Aktion</th></tr></thead>
-                    <tbody id="admin-pending-body-real"></tbody>
-                </table>
+                <table><thead><tr><th>Name</th><th>Datum</th><th>Tätigkeit</th><th>Dauer</th><th>Aktion</th></tr></thead><tbody id="admin-pending-body-real"></tbody></table>
             </div>
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Detail-Report generieren</button>
             <h4>Mitgliederübersicht</h4>
-            <table>
-                <thead><tr><th>Name</th><th>Mannschaft</th><th>Stunden</th><th style="text-align:center;">Kapitän</th></tr></thead>
-                <tbody id="admin-member-table"></tbody>
-            </table>
-            <div id="admin-detail-view" style="margin-top:30px; display:none; padding:15px; background:#e8f5e9; border-radius:12px;">
-                <h4 id="detail-name">Details</h4>
-                <table id="detail-table">
-                    <thead><tr><th>Datum</th><th>Tätigkeit</th><th>Dauer</th></tr></thead>
-                    <tbody id="detail-body"></tbody>
-                </table>
-            </div>
+            <table id="admin-member-table-main"><thead><tr><th>Name</th><th>Mannschaft</th><th>Stunden</th><th style="text-align:center;">Kapitän</th></tr></thead><tbody id="admin-member-table"></tbody></table>
+            <div id="admin-detail-view" style="margin-top:30px; display:none; padding:15px; background:#e8f5e9; border-radius:12px;"><h4 id="detail-name">Details</h4><table><thead><tr><th>Datum</th><th>Tätigkeit</th><th>Dauer</th></tr></thead><tbody id="detail-body"></tbody></table></div>
         </div>
     </div>
 </div>
@@ -212,39 +200,17 @@
         loadHistory(); loadAllEvents();
     }
 
-    async function sendHours() {
-        const date = document.getElementById('date').value;
-        const h = document.getElementById('hours').value;
-        const d = document.getElementById('description').value;
-        if(!date || !h) return alert("Datum/Stunden fehlen");
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: h, description: d, status: 'pending' }]);
-        loadHistory();
-    }
-
-    async function loadHistory() {
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + h.duration, 0) : 0;
-        document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
-        document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
-        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('') : "";
-    }
-
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*').order('date', {ascending: true});
         allEvents = data || []; 
-        updateCalendarView();
-    }
-
-    // Kombinierte Funktion für Filter-Wechsel
-    function updateCalendarView() {
         renderCalendar();
         renderTournamentList();
     }
 
+    // LISTE REAGIERT AUF FILTER
     function renderTournamentList() {
         const filter = document.getElementById('event-view-filter').value;
         const listBody = document.getElementById('tournament-list-body');
-        
         const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === userTeam);
         
         document.getElementById('list-title').innerText = filter === 'all_teams' ? "Alle Wettkämpfe (Verein)" : "Meine Wettkämpfe (" + userTeam + ")";
@@ -258,20 +224,9 @@
         `).join('');
     }
 
-    function getTeamClass(team) {
-        const t = team?.toLowerCase() || "";
-        if(t.includes("gewehr 1")) return "team-lg1";
-        if(t.includes("gewehr 2")) return "team-lg2";
-        if(t.includes("pistole 1")) return "team-lp1";
-        if(t.includes("auflage")) return "team-auflage";
-        return "team-default";
-    }
-
-    function changeMonth(step) { currentViewDate.setMonth(currentViewDate.getMonth() + step); renderCalendar(); }
-
+    // KALENDER ZEIGT IMMER ALLES
     function renderCalendar() {
         const container = document.getElementById('calendar-container');
-        const filter = document.getElementById('event-view-filter').value;
         container.innerHTML = '';
         const year = currentViewDate.getFullYear();
         const month = currentViewDate.getMonth();
@@ -295,17 +250,15 @@
             if(new Date().toISOString().split('T')[0] === dateStr) dayEl.classList.add('today');
             dayEl.innerHTML = `<b style="font-size: 0.8em; margin-bottom: 4px;">${d}</b>`;
             
-            // Punkte zeigen NUR gefilterte Events
-            const filteredDayEvents = allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam));
-            filteredDayEvents.forEach(e => {
+            // IMMER ALLE Termine als Punkte im Kalender
+            const dayEvents = allEvents.filter(e => e.date === dateStr);
+            dayEvents.forEach(e => {
                 const ev = document.createElement('div'); 
                 ev.className = `event-dot ${getTeamClass(e.team)}`;
                 dayEl.appendChild(ev);
             });
             
-            // Klick zeigt IMMER ALLE Events des Tages für volle Info
-            const allDayEvents = allEvents.filter(e => e.date === dateStr);
-            dayEl.onclick = () => showDayDetails(dateStr, allDayEvents);
+            dayEl.onclick = () => showDayDetails(dateStr, dayEvents);
             container.appendChild(dayEl);
         }
     }
@@ -314,7 +267,6 @@
         const detailBox = document.getElementById('calendar-selection-details');
         const content = document.getElementById('selection-content');
         const label = document.getElementById('selection-date-label');
-        
         label.innerText = "Alle Termine am " + new Date(dateStr).toLocaleDateString('de-DE');
         if(events.length === 0) {
             content.innerHTML = "<i>Keine Wettkämpfe an diesem Tag.</i>";
@@ -328,6 +280,34 @@
         }
         detailBox.style.display = 'block';
         detailBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function getTeamClass(team) {
+        const t = team?.toLowerCase() || "";
+        if(t.includes("gewehr 1")) return "team-lg1";
+        if(t.includes("gewehr 2")) return "team-lg2";
+        if(t.includes("pistole 1")) return "team-lp1";
+        if(t.includes("auflage")) return "team-auflage";
+        return "team-default";
+    }
+
+    function changeMonth(step) { currentViewDate.setMonth(currentViewDate.getMonth() + step); renderCalendar(); }
+
+    async function sendHours() {
+        const date = document.getElementById('date').value;
+        const h = document.getElementById('hours').value;
+        const d = document.getElementById('description').value;
+        if(!date || !h) return alert("Datum/Stunden fehlen");
+        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: h, description: d, status: 'pending' }]);
+        loadHistory();
+    }
+
+    async function loadHistory() {
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
+        const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + h.duration, 0) : 0;
+        document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
+        document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
+        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('') : "";
     }
 
     async function saveEvent() {
@@ -349,16 +329,10 @@
                 return `<tr><td>${u?u.full_name:'?'}</td><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')">OK</button></td></tr>`;
             }).join('');
         } else { document.getElementById('admin-pending-section').style.display = 'none'; }
-        
         document.getElementById('admin-member-table').innerHTML = profs.map(p => {
             const userHours = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved') : [];
             const sum = userHours.reduce((s, h) => s + h.duration, 0);
-            return `<tr>
-                <td><span class="admin-link" onclick='showDetails("${p.id}", "${p.full_name}")'>${p.full_name || 'Gast'}</span></td>
-                <td><small>${p.team || '-'}</small></td>
-                <td><b>${sum}/10h</b></td>
-                <td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td>
-            </tr>`;
+            return `<tr><td><span style="color:blue;cursor:pointer;text-decoration:underline;" onclick='showDetails("${p.id}", "${p.full_name}")'>${p.full_name || 'Gast'}</span></td><td><small>${p.team || '-'}</small></td><td><b>${sum}/10h</b></td><td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td></tr>`;
         }).join('');
     }
 
@@ -374,7 +348,7 @@
         const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-        doc.text("Stunden-Report Hubertus", 14, 20);
+        doc.text("Hubertus Stunden-Report", 14, 20);
         let currentY = 35;
         profs.forEach((p) => {
             const userHours = hours.filter(h => h.user_id === p.id);
