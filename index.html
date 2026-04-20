@@ -59,6 +59,8 @@
         <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort (min. 6 Zeichen)">
+        <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
+        
         <button id="auth-btn" onclick="handleAuth()">Einloggen</button>
         <div id="auth-toggle" class="auth-switch" onclick="toggleAuthMode()">Noch kein Konto? Hier registrieren</div>
     </div>
@@ -98,12 +100,10 @@
                 <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
             </div>
             <div id="calendar-container" class="calendar-grid"></div>
-
             <div id="calendar-selection-details">
                 <h4 id="selection-date-label" style="margin-top:0;">Termine</h4>
                 <div id="selection-content"></div>
             </div>
-
             <div id="tournament-list-section" style="margin-top:30px;">
                 <h3>Deine Übersicht</h3>
                 <div style="background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6; margin-bottom:10px;">
@@ -124,7 +124,6 @@
                     <tbody id="tournament-list-body"></tbody>
                 </table>
             </div>
-
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:20px; margin-top:30px; border-radius:12px; background: #fff8e1;">
                 <h4 style="margin:0 0 15px 0; color:#e65100;">Wettkampf eintragen (<span id="cap-team-name"></span>)</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -187,12 +186,22 @@
         document.getElementById('auth-title').innerText = isRegisterMode ? "Registrieren" : "Anmelden";
         document.getElementById('auth-btn').innerText = isRegisterMode ? "Konto erstellen" : "Einloggen";
         document.getElementById('auth-toggle').innerText = isRegisterMode ? "Bereits ein Konto? Hier anmelden" : "Noch kein Konto? Hier registrieren";
+        
+        // Passwort bestätigen Feld ein/ausblenden
+        document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
     }
 
     async function handleAuth() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('password-confirm').value;
+
         if(isRegisterMode) {
+            // Check ob Passwörter übereinstimmen
+            if(password !== confirmPassword) {
+                alert("Die Passwörter stimmen nicht überein!");
+                return;
+            }
             const { error } = await sb.auth.signUp({ email, password });
             if(error) alert(error.message);
             else { alert("Registrierung erfolgreich! Du wirst nun eingeloggt."); location.reload(); }
@@ -202,6 +211,7 @@
         }
     }
 
+    // --- (Rest der Funktionen: setupApp, Kalender, Stunden, etc. bleiben identisch) ---
     async function setupApp(user) {
         currentUser = user;
         isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -221,7 +231,6 @@
         loadHistory(); loadAllEvents();
     }
 
-    // --- REST DER FUNKTIONEN (Kalender, Stunden, Admin) BLEIBT IDENTISCH ---
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*').order('date', {ascending: true});
         allEvents = data || []; 
@@ -346,6 +355,7 @@
             document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
         });
         if(tab === 'admin') loadAdmin();
+        if(tab === 'events') { loadAllEvents(); document.getElementById('calendar-selection-details').style.display='none'; }
     }
 </script>
 </body>
