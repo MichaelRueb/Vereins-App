@@ -49,6 +49,9 @@
 
         .admin-detail-card { background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; display: none; }
         .clickable-name { color: #2e7d32; text-decoration: underline; cursor: pointer; font-weight: bold; }
+        
+        .delete-btn { color: #c62828; cursor: pointer; font-size: 1.2em; }
+        .edit-btn { color: #1976d2; cursor: pointer; font-size: 1.2em; margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -84,14 +87,14 @@
                 <input type="date" id="date">
                 <input type="number" id="hours" step="0.5" placeholder="Dauer (h)">
             </div>
-           <select id="work-category">
-    <option value="">-- Tätigkeit wählen --</option>
-    <option value="Standreinigung">Standreinigung</option>
-    <option value="Fahnenabordnung">Fahnenabordnung</option>
-    <option value="Reinigungsdienst">Reinigungsdienst</option>
-    <option value="Helferdienst">Helferdienst</option>
-    <option value="Sonstiges">Sonstiges</option>
-</select>
+            <select id="work-category">
+                <option value="">-- Tätigkeit wählen --</option>
+                <option value="Standreinigung">Standreinigung</option>
+                <option value="Fahnenabordnung">Fahnenabordnung</option>
+                <option value="Reinigungsdienst">Reinigungsdienst</option>
+                <option value="Helferdienst">Helferdienst</option>
+                <option value="Sonstiges">Sonstiges</option>
+            </select>
             <textarea id="description" placeholder="Zusätzliche Details..."></textarea>
             <button onclick="sendHours()">Senden</button>
             
@@ -114,8 +117,21 @@
                 <div id="selection-content"></div>
             </div>
 
-            <div style="margin-top:20px;">
-                <h3>Wettkämpfe</h3>
+            <div style="margin-top:30px;">
+                <h3>Wettkampf-Übersicht</h3>
+                <div style="background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6; margin-bottom:10px;">
+                    <select id="event-view-filter" onchange="renderTournamentList()">
+                        <option value="all_teams">Alle Mannschaften</option>
+                        <option value="Luftgewehr 1">Luftgewehr 1</option>
+                        <option value="Luftgewehr 2">Luftgewehr 2</option>
+                        <option value="Luftgewehr 3">Luftgewehr 3</option>
+                        <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
+                        <option value="Luftpistole 1">Luftpistole 1</option>
+                        <option value="Luftpistole 2">Luftpistole 2</option>
+                        <option value="Sportpistole">Sportpistole</option>
+                        <option value="Großkaliber">Großkaliber</option>
+                    </select>
+                </div>
                 <table style="font-size: 0.85em;">
                     <thead><tr><th>Datum</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead>
                     <tbody id="tournament-list-body"></tbody>
@@ -317,7 +333,6 @@
         alert("Gespeichert!"); location.reload();
     }
 
-    // Kalender-Logik (vereinfacht für Platz)
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*').order('date', {ascending: true});
         allEvents = data || []; 
@@ -325,11 +340,23 @@
     }
 
     function renderTournamentList() {
+        const filter = document.getElementById('event-view-filter').value;
         const listBody = document.getElementById('tournament-list-body');
-        listBody.innerHTML = allEvents.map(e => {
+        
+        const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === filter);
+        
+        listBody.innerHTML = filteredEvents.map(e => {
             const canEdit = isAdmin || (isCaptain && e.team === userTeam);
-            const actions = canEdit ? `<span onclick="editEvent('${e.id}')" style="cursor:pointer;">✏️</span> <span onclick="deleteEvent('${e.id}')" style="cursor:pointer;">🗑️</span>` : '-';
-            return `<tr><td>${e.date}</td><td>${e.team}</td><td>${e.opponent}</td><td>${actions}</td></tr>`;
+            const actions = canEdit ? `
+                <span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span>
+                <span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>
+            ` : '-';
+            return `<tr>
+                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                <td><span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td>
+                <td>${e.opponent}</td>
+                <td>${actions}</td>
+            </tr>`;
         }).join('');
     }
 
@@ -358,8 +385,12 @@
 
     function getTeamClass(t) {
         if(!t) return 'team-default'; t=t.toLowerCase();
-        if(t.includes('auflage')) return 'team-auflage'; if(t.includes('gewehr')) return 'team-lg';
-        if(t.includes('pistole')) return 'team-lp'; return 'team-default';
+        if(t.includes('auflage')) return 'team-auflage'; 
+        if(t.includes('gewehr')) return 'team-lg';
+        if(t.includes('pistole')) return 'team-lp';
+        if(t.includes('sportpistole')) return 'team-spopi';
+        if(t.includes('großkaliber')) return 'team-gk';
+        return 'team-default';
     }
 
     function changeMonth(s) { currentViewDate.setMonth(currentViewDate.getMonth()+s); renderCalendar(); }
@@ -370,6 +401,7 @@
             document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab';
         });
         if(t==='admin') loadAdmin();
+        if(t==='events') loadAllEvents();
     }
 
     async function exportToPDF() {
@@ -382,18 +414,34 @@
         doc.save("Report.pdf");
     }
 
-    // Zusätzliche CRUD Hilfsfunktionen (wie vorher)
-    async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
+    async function deleteEvent(id) { if(confirm("Termin wirklich löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
+    
     function editEvent(id) { 
         const e = allEvents.find(x => x.id == id); editingEventTeam = e.team;
-        document.getElementById('edit-event-id').value = e.id; document.getElementById('ev-date').value = e.date;
-        document.getElementById('ev-opp').value = e.opponent; document.getElementById('save-event-btn').innerText = "Update";
+        document.getElementById('edit-event-id').value = e.id; 
+        document.getElementById('ev-date').value = e.date;
+        document.getElementById('ev-opp').value = e.opponent.replace(" (Heim)", "");
+        document.getElementById('ev-home-check').checked = e.opponent.includes("(Heim)");
+        document.getElementById('save-event-btn').innerText = "Update";
         document.getElementById('cancel-edit-btn').style.display = 'block';
+        document.getElementById('captain-form').style.display = 'block';
+        document.getElementById('captain-form').scrollIntoView({behavior: "smooth"});
     }
-    function resetEventForm() { document.getElementById('edit-event-id').value=""; document.getElementById('save-event-btn').innerText="Speichern"; document.getElementById('cancel-edit-btn').style.display='none'; }
+    
+    function resetEventForm() { 
+        document.getElementById('edit-event-id').value=""; 
+        document.getElementById('ev-date').value=""; 
+        document.getElementById('ev-opp').value=""; 
+        document.getElementById('ev-home-check').checked = false;
+        document.getElementById('save-event-btn').innerText="Speichern"; 
+        document.getElementById('cancel-edit-btn').style.display='none'; 
+    }
+    
     async function saveEvent() {
         const id = document.getElementById('edit-event-id').value;
-        const d = { date: document.getElementById('ev-date').value, opponent: document.getElementById('ev-opp').value, team: id ? editingEventTeam : userTeam };
+        let opp = document.getElementById('ev-opp').value;
+        if(document.getElementById('ev-home-check').checked) opp += " (Heim)";
+        const d = { date: document.getElementById('ev-date').value, opponent: opp, team: id ? editingEventTeam : userTeam };
         if(id) await sb.from('tournaments').update(d).eq('id', id); else await sb.from('tournaments').insert([d]);
         resetEventForm(); loadAllEvents();
     }
