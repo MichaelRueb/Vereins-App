@@ -21,9 +21,11 @@
         .member-link { color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: bold; }
         .explorer-card { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 10px; border: 1px solid #cfd8dc; }
         .btn-delete { background: #b71c1c; padding: 5px 10px; width: auto; font-size: 14px; color: white; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-approve { background: #2e7d32; padding: 5px 10px; width: auto; font-size: 14px; color: white; border-radius: 4px; border: none; cursor: pointer; }
         .section-box { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px solid #eee; }
         .event-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .badge-home { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 5px; border: 1px solid #c8e6c9; }
+        .pending-container { background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 10px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -108,9 +110,19 @@
         </div>
 
         <div id="view-admin" style="display:none;">
+            <div class="pending-container" id="pending-section" style="display:none;">
+                <h4 style="margin:0 0 10px 0; color:#e65100;">⏳ Wartende Anträge</h4>
+                <table>
+                    <thead><tr><th>Name</th><th>Info</th><th>Std.</th><th>Aktion</th></tr></thead>
+                    <tbody id="admin-pending-body"></tbody>
+                </table>
+            </div>
+
             <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export (Detailliert)</button>
+            
+            <h4>Mitglieder Übersicht</h4>
             <table>
-                <thead><tr><th>Name</th><th>Stunden</th><th>Kapitän</th></tr></thead>
+                <thead><tr><th>Name</th><th>Stunden (genehmigt)</th><th>Kapitän</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
             </table>
 
@@ -184,13 +196,14 @@
         const desc = document.getElementById('description').value;
         const act = document.getElementById('activity').value;
         if(!date || !dur) return alert("Daten unvollständig!");
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: dur, description: "["+act+"] "+desc, status: 'approved' }]);
-        alert("Gesendet!"); loadHistory();
+        // Status wird beim Absenden auf 'pending' gesetzt
+        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: dur, description: "["+act+"] "+desc, status: 'pending' }]);
+        alert("Stunden zur Freigabe gesendet!"); loadHistory();
     }
 
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>✅</td></tr>`).join('');
+        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`).join('');
     }
 
     async function loadEvents() {
@@ -223,11 +236,33 @@
         }
     }
 
+    // ADMIN FUNKTIONEN
     async function loadAdminData() {
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*');
+        const { data: hours } = await sb.from('work_hours').select('*').order('date', { ascending: false });
+        
+        // 1. Wartende Anträge filtern
+        const pending = hours.filter(h => h.status === 'pending');
+        const pendingSection = document.getElementById('pending-section');
+        if(pending.length > 0) {
+            pendingSection.style.display = 'block';
+            document.getElementById('admin-pending-body').innerHTML = pending.map(h => {
+                const user = profiles.find(p => p.id === h.user_id);
+                return `<tr>
+                    <td>${user ? user.full_name : '...'}</td>
+                    <td><small>${h.description}</small></td>
+                    <td>${h.duration}h</td>
+                    <td>
+                        <button class="btn-approve" onclick="approveEntry('${h.id}')">✅</button>
+                        <button class="btn-delete" style="font-size:10px;" onclick="deleteAdminEntry('${h.id}')">🗑️</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        } else { pendingSection.style.display = 'none'; }
+
+        // 2. Mitgliederliste
         document.getElementById('admin-member-body').innerHTML = profiles.map(m => {
-            const total = hours.filter(x => x.user_id === m.id).reduce((s, c) => s + (c.duration || 0), 0);
+            const total = hours.filter(x => x.user_id === m.id && x.status === 'approved').reduce((s, c) => s + (c.duration || 0), 0);
             return `<tr>
                 <td><span class="member-link" onclick="openExplorer('${m.id}', '${m.full_name}')">${m.full_name || 'Unbekannt'}</span></td>
                 <td>${total}h</td>
@@ -236,21 +271,30 @@
         }).join('');
     }
 
+    async function approveEntry(id, uid = null, name = null) {
+        await sb.from('work_hours').update({ status: 'approved' }).eq('id', id);
+        if(uid) openExplorer(uid, name); // Wenn aus Explorer gerufen, Explorer offen halten
+        loadAdminData();
+    }
+
     async function openExplorer(uid, name) {
         document.getElementById('admin-explorer').style.display = 'block';
         document.getElementById('explorer-name').innerText = "Stunden: " + name;
         const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { ascending: false });
         document.getElementById('explorer-body').innerHTML = data.map(h => `<tr>
             <td>${h.date}</td><td><small>${h.description}</small></td><td>${h.duration}h</td>
-            <td>${h.status === 'approved' ? '✅' : '⏳'}</td>
-            <td><button class="btn-delete" style="font-size:10px;" onclick="deleteAdminEntry('${h.id}', '${uid}', '${name}')">🗑️</button></td>
+            <td style="text-align:center;">${h.status === 'approved' ? '✅' : '⏳'}</td>
+            <td>
+                ${h.status === 'pending' ? `<button class="btn-approve" style="font-size:10px;" onclick="approveEntry('${h.id}', '${uid}', '${name}')">✅</button>` : ''}
+                <button class="btn-delete" style="font-size:10px;" onclick="deleteAdminEntry('${h.id}', '${uid}', '${name}')">🗑️</button>
+            </td>
         </tr>`).join('');
     }
 
-    async function deleteAdminEntry(id, uid, name) {
+    async function deleteAdminEntry(id, uid = null, name = null) {
         if(confirm("Eintrag löschen?")) {
             await sb.from('work_hours').delete().eq('id', id);
-            openExplorer(uid, name);
+            if(uid) openExplorer(uid, name);
             loadAdminData();
         }
     }
@@ -259,42 +303,34 @@
 
     async function exportToPDF() {
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').order('date', { ascending: false });
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', { ascending: false });
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
         doc.setFontSize(16);
-        doc.text("Hubertus Strullendorf - Arbeitsstunden Detailbericht", 14, 20);
+        doc.text("Hubertus Strullendorf - Genehmigte Arbeitsstunden", 14, 20);
         
         let yPos = 30;
-
-        profiles.forEach((p, index) => {
+        profiles.forEach((p) => {
             const userHours = hours.filter(h => h.user_id === p.id);
             const total = userHours.reduce((s, h) => s + (h.duration || 0), 0);
-
             if (yPos > 240) { doc.addPage(); yPos = 20; }
-
             doc.setFontSize(12);
             doc.setFont(undefined, 'bold');
             doc.text(`${p.full_name} (Gesamt: ${total}h)`, 14, yPos);
             yPos += 5;
-
             const rows = userHours.map(h => [h.date, h.description, h.duration + "h"]);
-            
             doc.autoTable({
                 startY: yPos,
                 head: [['Datum', 'Tätigkeit', 'Dauer']],
                 body: rows.length > 0 ? rows : [['-', 'Keine Einträge', '0h']],
-                theme: 'plain',
-                styles: { fontSize: 9 },
+                theme: 'plain', styles: { fontSize: 9 },
                 headStyles: { fillColor: [240, 240, 240], textColor: [0,0,0] },
                 margin: { left: 14 }
             });
-
             yPos = doc.lastAutoTable.finalY + 15;
         });
-
-        doc.save("Stundenliste_Detailliert.pdf");
+        doc.save("Hubertus_Stunden_Bericht.pdf");
     }
 
     function switchTab(tab) {
