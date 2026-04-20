@@ -26,6 +26,7 @@
         .status-ok { color: #2e7d32; font-weight: bold; }
         .status-wait { color: #f57c00; font-weight: bold; }
 
+        /* Kalender */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-weight: bold; font-size: 1.2em; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #dee2e6; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
         .calendar-day-head { background: #e9ecef; text-align: center; padding: 10px; font-weight: bold; }
@@ -63,7 +64,7 @@
         </div>
 
         <div id="view-home">
-            <h3>Deine Stunden</h3>
+            <h3>Deine Arbeitsstunden</h3>
             <div style="background:#e3f2fd; padding:15px; border-radius:12px; border: 1px solid #bbdefb;">
                 <label>Jahresziel: 10 Stunden</label>
                 <div class="progress-container">
@@ -71,6 +72,7 @@
                     <div id="my-progress-label" class="progress-text">0 / 10 h</div>
                 </div>
             </div>
+
             <h4 style="margin-top:25px;">Neue Tätigkeit melden</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <input type="date" id="date">
@@ -78,9 +80,17 @@
             </div>
             <textarea id="description" placeholder="Was hast du gemacht?"></textarea>
             <button onclick="sendHours()">Eintrag absenden</button>
+
             <h4 style="margin-top:25px;">Historie & Status</h4>
             <table>
-                <thead><tr><th>Datum</th><th>Tätigkeit</th><th>Dauer</th><th>Status</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Tätigkeit</th>
+                        <th>Dauer</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
                 <tbody id="history-body"></tbody>
             </table>
         </div>
@@ -111,7 +121,7 @@
         </div>
 
         <div id="view-profile" style="display:none;">
-            <h3>Dein Profil</h3>
+            <h3>Profil</h3>
             <label>Name:</label><input type="text" id="prof-name">
             <label>Mannschaft:</label>
             <select id="prof-team">
@@ -126,7 +136,7 @@
             <div style="margin-top:30px; padding:15px; background:#f1f3f5; border-radius:8px;">
                 <h4>Passwort ändern</h4>
                 <input type="password" id="new-password" placeholder="Neues Passwort">
-                <button onclick="updatePassword()" style="background:#495057;">Aktualisieren</button>
+                <button onclick="updatePassword()" style="background:#495057;">Passwort aktualisieren</button>
             </div>
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
@@ -197,23 +207,29 @@
         const date = document.getElementById('date').value;
         const hours = parseFloat(document.getElementById('hours').value);
         const desc = document.getElementById('description').value;
-        if(!date || !hours) return alert("Fehlende Daten");
+        if(!date || !hours) return alert("Datum und Stunden fehlen!");
         await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: hours, description: desc, status: 'pending' }]);
+        alert("Eingereicht!");
         loadHistory();
     }
 
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
         const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + h.duration, 0) : 0;
+        
         document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
         document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
+        
+        // Tabellen-Inhalt mit Status-Spalte
         document.getElementById('history-body').innerHTML = data ? data.map(h => `
             <tr>
                 <td>${new Date(h.date).toLocaleDateString('de-DE')}</td>
-                <td>${h.description}</td>
+                <td>${h.description || '-'}</td>
                 <td>${h.duration} h</td>
-                <td class="${h.status==='approved'?'status-ok':'status-wait'}">${h.status==='approved'?'✅ Genehmigt':'⏳ Wartend'}</td>
-            </tr>`).join('') : "";
+                <td class="${h.status==='approved'?'status-ok':'status-wait'}">
+                    ${h.status==='approved' ? '✅ Genehmigt' : '⏳ Wartend'}
+                </td>
+            </tr>`).join('') : "<tr><td colspan='4'>Noch keine Einträge.</td></tr>";
     }
 
     async function loadAllEvents() {
@@ -262,6 +278,7 @@
         const date = document.getElementById('ev-date').value;
         const time = document.getElementById('ev-time').value;
         const opp = document.getElementById('ev-opp').value;
+        if(!date || !opp) return alert("Daten unvollständig!");
         await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam }]);
         loadAllEvents();
     }
@@ -299,13 +316,14 @@
         const name = document.getElementById('prof-name').value;
         const team = document.getElementById('prof-team').value;
         await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, team: team });
-        alert("Gespeichert");
+        alert("Profil gespeichert!");
     }
 
     async function updatePassword() {
         const p1 = document.getElementById('new-password').value;
+        if(!p1 || p1.length < 6) return alert("Passwort zu kurz!");
         await sb.auth.updateUser({ password: p1 });
-        alert("Geändert");
+        alert("Passwort geändert!");
     }
 </script>
 </body>
