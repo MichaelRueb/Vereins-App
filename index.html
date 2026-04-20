@@ -16,14 +16,13 @@
         
       .tabs { 
     display: flex; 
-    flex-wrap: wrap; /* Das ist der entscheidende Befehl für die zweite Reihe */
+    flex-wrap: wrap; 
     gap: 8px; 
     margin-bottom: 20px; 
     width: 100%; 
 }
 
 .tab { 
-    /* Wir berechnen die Breite: (100% / 2) minus die Lücke (gap) */
     flex: 1 1 calc(50% - 8px); 
     padding: 12px 5px; 
     text-align: center; 
@@ -33,12 +32,12 @@
     font-weight: bold; 
     font-size: 14px;
     box-sizing: border-box;
-    min-width: 120px; /* Damit sie nicht zu winzig werden */
+    min-width: 120px; 
 }
 
 @media (max-width: 400px) {
     .tab {
-        font-size: 12px; /* Text auf ganz kleinen Handys etwas kleiner */
+        font-size: 12px; 
     }
 }
         .tab.active { background: #2e7d32; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
@@ -167,10 +166,16 @@
             </div>
 
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:15px; margin-top:20px; border-radius:12px; background:#fff8e1;">
-                <h4 id="form-event-title" style="color:#e65100;">Wettkampf planen</h4>
+                <h4 id="form-event-title" style="color:#e65100;">Wettkampf eintragen</h4>
                 <input type="hidden" id="edit-event-id">
-                <input type="date" id="ev-date">
-                <input type="time" id="ev-time">
+                
+                <label style="font-size: 0.8em; font-weight: bold; color: #555;">Mannschaft wählen:</label>
+                <select id="ev-team-select"></select>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="ev-date">
+                    <input type="time" id="ev-time">
+                </div>
                 <input type="text" id="ev-opp" placeholder="Gegner">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <input type="checkbox" id="ev-home-check" style="width:auto;"> <label for="ev-home-check">Heimspiel</label>
@@ -242,7 +247,6 @@
 
     let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
-    let editingEventTeam = ""; 
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -288,12 +292,16 @@
         if (p) {
             userTeam = p.team || ""; isCaptain = p.is_captain;
             document.getElementById('prof-name').value = p.full_name || "";
-            renderTeamCheckboxes(userTeam); // Initial Checkboxen rendern
+            renderTeamCheckboxes(userTeam);
             
             if(isAdmin) document.getElementById('tab-admin').style.display = 'block';
+            
             if(isCaptain || isAdmin) {
                 document.getElementById('captain-form').style.display = 'block';
-                document.getElementById('form-event-title').innerText = "Wettkampf eintragen ("+userTeam+")";
+                // Dropdown für Teams füllen
+                const teamSelect = document.getElementById('ev-team-select');
+                const myTeams = isAdmin ? ALL_TEAMS : userTeam.split(', ');
+                teamSelect.innerHTML = myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
             }
         } else {
             renderTeamCheckboxes("");
@@ -321,126 +329,70 @@
     }
 
     async function loadHistory() {
-    const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-    const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + parseFloat(h.duration), 0) : 0;
-    
-    document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
-    document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
-    
-    document.getElementById('history-body').innerHTML = data ? data.map(h => {
-        let statusIcon = '⏳'; 
-        if (h.status === 'approved') statusIcon = '✅';
-        else if (h.status === 'rejected') statusIcon = '❌';
-        
-        return `<tr>
-            <td>${h.date}</td>
-            <td>${h.description}</td>
-            <td>${h.duration}h</td>
-            <td style="text-align:center;">${statusIcon}</td>
-        </tr>`;
-    }).join('') : "";
-}
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
+        const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + parseFloat(h.duration), 0) : 0;
+        document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
+        document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
+        document.getElementById('history-body').innerHTML = data ? data.map(h => {
+            let statusIcon = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
+            return `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td style="text-align:center;">${statusIcon}</td></tr>`;
+        }).join('') : "";
+    }
 
-  async function loadAdmin() {
-    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours } = await sb.from('work_hours').select('*');
-    
-    const pending = hours ? hours.filter(h => h.status === 'pending') : [];
-    document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
-    document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
-        const u = profs.find(p => p.id === h.user_id);
-        return `<tr>
-            <td>${u?.full_name || 'Gast'}</td>
-            <td>${h.description}</td>
-            <td>${h.duration}h</td>
-            <td>
-                <button onclick="approve('${h.id}')" style="padding:4px; font-size:11px; width:auto; display:inline-block;">OK</button>
-                <button onclick="reject('${h.id}')" class="btn-reject" style="width:auto; display:inline-block; background:#c62828;">X</button>
-            </td>
-        </tr>`;
-    }).join('');
+    async function loadAdmin() {
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*');
+        const pending = hours ? hours.filter(h => h.status === 'pending') : [];
+        document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
+        document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
+            const u = profs.find(p => p.id === h.user_id);
+            return `<tr><td>${u?.full_name || 'Gast'}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:4px; font-size:11px; width:auto;">OK</button><button onclick="reject('${h.id}')" class="btn-reject" style="width:auto;">X</button></td></tr>`;
+        }).join('');
+        document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
+            const genSum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+            return `<tr><td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td><td><small>${p.team || '-'}</small></td><td><b>${genSum}/10</b></td><td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td></tr>`;
+        }).join('');
+    }
 
-    document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
-        const userHours = hours ? hours.filter(h => h.user_id === p.id) : [];
-        const genSum = userHours.filter(h => h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
-
-        return `<tr>
-            <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
-            <td><small>${p.team || '-'}</small></td>
-            <td><b>${genSum}/10</b></td>
-            <td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td>
-        </tr>`;
-    }).join('');
-}
-
-   async function showAdminMemberDetails(userId, userName) {
-    const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', userId).order('date', {ascending: false});
-    document.getElementById('admin-detail-name').innerText = userName;
-    document.getElementById('admin-detail-body').innerHTML = hours.map(h => {
-        let st = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
-        return `
-            <tr>
-                <td>${h.date}</td>
-                <td>${h.description}</td>
-                <td>${h.duration}h</td>
-                <td>${st}</td>
-                <td><span class="delete-btn" style="cursor:pointer;" onclick="deleteHoursAdmin('${h.id}', '${userId}', '${userName}')">🗑️</span></td>
-            </tr>
-        `;
-    }).join('');
-    document.getElementById('admin-detail-view').style.display = 'block';
-}
+    async function showAdminMemberDetails(userId, userName) {
+        const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', userId).order('date', {ascending: false});
+        document.getElementById('admin-detail-name').innerText = userName;
+        document.getElementById('admin-detail-body').innerHTML = hours.map(h => {
+            let st = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
+            return `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${st}</td><td><span class="delete-btn" onclick="deleteHoursAdmin('${h.id}', '${userId}', '${userName}')">🗑️</span></td></tr>`;
+        }).join('');
+        document.getElementById('admin-detail-view').style.display = 'block';
+    }
 
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
     async function reject(id) {
-    const reason = prompt("Grund für die Ablehnung:");
-    if (reason === null) return; 
-    const { data: current } = await sb.from('work_hours').select('description').eq('id', id).single();
-    const updatedDescription = `${current.description} | ABGELEHNT: ${reason || "Kein Grund angegeben"}`;
-    await sb.from('work_hours').update({ status: 'rejected', description: updatedDescription }).eq('id', id);
-    loadAdmin();
-}
+        const reason = prompt("Grund für die Ablehnung:");
+        if (reason === null) return; 
+        const { data: current } = await sb.from('work_hours').select('description').eq('id', id).single();
+        await sb.from('work_hours').update({ status: 'rejected', description: `${current.description} | ABGELEHNT: ${reason || "Kein Grund"}` }).eq('id', id);
+        loadAdmin();
+    }
     async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
     async function deleteHoursAdmin(id, uid, name) { if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); showAdminMemberDetails(uid, name); loadAdmin(); } }
 
     async function updateProfile() {
-        const checkedTeams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked'))
-                                  .map(cb => cb.value);
-        const teamString = checkedTeams.join(', ');
-
-        const { error } = await sb.from('profiles').upsert({ 
-            id: currentUser.id, 
-            full_name: document.getElementById('prof-name').value, 
-            team: teamString 
-        });
-
-        if(error) alert(error.message);
-        else { alert("Gespeichert!"); location.reload(); }
+        const checkedTeams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(cb => cb.value);
+        const { error } = await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: checkedTeams.join(', ') });
+        if(error) alert(error.message); else { alert("Gespeichert!"); location.reload(); }
     }
 
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*').order('date', {ascending: true});
-        allEvents = data || []; 
-        renderCalendar(); renderTournamentList();
+        allEvents = data || []; renderCalendar(); renderTournamentList();
     }
 
     function renderTournamentList() {
         const filter = document.getElementById('event-view-filter').value;
         const listBody = document.getElementById('tournament-list-body');
         const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === filter);
-        
         listBody.innerHTML = filteredEvents.map(e => {
             const canEdit = isAdmin || (isCaptain && userTeam.includes(e.team));
-            const actions = canEdit ? `
-                <span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span>
-                <span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>
-            ` : '-';
-            return `<tr>
-                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                <td><span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td>
-                <td>${e.opponent}</td>
-                <td>${actions}</td>
-            </tr>`;
+            return `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td><span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td><td>${e.opponent}</td><td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td></tr>`;
         }).join('');
     }
 
@@ -469,12 +421,9 @@
 
     function getTeamClass(t) {
         if(!t) return 'team-default'; t=t.toLowerCase();
-        if(t.includes('auflage')) return 'team-auflage'; 
-        if(t.includes('gewehr')) return 'team-lg';
-        if(t.includes('pistole')) return 'team-lp';
-        if(t.includes('sportpistole')) return 'team-spopi';
-        if(t.includes('großkaliber')) return 'team-gk';
-        return 'team-default';
+        if(t.includes('auflage')) return 'team-auflage'; if(t.includes('gewehr')) return 'team-lg';
+        if(t.includes('pistole')) return 'team-lp'; if(t.includes('sportpistole')) return 'team-spopi';
+        if(t.includes('großkaliber')) return 'team-gk'; return 'team-default';
     }
 
     function changeMonth(s) { currentViewDate.setMonth(currentViewDate.getMonth()+s); renderCalendar(); }
@@ -484,59 +433,36 @@
             document.getElementById('view-'+v).style.display = (v===t)?'block':'none';
             document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab';
         });
-        if(t==='admin') loadAdmin();
-        if(t==='events') loadAllEvents();
+        if(t==='admin') loadAdmin(); if(t==='events') loadAllEvents();
     }
 
-  async function exportToPDF() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+    async function exportToPDF() {
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-        doc.setFontSize(18);
-        doc.text("Arbeitsstunden Einzelnachweis - Hubertus", 14, 15);
-        let currentY = 30;
-
+        doc.text("Arbeitsstunden - Hubertus", 14, 15); let currentY = 30;
         profs.forEach((p) => {
-            const memberHours = hours.filter(h => h.user_id === p.id);
-            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+            const mH = hours.filter(h => h.user_id === p.id);
+            const total = mH.reduce((s, h) => s + parseFloat(h.duration), 0);
             if (currentY > 240) { doc.addPage(); currentY = 20; }
-            doc.setFont(undefined, 'bold');
-            doc.setFillColor(240, 240, 240);
-            doc.rect(14, currentY, 182, 8, 'F');
-            doc.text(`${p.full_name || 'Unbekannt'} (${p.team || 'Kein Team'})`, 16, currentY + 6);
-            doc.text(`${total} / 10 h`, 175, currentY + 6);
-            doc.setFont(undefined, 'normal');
-
-            const tableRows = memberHours.map(h => [new Date(h.date).toLocaleDateString('de-DE'), h.description, h.duration + " h"]);
-            doc.autoTable({
-                startY: currentY + 10,
-                head: [['Datum', 'Tätigkeit', 'Dauer']],
-                body: tableRows.length > 0 ? tableRows : [['-', 'Keine genehmigten Stunden', '-']],
-                theme: 'striped',
-                headStyles: { fillColor: [46, 125, 50] },
-                styles: { fontSize: 9 },
-                margin: { left: 14, right: 14 }
-            });
+            doc.setFont(undefined, 'bold'); doc.text(`${p.full_name || 'Unbekannt'} - ${total}h`, 14, currentY);
+            doc.autoTable({ startY: currentY + 5, head: [['Datum', 'Was', 'Dauer']], body: mH.map(h => [h.date, h.description, h.duration + " h"]) });
             currentY = doc.lastAutoTable.cursor.y + 15;
         });
-        doc.save(`Hubertus_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-    } catch (err) { alert("Fehler: " + err.message); }
-}
+        doc.save(`Hubertus_Report.pdf`);
+    }
 
     async function deleteEvent(id) { if(confirm("Termin wirklich löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
     
     function editEvent(id) { 
-        const e = allEvents.find(x => x.id == id); editingEventTeam = e.team;
+        const e = allEvents.find(x => x.id == id);
         document.getElementById('edit-event-id').value = e.id; 
         document.getElementById('ev-date').value = e.date;
+        document.getElementById('ev-team-select').value = e.team; // Team im Dropdown wählen
         document.getElementById('ev-opp').value = e.opponent.replace(" (Heim)", "");
         document.getElementById('ev-home-check').checked = e.opponent.includes("(Heim)");
         document.getElementById('save-event-btn').innerText = "Update";
         document.getElementById('cancel-edit-btn').style.display = 'block';
-        document.getElementById('captain-form').style.display = 'block';
     }
     
     function resetEventForm() { 
@@ -553,9 +479,11 @@
         let opp = document.getElementById('ev-opp').value;
         if(document.getElementById('ev-home-check').checked) opp += " (Heim)";
         
-        // Wenn neu, nimm die erste Mannschaft des Users als Default
-        const defaultTeam = userTeam.split(', ')[0];
-        const d = { date: document.getElementById('ev-date').value, opponent: opp, team: id ? editingEventTeam : defaultTeam };
+        const d = { 
+            date: document.getElementById('ev-date').value, 
+            opponent: opp, 
+            team: document.getElementById('ev-team-select').value 
+        };
         if(id) await sb.from('tournaments').update(d).eq('id', id); else await sb.from('tournaments').insert([d]);
         resetEventForm(); loadAllEvents();
     }
