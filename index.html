@@ -275,12 +275,31 @@
     }
 
     async function loadHistory() {
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + parseFloat(h.duration), 0) : 0;
-        document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
-        document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
-        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('') : "";
-    }
+    const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
+    
+    // Summe nur aus genehmigten Stunden berechnen
+    const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + parseFloat(h.duration), 0) : 0;
+    
+    document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
+    document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
+    
+    document.getElementById('history-body').innerHTML = data ? data.map(h => {
+        // Status-Icon Logik
+        let statusIcon = '⏳'; // Standard: Pending
+        if (h.status === 'approved') {
+            statusIcon = '✅';
+        } else if (h.status === 'rejected') {
+            statusIcon = '❌';
+        }
+        
+        return `<tr>
+            <td>${h.date}</td>
+            <td>${h.description}</td>
+            <td>${h.duration}h</td>
+            <td style="text-align:center;">${statusIcon}</td>
+        </tr>`;
+    }).join('') : "";
+}
 
    async function loadAdmin() {
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
