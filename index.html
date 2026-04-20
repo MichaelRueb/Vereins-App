@@ -43,9 +43,7 @@
         .team-auflage { background-color: #ef6c00 !important; } 
         .team-default { background-color: #78909c !important; }
 
-        /* Detail-Popup/Box unter Kalender */
         #calendar-selection-details { margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 8px; display: none; border: 1px solid #bbdefb; }
-
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
@@ -95,7 +93,7 @@
         <div id="view-events" style="display:none;">
             <div style="margin-bottom:15px; background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6;">
                 <label style="font-weight:bold;">Filter:</label>
-                <select id="event-view-filter" onchange="renderCalendar()">
+                <select id="event-view-filter" onchange="updateCalendarView()">
                     <option value="my_team">Nur meine Mannschaft</option>
                     <option value="all_teams" selected>Gesamter Verein</option>
                 </select>
@@ -115,7 +113,7 @@
             </div>
 
             <div id="tournament-list-section" style="margin-top:30px;">
-                <h3>Alle Wettkämpfe (Liste)</h3>
+                <h3 id="list-title">Wettkämpfe</h3>
                 <table id="tournament-table">
                     <thead><tr><th>Datum</th><th>Mannschaft</th><th>Gegner / Ort</th></tr></thead>
                     <tbody id="tournament-list-body"></tbody>
@@ -152,7 +150,6 @@
         <div id="view-admin" style="display:none;">
             <div id="admin-pending-section" style="background:#fff3e0; padding:15px; border-radius:12px; margin-bottom:25px; border:1px solid #ffe0b2; display:none;">
                 <h4 style="margin:0;">⏳ Offene Genehmigungen</h4>
-                <tbody id="admin-pending-body"></tbody>
                 <table>
                     <thead><tr><th>Name</th><th>Datum</th><th>Tätigkeit</th><th>Dauer</th><th>Aktion</th></tr></thead>
                     <tbody id="admin-pending-body-real"></tbody>
@@ -235,13 +232,24 @@
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*').order('date', {ascending: true});
         allEvents = data || []; 
+        updateCalendarView();
+    }
+
+    // Kombinierte Funktion für Filter-Wechsel
+    function updateCalendarView() {
         renderCalendar();
         renderTournamentList();
     }
 
     function renderTournamentList() {
+        const filter = document.getElementById('event-view-filter').value;
         const listBody = document.getElementById('tournament-list-body');
-        listBody.innerHTML = allEvents.map(e => `
+        
+        const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === userTeam);
+        
+        document.getElementById('list-title').innerText = filter === 'all_teams' ? "Alle Wettkämpfe (Verein)" : "Meine Wettkämpfe (" + userTeam + ")";
+
+        listBody.innerHTML = filteredEvents.map(e => `
             <tr>
                 <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
                 <td><span style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td>
@@ -287,14 +295,17 @@
             if(new Date().toISOString().split('T')[0] === dateStr) dayEl.classList.add('today');
             dayEl.innerHTML = `<b style="font-size: 0.8em; margin-bottom: 4px;">${d}</b>`;
             
-            const dayEvents = allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam));
-            dayEvents.forEach(e => {
+            // Punkte zeigen NUR gefilterte Events
+            const filteredDayEvents = allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam));
+            filteredDayEvents.forEach(e => {
                 const ev = document.createElement('div'); 
                 ev.className = `event-dot ${getTeamClass(e.team)}`;
                 dayEl.appendChild(ev);
             });
             
-            dayEl.onclick = () => showDayDetails(dateStr, dayEvents);
+            // Klick zeigt IMMER ALLE Events des Tages für volle Info
+            const allDayEvents = allEvents.filter(e => e.date === dateStr);
+            dayEl.onclick = () => showDayDetails(dateStr, allDayEvents);
             container.appendChild(dayEl);
         }
     }
@@ -304,12 +315,13 @@
         const content = document.getElementById('selection-content');
         const label = document.getElementById('selection-date-label');
         
-        label.innerText = "Termine am " + new Date(dateStr).toLocaleDateString('de-DE');
+        label.innerText = "Alle Termine am " + new Date(dateStr).toLocaleDateString('de-DE');
         if(events.length === 0) {
             content.innerHTML = "<i>Keine Wettkämpfe an diesem Tag.</i>";
         } else {
             content.innerHTML = events.map(e => `
                 <div style="margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">
+                    <span style="display:inline-block; width:8px; height:8px; border-radius:50%;" class="${getTeamClass(e.team)}"></span> 
                     <b>${e.team}:</b> ${e.opponent} ${e.time ? '<br><small>Zeit: '+e.time+' Uhr</small>' : ''}
                 </div>
             `).join('');
@@ -362,19 +374,19 @@
         const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-        doc.text("Detaillierter Stunden-Report Hubertus", 14, 20);
+        doc.text("Stunden-Report Hubertus", 14, 20);
         let currentY = 35;
         profs.forEach((p) => {
             const userHours = hours.filter(h => h.user_id === p.id);
             const totalSum = userHours.reduce((s, h) => s + h.duration, 0);
             if (currentY > 240) { doc.addPage(); currentY = 20; }
-            doc.setFontSize(12); doc.setFont(undefined, 'bold');
-            doc.text(`${p.full_name} (${p.team || '-'}) - Gesamt: ${totalSum} h`, 14, currentY);
+            doc.setFontSize(11); doc.setFont(undefined, 'bold');
+            doc.text(`${p.full_name} - Gesamt: ${totalSum} h`, 14, currentY);
             currentY += 5;
             const bodyData = userHours.map(h => [new Date(h.date).toLocaleDateString('de-DE'), h.description || '-', h.duration + " h"]);
             if (bodyData.length > 0) {
                 doc.autoTable({ startY: currentY, head: [['Datum', 'Tätigkeit', 'Dauer']], body: bodyData, theme: 'grid' });
-                currentY = doc.lastAutoTable.finalY + 15;
+                currentY = doc.lastAutoTable.finalY + 10;
             } else { currentY += 10; }
         });
         doc.save("Hubertus_Report.pdf");
@@ -398,6 +410,7 @@
         const team = document.getElementById('prof-team').value;
         await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, team: team });
         alert("Profil gespeichert!");
+        location.reload();
     }
 </script>
 </body>
