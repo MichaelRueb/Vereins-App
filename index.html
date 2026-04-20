@@ -56,6 +56,9 @@
         .delete-btn:hover { background: #ffebee; border-color: #ef5350; }
         
         .section-divider { margin: 25px 0 15px 0; border-top: 2px solid #eee; padding-top: 15px; }
+
+        .admin-detail-card { background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; display: none; }
+        .clickable-name { color: #2e7d32; text-decoration: underline; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -180,12 +183,29 @@
 
         <div id="view-admin" style="display:none;">
             <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Report</button>
-            <div id="admin-pending-section" style="display:none;">
-                <h4>⏳ Offene Genehmigungen</h4>
+            
+            <div id="admin-pending-section" style="display:none; margin-bottom: 25px;">
+                <h4 style="color:#c62828;">⏳ Offene Genehmigungen</h4>
                 <table><thead><tr><th>Name</th><th>Dauer</th><th>Aktion</th></tr></thead><tbody id="admin-pending-body-real"></tbody></table>
             </div>
+
             <h4>Mitgliederübersicht</h4>
-            <table><thead><tr><th>Name</th><th>Stunden</th><th>Kapitän</th></tr></thead><tbody id="admin-member-table-list"></tbody></table>
+            <p style="font-size: 0.8em; color: #666;">(Name anklicken für Details)</p>
+            <table>
+                <thead><tr><th>Name</th><th>Stunden (Gen.)</th><th>Kapitän</th></tr></thead>
+                <tbody id="admin-member-table-list"></tbody>
+            </table>
+
+            <div id="admin-detail-view" class="admin-detail-card">
+                <div style="display:flex; justify-content: space-between; align-items: center;">
+                    <h4 id="admin-detail-name" style="margin:0;">Details</h4>
+                    <button onclick="document.getElementById('admin-detail-view').style.display='none'" style="width:auto; padding:5px 10px; background:#666;">Schließen</button>
+                </div>
+                <table style="font-size: 0.85em;">
+                    <thead><tr><th>Datum</th><th>Tätigkeit</th><th>Dauer</th><th>Status</th><th>Aktion</th></tr></thead>
+                    <tbody id="admin-detail-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -268,31 +288,18 @@
         const filter = document.getElementById('event-view-filter').value;
         const listBody = document.getElementById('tournament-list-body');
         const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === filter);
-        
         listBody.innerHTML = filteredEvents.map(e => {
             const canEdit = isAdmin || (isCaptain && e.team === userTeam);
-            const actions = canEdit ? `
-                <span class="edit-btn" onclick="editEvent('${e.id}')" title="Bearbeiten">✏️</span>
-                <span class="delete-btn" onclick="deleteEvent('${e.id}')" title="Löschen">🗑️</span>
-            ` : '';
-            return `
-                <tr>
-                    <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                    <td><span style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td>
-                    <td>${e.opponent} ${e.time ? '('+e.time+' Uhr)' : ''}</td>
-                    <td style="text-align:center;">${actions}</td>
-                </tr>
-            `;
+            const actions = canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '';
+            return `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td><span style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td><td>${e.opponent} ${e.time ? '('+e.time+' Uhr)' : ''}</td><td style="text-align:center;">${actions}</td></tr>`;
         }).join('');
     }
 
     async function deleteEvent(id) {
         const ev = allEvents.find(e => e.id == id);
-        if(!ev) return;
-        if(confirm(`Möchtest du den Wettkampf gegen "${ev.opponent}" am ${new Date(ev.date).toLocaleDateString('de-DE')} wirklich löschen?`)) {
-            const { error } = await sb.from('tournaments').delete().eq('id', id);
-            if(error) alert("Fehler beim Löschen: " + error.message);
-            else loadAllEvents();
+        if(ev && confirm(`Wettkampf löschen?`)) {
+            await sb.from('tournaments').delete().eq('id', id);
+            loadAllEvents();
         }
     }
 
@@ -303,13 +310,8 @@
         document.getElementById('edit-event-id').value = ev.id;
         document.getElementById('ev-date').value = ev.date;
         document.getElementById('ev-time').value = ev.time || "";
-        if(ev.opponent.includes(" (Heim)")) {
-            document.getElementById('ev-opp').value = ev.opponent.replace(" (Heim)", "");
-            document.getElementById('ev-home-check').checked = true;
-        } else {
-            document.getElementById('ev-opp').value = ev.opponent;
-            document.getElementById('ev-home-check').checked = false;
-        }
+        document.getElementById('ev-opp').value = ev.opponent.replace(" (Heim)", "");
+        document.getElementById('ev-home-check').checked = ev.opponent.includes(" (Heim)");
         document.getElementById('form-event-title').innerText = "Wettkampf bearbeiten (" + editingEventTeam + ")";
         document.getElementById('save-event-btn').innerText = "Änderungen speichern";
         document.getElementById('cancel-edit-btn').style.display = "inline-block";
@@ -330,19 +332,12 @@
 
     async function saveEvent() {
         const id = document.getElementById('edit-event-id').value;
-        let opponent = document.getElementById('ev-opp').value;
-        if(document.getElementById('ev-home-check').checked) { opponent += " (Heim)"; }
-        const targetTeam = id ? editingEventTeam : userTeam;
-        const eventData = { 
-            date: document.getElementById('ev-date').value, 
-            time: document.getElementById('ev-time').value, 
-            opponent: opponent, 
-            team: targetTeam 
-        };
-        if(id) await sb.from('tournaments').update(eventData).eq('id', id);
-        else await sb.from('tournaments').insert([eventData]);
-        resetEventForm();
-        loadAllEvents();
+        let opp = document.getElementById('ev-opp').value;
+        if(document.getElementById('ev-home-check').checked) opp += " (Heim)";
+        const data = { date: document.getElementById('ev-date').value, time: document.getElementById('ev-time').value, opponent: opp, team: id ? editingEventTeam : userTeam };
+        if(id) await sb.from('tournaments').update(data).eq('id', id);
+        else await sb.from('tournaments').insert([data]);
+        resetEventForm(); loadAllEvents();
     }
 
     function renderCalendar() {
@@ -363,13 +358,10 @@
             dayEl.className = 'calendar-day';
             if(new Date().toISOString().split('T')[0] === dateStr) dayEl.classList.add('today');
             dayEl.innerHTML = `<b style="font-size: 0.8em;">${d}</b>`;
-            const dayEvents = allEvents.filter(e => e.date === dateStr);
-            dayEvents.forEach(e => {
-                const ev = document.createElement('div'); 
-                ev.className = `event-dot ${getTeamClass(e.team)}`;
-                dayEl.appendChild(ev);
+            allEvents.filter(e => e.date === dateStr).forEach(e => {
+                const ev = document.createElement('div'); ev.className = `event-dot ${getTeamClass(e.team)}`; dayEl.appendChild(ev);
             });
-            dayEl.onclick = () => showDayDetails(dateStr, dayEvents);
+            dayEl.onclick = () => showDayDetails(dateStr, allEvents.filter(e => e.date === dateStr));
             container.appendChild(dayEl);
         }
     }
@@ -377,12 +369,7 @@
     function showDayDetails(dateStr, events) {
         const detailBox = document.getElementById('calendar-selection-details');
         document.getElementById('selection-date-label').innerText = "Termine am " + new Date(dateStr).toLocaleDateString('de-DE');
-        document.getElementById('selection-content').innerHTML = events.length === 0 ? "<i>Keine Termine.</i>" : events.map(e => `
-            <div style="margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:4px;">
-                <span style="display:inline-block; width:8px; height:8px; border-radius:50%;" class="${getTeamClass(e.team)}"></span> 
-                <b>${e.team}:</b> ${e.opponent} ${e.time ? '<br><small>'+e.time+' Uhr</small>' : ''}
-            </div>
-        `).join('');
+        document.getElementById('selection-content').innerHTML = events.length === 0 ? "<i>Keine Termine.</i>" : events.map(e => `<div><span style="display:inline-block; width:8px; height:8px; border-radius:50%;" class="${getTeamClass(e.team)}"></span> <b>${e.team}:</b> ${e.opponent}</div>`).join('');
         detailBox.style.display = 'block';
     }
 
@@ -415,19 +402,48 @@
 
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*');
+        const { data: hours } = await sb.from('work_hours').select('*').order('date', {ascending: false});
+        
         const pending = hours ? hours.filter(h => h.status === 'pending') : [];
         if(pending.length > 0) {
             document.getElementById('admin-pending-section').style.display = 'block';
             document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
                 const u = profs.find(p => p.id === h.user_id);
-                return `<tr><td>${u?.full_name || 'Gast'}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')">OK</button></td></tr>`;
+                return `<tr><td>${u?.full_name || 'Gast'}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:4px; font-size:12px;">Genehmigen</button></td></tr>`;
             }).join('');
+        } else {
+            document.getElementById('admin-pending-section').style.display = 'none';
         }
+
         document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
             const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + h.duration, 0) : 0;
-            return `<tr><td>${p.full_name || 'Gast'}</td><td><b>${sum}/10h</b></td><td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td></tr>`;
+            return `<tr><td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td><td><b>${sum}/10h</b></td><td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td></tr>`;
         }).join('');
+    }
+
+    async function showAdminMemberDetails(userId, userName) {
+        const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', userId).order('date', {ascending: false});
+        const detailDiv = document.getElementById('admin-detail-view');
+        document.getElementById('admin-detail-name').innerText = "Details: " + userName;
+        document.getElementById('admin-detail-body').innerHTML = hours.map(h => `
+            <tr>
+                <td>${h.date}</td>
+                <td>${h.description}</td>
+                <td>${h.duration}h</td>
+                <td>${h.status === 'approved' ? '✅' : '⏳'}</td>
+                <td><span class="delete-btn" onclick="deleteHoursAdmin('${h.id}', '${userId}', '${userName}')">🗑️</span></td>
+            </tr>
+        `).join('');
+        detailDiv.style.display = 'block';
+        detailDiv.scrollIntoView({behavior: "smooth"});
+    }
+
+    async function deleteHoursAdmin(id, userId, userName) {
+        if(confirm("Diesen Eintrag wirklich löschen?")) {
+            await sb.from('work_hours').delete().eq('id', id);
+            showAdminMemberDetails(userId, userName);
+            loadAdmin();
+        }
     }
 
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
@@ -443,8 +459,19 @@
             if(document.getElementById('view-' + t)) document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
             document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
         });
-        if(tab === 'admin') loadAdmin();
+        if(tab === 'admin') { loadAdmin(); document.getElementById('admin-detail-view').style.display='none'; }
         if(tab === 'events') { loadAllEvents(); document.getElementById('calendar-selection-details').style.display='none'; }
+    }
+
+    async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { data: profs } = await sb.from('profiles').select('*');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
+        const rows = profs.map(p => [p.full_name, p.team, hours.filter(h => h.user_id === p.id).reduce((s, h) => s + h.duration, 0) + " h"]);
+        doc.text("Hubertus Arbeitsstunden Report", 14, 15);
+        doc.autoTable({ head: [['Name', 'Mannschaft', 'Stunden']], body: rows, startY: 20 });
+        doc.save("Hubertus_Report.pdf");
     }
 </script>
 </body>
