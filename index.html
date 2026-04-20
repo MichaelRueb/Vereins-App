@@ -461,93 +461,72 @@
 
   async function exportToPDF() {
     try {
-        // Sicherstellen, dass die Library korrekt geladen ist
         const { jsPDF } = window.jspdf;
         if (!jsPDF) {
-            alert("Die PDF-Bibliothek konnte nicht gefunden werden. Bitte lade die Seite neu.");
+            alert("PDF-Bibliothek nicht geladen.");
             return;
         }
 
-        // Instanz erstellen
-        const doc = new jsPDF({
-            orientation: "p",
-            unit: "mm",
-            format: "a4"
-        });
-
-        // Daten aus Supabase laden
+        const doc = new jsPDF();
         const { data: profs, error: pError } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours, error: hError } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
-        if (pError || hError) {
-            console.error("DB-Fehler:", pError || hError);
-            alert("Fehler beim Abrufen der Daten aus der Datenbank.");
-            return;
-        }
+        if (pError || hError) throw new Error("Datenbank-Fehler.");
 
-        // Header
         doc.setFontSize(18);
-        doc.setTextColor(46, 125, 50); // Hubertus-Grün
         doc.text("Arbeitsstunden Einzelnachweis - Hubertus", 14, 15);
-        
         doc.setFontSize(10);
-        doc.setTextColor(100);
         doc.text("Erstellt am: " + new Date().toLocaleDateString('de-DE'), 14, 22);
 
-        let startY = 30;
+        let currentY = 30;
 
-        // Jedes Mitglied durchlaufen
-        for (const p of profs) {
+        profs.forEach((p) => {
             const memberHours = hours.filter(h => h.user_id === p.id);
             const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
 
-            // Prüfen, ob wir eine neue Seite brauchen (bei weniger als 40mm Platz)
-            if (startY > 250) {
+            // Platzprüfung: Wenn weniger als 50mm bis zum Seitenende, neue Seite
+            if (currentY > 240) {
                 doc.addPage();
-                startY = 20;
+                currentY = 20;
             }
 
-            // Zeichne grauen Header-Balken für das Mitglied
-            doc.setFillColor(245, 245, 245);
-            doc.rect(14, startY, 182, 10, 'F');
-            
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(0);
-            doc.text(`${p.full_name || 'Unbekannt'} (${p.team || 'Kein Team'})`, 17, startY + 6.5);
-            doc.text(`Gesamt: ${total} h`, 170, startY + 6.5);
+            doc.setFillColor(240, 240, 240);
+            doc.rect(14, currentY, 182, 8, 'F');
+            doc.text(`${p.full_name || 'Unbekannt'} (${p.team || 'Kein Team'})`, 16, currentY + 6);
+            doc.text(`${total} / 10 h`, 175, currentY + 6);
             doc.setFont(undefined, 'normal');
 
-            // Tabelle für dieses Mitglied
-            const tableData = memberHours.map(h => [
+            const tableRows = memberHours.map(h => [
                 new Date(h.date).toLocaleDateString('de-DE'),
                 h.description,
                 h.duration + " h"
             ]);
 
-            // AutoTable aufrufen
             doc.autoTable({
-                startY: startY + 12,
+                startY: currentY + 10,
                 head: [['Datum', 'Tätigkeit', 'Dauer']],
-                body: tableData.length > 0 ? tableData : [['-', 'Keine genehmigten Stunden vorhanden', '-']],
-                theme: 'grid',
-                headStyles: { fillColor: [46, 125, 50], fontSize: 9 },
-                styles: { fontSize: 8, cellPadding: 2 },
-                margin: { left: 14, right: 14 },
-                didDrawPage: (data) => {
-                    // Falls die Tabelle eine neue Seite erzwingt, aktualisiere startY
-                    startY = data.cursor.y;
-                }
+                body: tableRows.length > 0 ? tableRows : [['-', 'Keine genehmigten Stunden', '-']],
+                theme: 'striped',
+                headStyles: { fillColor: [46, 125, 50] },
+                styles: { fontSize: 9 },
+                margin: { left: 14, right: 14 }
             });
 
-            // Setze startY für das nächste Mitglied unter die gerade erstellte Tabelle
-            startY = doc.lastAutoTable.cursor.y + 15;
-        }
+            // SICHERHEITS-CHECK für 'y':
+            // Wenn autoTable fertig ist, nutzen wir den Cursor. 
+            // Falls autoTable fehlschlägt, nehmen wir die alte Position + 20
+            if (doc.lastAutoTable && doc.lastAutoTable.cursor) {
+                currentY = doc.lastAutoTable.cursor.y + 15;
+            } else {
+                currentY += 30; 
+            }
+        });
 
-        // Speichern
-        doc.save(`Hubertus_Stunden_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-
+        doc.save(`Hubertus_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+        
     } catch (err) {
-        console.error("PDF-Generierungsfehler:", err);
+        console.error(err);
         alert("Ein unerwarteter Fehler ist aufgetreten: " + err.message);
     }
 }
