@@ -3,40 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hubertus Pro - Kalender</title>
+    <title>Hubertus Stunden & Kalender Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; padding: 10px; background: #f4f7f6; margin: 0; display: flex; flex-direction: column; align-items: center; }
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 900px; box-sizing: border-box; }
-        input, select, textarea, button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
         .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
         .tab.active { background: #2e7d32; color: white; }
         
-        /* KALENDER STYLES */
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #eee; border: 1px solid #ddd; }
-        .calendar-day-head { background: #f9f9f9; text-align: center; padding: 5px; font-size: 0.7em; font-weight: bold; }
-        .calendar-day { background: white; min-height: 60px; padding: 2px; font-size: 0.8em; position: relative; }
-        .calendar-day.other-month { background: #fafafa; color: #ccc; }
+        /* KALENDER */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; font-weight: bold; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ddd; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+        .calendar-day-head { background: #eee; text-align: center; padding: 5px; font-size: 0.7em; font-weight: bold; }
+        .calendar-day { background: white; min-height: 70px; padding: 2px; font-size: 0.8em; position: relative; }
         .calendar-day.today { background: #fff9c4; }
-        .event-dot { font-size: 0.7em; padding: 1px 3px; border-radius: 3px; margin: 1px 0; color: white; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+        .event-dot { font-size: 0.65em; padding: 2px 4px; border-radius: 3px; margin: 1px 0; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .team-lg1 { background: #2e7d32; } /* LG 1 - Dunkelgrün */
-        .team-lg2 { background: #4caf50; } /* LG 2 - Hellgrün */
-        .team-lp1 { background: #1565c0; } /* LP 1 - Dunkelblau */
-        .team-lp2 { background: #2196f3; } /* LP 2 - Hellblau */
-        .team-auflage { background: #ef6c00; } /* Auflage - Orange */
-        .team-default { background: #78909c; } /* Sonstige - Grau */
+        /* TEAM FARBEN */
+        .team-lg1 { background: #2e7d32; } .team-lg2 { background: #4caf50; } 
+        .team-lp1 { background: #1565c0; } .team-lp2 { background: #2196f3; }
+        .team-auflage { background: #ef6c00; } .team-default { background: #78909c; }
 
-        .event-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 0.85em; }
+        /* TABELLEN & FORTSCHRITT */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th, td { border-bottom: 1px solid #eee; padding: 8px 4px; text-align: left; }
+        .progress-container { background: #eee; border-radius: 10px; height: 20px; width: 100%; position: relative; overflow: hidden; margin: 10px 0; }
+        .progress-bar { background: #1976d2; height: 100%; transition: width 0.5s; }
+        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 20px; font-size: 11px; font-weight: bold; }
+        .btn-delete { background: #b71c1c; padding: 4px 8px; font-size: 12px; width: auto; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="loading-ui" style="text-align:center;">Lade Daten...</div>
+    <div id="loading-ui" style="text-align:center; padding:20px;">Lade Hubertus Pro...</div>
 
     <div id="auth-ui" style="display:none;">
         <h2 style="text-align:center;">Hubertus Login</h2>
@@ -50,48 +55,77 @@
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
             <div id="tab-events" class="tab" onclick="switchTab('events')">Kalender</div>
             <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
+            <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
+        </div>
+
+        <div id="view-home">
+            <h3>Stundenübersicht</h3>
+            <div style="background:#e3f2fd; padding:10px; border-radius:10px;">
+                <label>Soll: 10 Stunden</label>
+                <div class="progress-container">
+                    <div id="my-progress-bar" class="progress-bar" style="width: 0%;"></div>
+                    <div id="my-progress-label" class="progress-text">0 / 10 h</div>
+                </div>
+            </div>
+            <h4>Stunden melden</h4>
+            <input type="date" id="date">
+            <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
+            <textarea id="description" placeholder="Tätigkeit..."></textarea>
+            <button onclick="sendHours()">Absenden</button>
+            <table>
+                <thead><tr><th>Datum</th><th>Was</th><th>Std.</th><th>Status</th></tr></thead>
+                <tbody id="history-body"></tbody>
+            </table>
         </div>
 
         <div id="view-events" style="display:none;">
-            <div id="event-filter-ui" style="margin-bottom:10px;">
+            <div id="event-filter-ui" style="margin-bottom:10px; background:#eee; padding:10px; border-radius:8px;">
+                <label style="font-size:0.8em; font-weight:bold;">Anzeige:</label>
                 <select id="event-view-filter" onchange="renderCalendar()">
-                    <option value="my_team">Mein Team</option>
-                    <option value="all_teams">Alle Teams</option>
+                    <option value="my_team" selected>Nur meine Mannschaft</option>
+                    <option value="all_teams">Alle Mannschaften</option>
                 </select>
             </div>
-
             <div class="calendar-header">
                 <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
-                <span id="current-month-display">Monat Jahr</span>
+                <span id="current-month-display"></span>
                 <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
             </div>
-            
             <div id="calendar-container" class="calendar-grid"></div>
-            
-            <div id="day-details" style="margin-top:15px; padding:10px; background:#f0f4f8; border-radius:8px;">
-                <h4 style="margin:0 0 10px 0;">Wettkämpfe im Monat</h4>
-                <div id="event-list-month"></div>
-            </div>
-
-            <div id="captain-form" style="display:none; border:1px dashed #ef6c00; padding:10px; margin-top:15px;">
-                <h4 style="margin:0;">Termin eintragen</h4>
+            <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:15px; margin-top:20px; border-radius:10px;">
+                <h4 style="margin:0 0 10px 0; color:#ef6c00;">Neuer Wettkampf für <span id="cap-team-name"></span></h4>
                 <input type="date" id="ev-date">
                 <input type="time" id="ev-time">
-                <input type="text" id="ev-opp" placeholder="Gegner">
-                <button onclick="saveEvent()" style="background:#ef6c00;">Speichern</button>
+                <input type="text" id="ev-opp" placeholder="Gegner / Ort">
+                <button onclick="saveEvent()" style="background:#ef6c00;">Termin speichern</button>
             </div>
         </div>
 
-        <div id="view-home">Hier werden Stunden angezeigt (Logik wie zuvor).</div>
         <div id="view-profile" style="display:none;">
-            <input type="text" id="prof-name" placeholder="Name">
+            <h3>Profil</h3>
+            <label>Name:</label><input type="text" id="prof-name">
+            <label>Mannschaft:</label>
             <select id="prof-team">
                 <option value="Luftgewehr 1">Luftgewehr 1</option>
-                <option value="Luftpistole 1">Luftpistole 1</option>
+                <option value="Luftgewehr 2">Luftgewehr 2</option>
+                <option value="Luftgewehr 3">Luftgewehr 3</option>
                 <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
+                <option value="Luftpistole 1">Luftpistole 1</option>
+                <option value="Luftpistole 2">Luftpistole 2</option>
+                <option value="Sportpistole">Sportpistole</option>
             </select>
             <button onclick="updateProfile()">Speichern</button>
-            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:red;">Logout</button>
+            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
+        </div>
+
+        <div id="view-admin" style="display:none;">
+            <div id="admin-pending-section" style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:20px; display:none;">
+                <h4>⏳ Offene Anträge</h4>
+                <table id="admin-pending-table"></table>
+            </div>
+            <button onclick="exportToPDF()" style="background:#0277bd;">📄 PDF Export</button>
+            <h4>Mitglieder-Übersicht</h4>
+            <table id="admin-member-table"></table>
         </div>
     </div>
 </div>
@@ -100,10 +134,9 @@
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
-    
-    let currentUser, userTeam, isAdmin, isCaptain;
-    let currentViewDate = new Date();
-    let allEvents = [];
+    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
+
+    let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -111,122 +144,150 @@
         else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
     };
 
+    async function handleLogin() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if(error) alert(error.message); else location.reload();
+    }
+
     async function setupApp(user) {
         currentUser = user;
+        isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        
         if (p) {
-            userTeam = p.team; isCaptain = p.is_captain;
-            isAdmin = user.email === "zonk1981.mz@googlemail.com";
-            if (isCaptain || isAdmin) document.getElementById('captain-form').style.display = 'block';
-            document.getElementById('event-filter-ui').style.display = (isCaptain || isAdmin) ? 'block' : 'none';
+            userTeam = p.team || "";
+            isCaptain = p.is_captain;
+            document.getElementById('prof-name').value = p.full_name || "";
+            document.getElementById('prof-team').value = userTeam;
+            if(isAdmin) document.getElementById('tab-admin').style.display = 'block';
+            if(isCaptain || isAdmin) {
+                document.getElementById('captain-form').style.display = 'block';
+                document.getElementById('cap-team-name').innerText = userTeam;
+            }
         }
+
         document.getElementById('loading-ui').style.display='none';
         document.getElementById('form-ui').style.display='block';
+        
+        loadHistory();
         loadAllEvents();
     }
 
+    // STUNDEN LOGIK
+    async function sendHours() {
+        const date = document.getElementById('date').value;
+        const hours = parseFloat(document.getElementById('hours').value);
+        const desc = document.getElementById('description').value;
+        if(!date || !hours) return alert("Bitte Datum und Stunden angeben");
+        await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: hours, description: desc, status: 'pending' }]);
+        loadHistory();
+    }
+
+    async function loadHistory() {
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
+        const approved = data.filter(h => h.status === 'approved').reduce((sum, h) => sum + h.duration, 0);
+        document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
+        document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
+        document.getElementById('history-body').innerHTML = data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`).join('');
+    }
+
+    // KALENDER LOGIK
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*');
         allEvents = data || [];
         renderCalendar();
     }
 
-    function getTeamClass(teamName) {
-        if (!teamName) return 'team-default';
-        const t = teamName.toLowerCase();
-        if (t.includes('gewehr 1')) return 'team-lg1';
-        if (t.includes('gewehr 2')) return 'team-lg2';
-        if (t.includes('pistole 1')) return 'team-lp1';
-        if (t.includes('auflage')) return 'team-auflage';
-        return 'team-default';
+    function getTeamClass(team) {
+        const t = team?.toLowerCase() || "";
+        if(t.includes("gewehr 1")) return "team-lg1";
+        if(t.includes("gewehr 2")) return "team-lg2";
+        if(t.includes("pistole 1")) return "team-lp1";
+        if(t.includes("auflage")) return "team-auflage";
+        return "team-default";
     }
 
-    function changeMonth(step) {
-        currentViewDate.setMonth(currentViewDate.getMonth() + step);
-        renderCalendar();
-    }
+    function changeMonth(step) { currentViewDate.setMonth(currentViewDate.getMonth() + step); renderCalendar(); }
 
     function renderCalendar() {
         const container = document.getElementById('calendar-container');
-        const monthDisplay = document.getElementById('current-month-display');
         const filter = document.getElementById('event-view-filter').value;
-        
         container.innerHTML = '';
+        
         const year = currentViewDate.getFullYear();
         const month = currentViewDate.getMonth();
-        
-        monthDisplay.innerText = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentViewDate);
+        document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentViewDate);
 
-        // Header (Mo-So)
         ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => {
             const h = document.createElement('div'); h.className = 'calendar-day-head'; h.innerText = d; container.appendChild(h);
         });
 
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        let startOffset = (firstDay.getDay() + 6) % 7; // Korrektur für Montag als Wochenstart
+        const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        // Leere Tage davor
-        for (let i = 0; i < startOffset; i++) {
-            const d = document.createElement('div'); d.className = 'calendar-day other-month'; container.appendChild(d);
-        }
+        for (let i = 0; i < firstDay; i++) { const empty = document.createElement('div'); empty.className = 'calendar-day'; container.appendChild(empty); }
 
-        // Monatstage
-        for (let day = 1; day <= lastDay.getDate(); day++) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const dayEl = document.createElement('div');
             dayEl.className = 'calendar-day';
-            if (new Date().toDateString() === new Date(year, month, day).toDateString()) dayEl.classList.add('today');
-            dayEl.innerHTML = `<b>${day}</b>`;
+            if(new Date().toISOString().split('T')[0] === dateStr) dayEl.classList.add('today');
+            dayEl.innerHTML = `<b>${d}</b>`;
 
-            // Events filtern und anzeigen
-            const dayEvents = allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam));
-            dayEvents.forEach(e => {
+            allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam)).forEach(e => {
                 const ev = document.createElement('div');
                 ev.className = `event-dot ${getTeamClass(e.team)}`;
-                ev.innerText = `${e.time ? e.time + ' ' : ''}${e.opponent}`;
+                ev.innerText = e.opponent;
                 dayEl.appendChild(ev);
             });
-
             container.appendChild(dayEl);
         }
-
-        // Liste unter dem Kalender
-        const monthList = allEvents
-            .filter(e => {
-                const d = new Date(e.date);
-                return d.getMonth() === month && d.getFullYear() === year && (filter === 'all_teams' || e.team === userTeam);
-            })
-            .sort((a,b) => a.date.localeCompare(b.date));
-
-        document.getElementById('event-list-month').innerHTML = monthList.map(e => `
-            <div class="event-item">
-                <span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block; width:10px; height:10px; border-radius:50%;"></span>
-                <b>${new Date(e.date).toLocaleDateString('de-DE')}</b> | ${e.team}: vs. ${e.opponent} (${e.time || '--'})
-            </div>
-        `).join('') || 'Keine Termine in diesem Monat.';
     }
 
     async function saveEvent() {
         const date = document.getElementById('ev-date').value;
         const time = document.getElementById('ev-time').value;
         const opp = document.getElementById('ev-opp').value;
-        if(!date || !opp) return alert("Daten unvollständig");
         await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam }]);
         loadAllEvents();
     }
 
+    // ADMIN LOGIK
+    async function loadAdmin() {
+        const { data: profs } = await sb.from('profiles').select('*');
+        const { data: hours } = await sb.from('work_hours').select('*');
+        const pending = hours.filter(h => h.status === 'pending');
+        
+        if(pending.length) {
+            document.getElementById('admin-pending-section').style.display = 'block';
+            document.getElementById('admin-pending-table').innerHTML = pending.map(h => `<tr><td>${profs.find(p=>p.id===h.user_id)?.full_name}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')">✅</button></td></tr>`).join('');
+        }
+
+        document.getElementById('admin-member-table').innerHTML = profs.map(p => {
+            const sum = hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + h.duration, 0);
+            return `<tr><td>${p.full_name}</td><td>${sum}/10h</td><td><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}> Cap</td></tr>`;
+        }).join('');
+    }
+
+    async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
+    async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
+
     function switchTab(tab) {
-        ['home', 'events', 'profile'].forEach(t => {
-            document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
+        ['home', 'events', 'profile', 'admin'].forEach(t => {
+            const el = document.getElementById('view-' + t);
+            if(el) el.style.display = (t === tab) ? 'block' : 'none';
             document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
         });
+        if(tab === 'admin') loadAdmin();
     }
 
     async function updateProfile() {
-        const n = document.getElementById('prof-name').value;
-        const t = document.getElementById('prof-team').value;
-        await sb.from('profiles').upsert({ id: currentUser.id, full_name: n, team: t });
+        const name = document.getElementById('prof-name').value;
+        const team = document.getElementById('prof-team').value;
+        await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, team: team });
+        alert("Gespeichert!");
         location.reload();
     }
 </script>
