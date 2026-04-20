@@ -14,32 +14,8 @@
         button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
         button:hover { background: #1b5e20; }
         
-      .tabs { 
-    display: flex; 
-    flex-wrap: wrap; 
-    gap: 8px; 
-    margin-bottom: 20px; 
-    width: 100%; 
-}
-
-.tab { 
-    flex: 1 1 calc(50% - 8px); 
-    padding: 12px 5px; 
-    text-align: center; 
-    background: #eee; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    font-weight: bold; 
-    font-size: 14px;
-    box-sizing: border-box;
-    min-width: 120px; 
-}
-
-@media (max-width: 400px) {
-    .tab {
-        font-size: 12px; 
-    }
-}
+        .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; width: 100%; }
+        .tab { flex: 1 1 calc(50% - 8px); padding: 12px 5px; text-align: center; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; box-sizing: border-box; min-width: 120px; }
         .tab.active { background: #2e7d32; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
@@ -65,20 +41,11 @@
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
-        
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold; }
-        .badge-done { background: #c8e6c9; color: #2e7d32; }
-        .badge-open { background: #fff9c4; color: #f57f17; }
-        .badge-pending { background: #ffccbc; color: #d84315; }
 
-        .admin-detail-card { background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; display: none; }
         .clickable-name { color: #2e7d32; text-decoration: underline; cursor: pointer; font-weight: bold; }
-        
         .delete-btn { color: #c62828; cursor: pointer; font-size: 1.2em; }
         .edit-btn { color: #1976d2; cursor: pointer; font-size: 1.2em; margin-right: 10px; }
-
         .btn-reject { background: #c62828 !important; padding: 4px 8px; font-size: 11px; margin-left: 5px; }
-        .btn-reject:hover { background: #a51a1a !important; }
     </style>
 </head>
 <body>
@@ -92,7 +59,7 @@
         <input type="password" id="password" placeholder="Passwort">
         <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
         <button onclick="handleAuth()" id="auth-btn">Einloggen</button>
-        <div id="auth-toggle" class="auth-switch" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">Noch kein Konto? Registrieren</div>
+        <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">Noch kein Konto? Registrieren</div>
     </div>
 
     <div id="form-ui" style="display:none;">
@@ -124,7 +91,6 @@
             </select>
             <textarea id="description" placeholder="Zusätzliche Details..."></textarea>
             <button onclick="sendHours()">Senden</button>
-            
             <h4>Historie</h4>
             <table>
                 <thead><tr><th>Datum</th><th>Was?</th><th>Dauer</th><th>Status</th></tr></thead>
@@ -146,19 +112,17 @@
 
             <div style="margin-top:30px;">
                 <h3>Wettkampf-Übersicht</h3>
-                <div style="background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6; margin-bottom:10px;">
-                    <select id="event-view-filter" onchange="renderTournamentList()">
-                        <option value="all_teams">Alle Mannschaften</option>
-                        <option value="Luftgewehr 1">Luftgewehr 1</option>
-                        <option value="Luftgewehr 2">Luftgewehr 2</option>
-                        <option value="Luftgewehr 3">Luftgewehr 3</option>
-                        <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
-                        <option value="Luftpistole 1">Luftpistole 1</option>
-                        <option value="Luftpistole 2">Luftpistole 2</option>
-                        <option value="Sportpistole">Sportpistole</option>
-                        <option value="Großkaliber">Großkaliber</option>
-                    </select>
-                </div>
+                <select id="event-view-filter" onchange="renderTournamentList()">
+                    <option value="all_teams">Alle Mannschaften</option>
+                    <option value="Luftgewehr 1">Luftgewehr 1</option>
+                    <option value="Luftgewehr 2">Luftgewehr 2</option>
+                    <option value="Luftgewehr 3">Luftgewehr 3</option>
+                    <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
+                    <option value="Luftpistole 1">Luftpistole 1</option>
+                    <option value="Luftpistole 2">Luftpistole 2</option>
+                    <option value="Sportpistole">Sportpistole</option>
+                    <option value="Großkaliber">Großkaliber</option>
+                </select>
                 <table style="font-size: 0.85em;">
                     <thead><tr><th>Datum</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead>
                     <tbody id="tournament-list-body"></tbody>
@@ -168,10 +132,8 @@
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:15px; margin-top:20px; border-radius:12px; background:#fff8e1;">
                 <h4 id="form-event-title" style="color:#e65100;">Wettkampf eintragen</h4>
                 <input type="hidden" id="edit-event-id">
-                
-                <label style="font-size: 0.8em; font-weight: bold; color: #555;">Mannschaft wählen:</label>
+                <label style="font-size: 0.8em; font-weight: bold;">Mannschaft wählen:</label>
                 <select id="ev-team-select"></select>
-
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <input type="date" id="ev-date">
                     <input type="time" id="ev-time">
@@ -180,7 +142,7 @@
                 <div style="display:flex; align-items:center; gap:10px;">
                     <input type="checkbox" id="ev-home-check" style="width:auto;"> <label for="ev-home-check">Heimspiel</label>
                 </div>
-                <button id="save-event-btn" onclick="saveEvent()" style="background:#ef6c00;">Speichern</button>
+                <button onclick="saveEvent()" style="background:#ef6c00;">Speichern</button>
                 <button id="cancel-edit-btn" onclick="resetEventForm()" style="background:#757575; display:none;">Abbrechen</button>
             </div>
         </div>
@@ -188,45 +150,29 @@
         <div id="view-profile" style="display:none;">
             <h3>Dein Profil</h3>
             <input type="text" id="prof-name" placeholder="Voller Name">
-            
             <label style="font-weight:bold; display:block; margin-top:10px;">Meine Mannschaften:</label>
-            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top:5px;">
-                </div>
-
+            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top:5px;"></div>
             <button onclick="updateProfile()" style="margin-top:15px;">Profil Speichern</button>
-            <hr>
-            <h4>Passwort ändern</h4>
-            <input type="password" id="new-password" placeholder="Neues Passwort">
-            <input type="password" id="new-password-confirm" placeholder="Bestätigen">
-            <button onclick="changePassword()" style="background:#0277bd;">Aktualisieren</button>
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
         <div id="view-admin" style="display:none;">
             <button onclick="exportToPDF()" style="background:#0277bd;">📄 PDF Report</button>
-            
             <div id="admin-pending-section" style="display:none; margin-top:20px;">
                 <h4 style="color:#c62828;">⏳ Offene Anträge</h4>
-                <table><thead><tr><th>Name</th><th>Was</th><th>h</th><th>Aktion</th></tr></thead><tbody id="admin-pending-body-real"></tbody></table>
+                <table id="admin-pending-table"><thead><tr><th>Name</th><th>Was</th><th>h</th><th>Aktion</th></tr></thead><tbody id="admin-pending-body-real"></tbody></table>
             </div>
-
-           <h4 style="margin-top:25px;">Mitglieder-Übersicht</h4>
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Mannschaft</th>
-            <th>Stunden (Gen.)</th>
-            <th>Kapitän</th>
-        </tr>
-    </thead>
-    <tbody id="admin-member-table-list"></tbody>
-</table>
-
-            <div id="admin-detail-view" class="admin-detail-card">
+            <h4 style="margin-top:25px;">Mitglieder-Übersicht</h4>
+            <table>
+                <thead>
+                    <tr><th>Name</th><th>Mannschaft</th><th>h</th><th>Kap.</th><th>Funkt.</th></tr>
+                </thead>
+                <tbody id="admin-member-table-list"></tbody>
+            </table>
+            <div id="admin-detail-view" style="background:#f9f9f9; padding:15px; border:1px solid #ddd; border-radius:8px; margin-top:10px; display:none;">
                 <h4 id="admin-detail-name">Details</h4>
                 <table style="font-size:0.8em;">
-                    <thead><tr><th>Datum</th><th>Kategorie</th><th>Dauer</th><th>Status</th><th>Aktion</th></tr></thead>
+                    <thead><tr><th>Datum</th><th>Tätigkeit</th><th>h</th><th>Status</th><th>Aktion</th></tr></thead>
                     <tbody id="admin-detail-body"></tbody>
                 </table>
             </div>
@@ -240,10 +186,7 @@
     const sb = supabase.createClient(S_URL, S_KEY);
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
 
-    const ALL_TEAMS = [
-        "Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage",
-        "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"
-    ];
+    const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
 
     let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
@@ -257,7 +200,6 @@
     function toggleAuthMode() {
         isRegisterMode = !isRegisterMode;
         document.getElementById('auth-title').innerText = isRegisterMode ? "Registrieren" : "Anmelden";
-        document.getElementById('auth-btn').innerText = isRegisterMode ? "Konto erstellen" : "Einloggen";
         document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
     }
 
@@ -266,23 +208,11 @@
         const password = document.getElementById('password').value;
         if(isRegisterMode) {
             const { error } = await sb.auth.signUp({ email, password });
-            if(error) alert(error.message); else alert("Bitte E-Mail bestätigen!");
+            if(error) alert(error.message); else alert("Check deine E-Mails!");
         } else {
             const { error } = await sb.auth.signInWithPassword({ email, password });
             if(error) alert(error.message); else location.reload();
         }
-    }
-
-    function renderTeamCheckboxes(selectedTeamsStr = "") {
-        const container = document.getElementById('team-checkboxes');
-        const selectedArray = selectedTeamsStr ? selectedTeamsStr.split(', ') : [];
-        
-        container.innerHTML = ALL_TEAMS.map(team => `
-            <div style="display:flex; align-items:center; font-size: 0.85em;">
-                <input type="checkbox" name="prof-teams" value="${team}" id="team-${team}" style="width:auto; margin-right:6px;" ${selectedArray.includes(team) ? 'checked' : ''}>
-                <label for="team-${team}">${team}</label>
-            </div>
-        `).join('');
     }
 
     async function setupApp(user) {
@@ -293,50 +223,37 @@
             userTeam = p.team || ""; isCaptain = p.is_captain;
             document.getElementById('prof-name').value = p.full_name || "";
             renderTeamCheckboxes(userTeam);
-            
             if(isAdmin) document.getElementById('tab-admin').style.display = 'block';
-            
             if(isCaptain || isAdmin) {
                 document.getElementById('captain-form').style.display = 'block';
-                // Dropdown für Teams füllen
-                const teamSelect = document.getElementById('ev-team-select');
                 const myTeams = isAdmin ? ALL_TEAMS : userTeam.split(', ');
-                teamSelect.innerHTML = myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+                document.getElementById('ev-team-select').innerHTML = myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
             }
-        } else {
-            renderTeamCheckboxes("");
         }
         document.getElementById('loading-ui').style.display='none';
         document.getElementById('form-ui').style.display='block';
         loadHistory(); loadAllEvents();
     }
 
-    async function changePassword() {
-        const p1 = document.getElementById('new-password').value;
-        if(p1 !== document.getElementById('new-password-confirm').value) return alert("Passwörter ungleich!");
-        const { error } = await sb.auth.updateUser({ password: p1 });
-        if(error) alert(error.message); else alert("Geändert!");
+    function renderTeamCheckboxes(selected) {
+        const selArray = selected ? selected.split(', ') : [];
+        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
+            <div style="font-size:0.85em;"><input type="checkbox" name="prof-teams" value="${t}" style="width:auto;" ${selArray.includes(t)?'checked':''}> ${t}</div>
+        `).join('');
     }
 
-    async function sendHours() {
-        const cat = document.getElementById('work-category').value;
-        const h = document.getElementById('hours').value;
-        const d = document.getElementById('date').value;
-        if(!cat || !h || !d) return alert("Bitte alle Felder füllen!");
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: d, duration: h, description: cat + ": " + document.getElementById('description').value, status: 'pending' }]);
-        document.getElementById('hours').value = ""; document.getElementById('description').value = "";
-        loadHistory();
+    async function updateProfile() {
+        const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c => c.value).join(', ');
+        await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams });
+        alert("Gespeichert!"); location.reload();
     }
 
     async function loadHistory() {
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + parseFloat(h.duration), 0) : 0;
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {ascending:false});
+        const approved = data ? data.filter(h => h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
         document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
         document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
-        document.getElementById('history-body').innerHTML = data ? data.map(h => {
-            let statusIcon = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
-            return `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td style="text-align:center;">${statusIcon}</td></tr>`;
-        }).join('') : "";
+        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':(h.status==='rejected'?'❌':'⏳')}</td></tr>`).join('') : "";
     }
 
     async function loadAdmin() {
@@ -346,45 +263,48 @@
         document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
         document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
             const u = profs.find(p => p.id === h.user_id);
-            return `<tr><td>${u?.full_name || 'Gast'}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:4px; font-size:11px; width:auto;">OK</button><button onclick="reject('${h.id}')" class="btn-reject" style="width:auto;">X</button></td></tr>`;
+            return `<tr><td>${u?.full_name||'Gast'}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:4px; width:auto;">OK</button> <button onclick="reject('${h.id}')" class="btn-reject" style="width:auto;">X</button></td></tr>`;
         }).join('');
-       document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
-    const genSum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
-    
-    return `<tr>
-        <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
-        <td><small>${p.team || '-'}</small></td>
-        <td><b>${genSum}/10</b></td>
-        <td><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:auto; margin:0;"></td>
-    </tr>`;
-}).join('');
+
+        document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
+            const genSum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+            return `<tr>
+                <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
+                <td><small>${p.team || '-'}</small></td>
+                <td><b>${genSum}</b></td>
+                <td><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:auto; margin:0;"></td>
+                <td><input type="checkbox" onchange="setStaff('${p.id}', this.checked)" ${p.is_staff?'checked':''} style="width:auto; margin:0;"></td>
+            </tr>`;
+        }).join('');
     }
 
-    async function showAdminMemberDetails(userId, userName) {
-        const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', userId).order('date', {ascending: false});
-        document.getElementById('admin-detail-name').innerText = userName;
-        document.getElementById('admin-detail-body').innerHTML = hours.map(h => {
-            let st = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
-            return `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${st}</td><td><span class="delete-btn" onclick="deleteHoursAdmin('${h.id}', '${userId}', '${userName}')">🗑️</span></td></tr>`;
-        }).join('');
-        document.getElementById('admin-detail-view').style.display = 'block';
-    }
+    async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
+    async function setStaff(id, val) { await sb.from('profiles').update({ is_staff: val }).eq('id', id); }
 
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
     async function reject(id) {
-        const reason = prompt("Grund für die Ablehnung:");
-        if (reason === null) return; 
-        const { data: current } = await sb.from('work_hours').select('description').eq('id', id).single();
-        await sb.from('work_hours').update({ status: 'rejected', description: `${current.description} | ABGELEHNT: ${reason || "Kein Grund"}` }).eq('id', id);
-        loadAdmin();
+        const reason = prompt("Grund:");
+        if (reason !== null) {
+            const { data: cur } = await sb.from('work_hours').select('description').eq('id', id).single();
+            await sb.from('work_hours').update({ status: 'rejected', description: cur.description + " | ABGELEHNT: " + reason }).eq('id', id);
+            loadAdmin();
+        }
     }
-    async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
+
+    async function showAdminMemberDetails(uid, name) {
+        const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', {ascending:false});
+        document.getElementById('admin-detail-name').innerText = name;
+        document.getElementById('admin-detail-body').innerHTML = hours.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':(h.status==='rejected'?'❌':'⏳')}</td><td><span class="delete-btn" onclick="deleteHoursAdmin('${h.id}', '${uid}', '${name}')">🗑️</span></td></tr>`).join('');
+        document.getElementById('admin-detail-view').style.display = 'block';
+    }
+
     async function deleteHoursAdmin(id, uid, name) { if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); showAdminMemberDetails(uid, name); loadAdmin(); } }
 
-    async function updateProfile() {
-        const checkedTeams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(cb => cb.value);
-        const { error } = await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: checkedTeams.join(', ') });
-        if(error) alert(error.message); else { alert("Gespeichert!"); location.reload(); }
+    async function sendHours() {
+        const cat = document.getElementById('work-category').value, h = document.getElementById('hours').value, d = document.getElementById('date').value;
+        if(!cat || !h || !d) return alert("Fehlende Daten!");
+        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: d, duration: h, description: cat + ": " + document.getElementById('description').value, status: 'pending' }]);
+        document.getElementById('hours').value = ""; document.getElementById('description').value = ""; loadHistory();
     }
 
     async function loadAllEvents() {
@@ -394,11 +314,9 @@
 
     function renderTournamentList() {
         const filter = document.getElementById('event-view-filter').value;
-        const listBody = document.getElementById('tournament-list-body');
-        const filteredEvents = allEvents.filter(e => filter === 'all_teams' || e.team === filter);
-        listBody.innerHTML = filteredEvents.map(e => {
+        document.getElementById('tournament-list-body').innerHTML = allEvents.filter(e => filter === 'all_teams' || e.team === filter).map(e => {
             const canEdit = isAdmin || (isCaptain && userTeam.includes(e.team));
-            return `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td><span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td><td>${e.opponent}</td><td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td></tr>`;
+            return `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td><span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block;"></span> ${e.team}</td><td>${e.opponent}</td><td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td></tr>`;
         }).join('');
     }
 
@@ -407,12 +325,11 @@
         const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
         document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
         ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => { const h=document.createElement('div'); h.className='calendar-day-head'; h.innerText=d; container.appendChild(h); });
-        const first = (new Date(year, month, 1).getDay()+6)%7;
-        const days = new Date(year, month+1, 0).getDate();
+        const first = (new Date(year, month, 1).getDay()+6)%7, days = new Date(year, month+1, 0).getDate();
         for(let i=0; i<first; i++) container.appendChild(document.createElement('div')).className='calendar-day';
         for(let d=1; d<=days; d++) {
-            const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const el = document.createElement('div'); el.className='calendar-day'; el.innerHTML=`<small>${d}</small>`;
+            const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, el = document.createElement('div');
+            el.className='calendar-day'; el.innerHTML=`<small>${d}</small>`;
             allEvents.filter(e => e.date === ds).forEach(e => {
                 const dot=document.createElement('div'); dot.className=`event-dot ${getTeamClass(e.team)}`; el.appendChild(dot);
             });
@@ -433,63 +350,38 @@
     }
 
     function changeMonth(s) { currentViewDate.setMonth(currentViewDate.getMonth()+s); renderCalendar(); }
-
     function switchTab(t) {
-        ['home','events','profile','admin'].forEach(v => {
-            document.getElementById('view-'+v).style.display = (v===t)?'block':'none';
-            document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab';
-        });
+        ['home','events','profile','admin'].forEach(v => { document.getElementById('view-'+v).style.display = (v===t)?'block':'none'; document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab'; });
         if(t==='admin') loadAdmin(); if(t==='events') loadAllEvents();
     }
 
     async function exportToPDF() {
         const { jsPDF } = window.jspdf; const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-        doc.text("Arbeitsstunden - Hubertus", 14, 15); let currentY = 30;
-        profs.forEach((p) => {
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
+        doc.text("Hubertus Report", 14, 15); let y = 25;
+        profs.forEach(p => {
             const mH = hours.filter(h => h.user_id === p.id);
             const total = mH.reduce((s, h) => s + parseFloat(h.duration), 0);
-            if (currentY > 240) { doc.addPage(); currentY = 20; }
-            doc.setFont(undefined, 'bold'); doc.text(`${p.full_name || 'Unbekannt'} - ${total}h`, 14, currentY);
-            doc.autoTable({ startY: currentY + 5, head: [['Datum', 'Was', 'Dauer']], body: mH.map(h => [h.date, h.description, h.duration + " h"]) });
-            currentY = doc.lastAutoTable.cursor.y + 15;
+            doc.text(`${p.full_name || 'Gast'} - ${total}h`, 14, y);
+            y += 10; if(y > 280) { doc.addPage(); y = 20; }
         });
-        doc.save(`Hubertus_Report.pdf`);
+        doc.save("Report.pdf");
     }
 
-    async function deleteEvent(id) { if(confirm("Termin wirklich löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
-    
+    async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
     function editEvent(id) { 
         const e = allEvents.find(x => x.id == id);
-        document.getElementById('edit-event-id').value = e.id; 
-        document.getElementById('ev-date').value = e.date;
-        document.getElementById('ev-team-select').value = e.team; // Team im Dropdown wählen
-        document.getElementById('ev-opp').value = e.opponent.replace(" (Heim)", "");
+        document.getElementById('edit-event-id').value = e.id; document.getElementById('ev-date').value = e.date;
+        document.getElementById('ev-team-select').value = e.team; document.getElementById('ev-opp').value = e.opponent.replace(" (Heim)", "");
         document.getElementById('ev-home-check').checked = e.opponent.includes("(Heim)");
-        document.getElementById('save-event-btn').innerText = "Update";
         document.getElementById('cancel-edit-btn').style.display = 'block';
     }
-    
-    function resetEventForm() { 
-        document.getElementById('edit-event-id').value=""; 
-        document.getElementById('ev-date').value=""; 
-        document.getElementById('ev-opp').value=""; 
-        document.getElementById('ev-home-check').checked = false;
-        document.getElementById('save-event-btn').innerText="Speichern"; 
-        document.getElementById('cancel-edit-btn').style.display='none'; 
-    }
-    
+    function resetEventForm() { document.getElementById('edit-event-id').value=""; document.getElementById('ev-opp').value=""; document.getElementById('cancel-edit-btn').style.display='none'; }
     async function saveEvent() {
-        const id = document.getElementById('edit-event-id').value;
-        let opp = document.getElementById('ev-opp').value;
+        const id = document.getElementById('edit-event-id').value; let opp = document.getElementById('ev-opp').value;
         if(document.getElementById('ev-home-check').checked) opp += " (Heim)";
-        
-        const d = { 
-            date: document.getElementById('ev-date').value, 
-            opponent: opp, 
-            team: document.getElementById('ev-team-select').value 
-        };
+        const d = { date: document.getElementById('ev-date').value, opponent: opp, team: document.getElementById('ev-team-select').value };
         if(id) await sb.from('tournaments').update(d).eq('id', id); else await sb.from('tournaments').insert([d]);
         resetEventForm(); loadAllEvents();
     }
