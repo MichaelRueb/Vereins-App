@@ -186,11 +186,18 @@
                 <table><thead><tr><th>Name</th><th>Was</th><th>h</th><th>Aktion</th></tr></thead><tbody id="admin-pending-body-real"></tbody></table>
             </div>
 
-            <h4 style="margin-top:25px;">Mitglieder-Übersicht</h4>
-            <table>
-                <thead><tr><th>Name</th><th>Mannschaft</th><th>h (Gen.)</th><th>Status</th><th>Cap.</th></tr></thead>
-                <tbody id="admin-member-table-list"></tbody>
-            </table>
+           <h4 style="margin-top:25px;">Mitglieder-Übersicht</h4>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Mannschaft</th>
+            <th>h (Gen.)</th>
+            <th>Cap.</th>
+        </tr>
+    </thead>
+    <tbody id="admin-member-table-list"></tbody>
+</table>
 
             <div id="admin-detail-view" class="admin-detail-card">
                 <h4 id="admin-detail-name">Details</h4>
@@ -301,13 +308,13 @@
     }).join('') : "";
 }
 
-   async function loadAdmin() {
+  async function loadAdmin() {
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: hours } = await sb.from('work_hours').select('*');
     
+    // Sektion für offene Anträge (mit Ablehnen-Funktion)
     const pending = hours ? hours.filter(h => h.status === 'pending') : [];
     document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
-    
     document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
         const u = profs.find(p => p.id === h.user_id);
         return `<tr>
@@ -316,31 +323,24 @@
             <td>${h.duration}h</td>
             <td>
                 <button onclick="approve('${h.id}')" style="padding:4px; font-size:11px; width:auto; display:inline-block;">OK</button>
-                <button onclick="reject('${h.id}')" class="btn-reject" style="width:auto; display:inline-block;">X</button>
+                <button onclick="reject('${h.id}')" class="btn-reject" style="width:auto; display:inline-block; background:#c62828;">X</button>
             </td>
         </tr>`;
     }).join('');
 
-    // Rest der Funktion (Mitglieder-Übersicht) bleibt gleich
+    // Mitglieder-Tabelle (Jetzt ohne Status-Badge)
     document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
         const userHours = hours ? hours.filter(h => h.user_id === p.id) : [];
         const genSum = userHours.filter(h => h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
-        const hasPending = userHours.some(h => h.status === 'pending');
-        
-        let statusBadge = `<span class="badge badge-open">Offen</span>`;
-        if (genSum >= 10) statusBadge = `<span class="badge badge-done">Erledigt</span>`;
-        else if (hasPending) statusBadge = `<span class="badge badge-pending">In Prüfung</span>`;
 
         return `<tr>
             <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
             <td>${p.team || '-'}</td>
             <td><b>${genSum}/10</b></td>
-            <td>${statusBadge}</td>
             <td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td>
         </tr>`;
     }).join('');
 }
-
     async function showAdminMemberDetails(userId, userName) {
         const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', userId).order('date', {ascending: false});
         document.getElementById('admin-detail-name').innerText = userName;
