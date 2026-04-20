@@ -32,6 +32,7 @@
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.5s ease-in-out; }
         .progress-text { position: absolute; width: 100%; text-align: center; top: 0; line-height: 24px; font-size: 12px; font-weight: bold; color: #000; }
         .goal-reached { background: #2e7d32 !important; }
+        .auth-switch { text-align: center; margin-top: 10px; font-size: 0.9em; color: #1976d2; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -40,10 +41,11 @@
     <div id="loading-ui" style="text-align:center; padding: 20px;">Daten werden geladen...</div>
 
     <div id="auth-ui" style="display:none;">
-        <h2 style="text-align:center;">Hubertus Login</h2>
+        <h2 id="auth-title" style="text-align:center;">Hubertus Login</h2>
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort">
-        <button onclick="doLogin()">Anmelden</button>
+        <button id="auth-btn" onclick="handleAuth()">Anmelden</button>
+        <p id="auth-toggle" class="auth-switch" onclick="toggleAuthMode()">Noch kein Konto? Hier registrieren</p>
     </div>
 
     <div id="form-ui" style="display:none;">
@@ -104,11 +106,15 @@
 
         <div id="view-profile" style="display:none;">
             <h3>Dein Profil</h3>
+            <div id="profile-warning" style="display:none; color: #b71c1c; background: #ffcdd2; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-weight: bold;">
+                ⚠️ Bitte trage deinen Namen und deine Mannschaft ein!
+            </div>
             <div class="section-box">
                 <label>Name:</label>
-                <input type="text" id="profile-name-input">
+                <input type="text" id="profile-name-input" placeholder="Vorname Nachname">
                 <label>Mannschaft:</label>
                 <select id="profile-team-input">
+                    <option value="">-- Bitte wählen --</option>
                     <option value="Luftgewehr 1">Luftgewehr 1</option>
                     <option value="Luftgewehr 2">Luftgewehr 2</option>
                     <option value="Luftgewehr 3">Luftgewehr 3</option>
@@ -163,7 +169,7 @@
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; 
     const sb = supabase.createClient(S_URL, S_KEY);
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
-    let currentUser = null, isAdmin = false, isCaptain = false, userTeam = "";
+    let currentUser = null, isAdmin = false, isCaptain = false, userTeam = "", isLoginMode = true;
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -171,15 +177,49 @@
         else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
     };
 
+    // AUTH LOGIK
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        document.getElementById('auth-title').innerText = isLoginMode ? 'Hubertus Login' : 'Konto erstellen';
+        document.getElementById('auth-btn').innerText = isLoginMode ? 'Anmelden' : 'Registrieren';
+        document.getElementById('auth-toggle').innerText = isLoginMode ? 'Noch kein Konto? Hier registrieren' : 'Bereits ein Konto? Zum Login';
+    }
+
+    async function handleAuth() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        if(!email || !password) return alert("Bitte Felder ausfüllen");
+
+        if (isLoginMode) {
+            const { error } = await sb.auth.signInWithPassword({ email, password });
+            if(error) alert("Login fehlgeschlagen: " + error.message); else location.reload();
+        } else {
+            const { data, error } = await sb.auth.signUp({ email, password });
+            if(error) alert("Registrierung fehlgeschlagen: " + error.message);
+            else {
+                alert("Erfolgreich registriert! Du wirst jetzt angemeldet. Bitte vervollständige dein Profil.");
+                location.reload();
+            }
+        }
+    }
+
     async function setupUI(user) {
         currentUser = user; 
         isAdmin = (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        
         if(p) { 
             isCaptain = p.is_captain; 
-            userTeam = p.team || "Nicht zugewiesen";
+            userTeam = p.team || "";
             document.getElementById('profile-name-input').value = p.full_name || '';
             document.getElementById('profile-team-input').value = userTeam;
+            
+            // Warnung wenn Profil unvollständig
+            if(!p.full_name || !userTeam) {
+                document.getElementById('profile-warning').style.display = 'block';
+                switchTab('profile'); // Direkt zum Profil leiten
+            }
+
             if(isCaptain || isAdmin) {
                 document.getElementById('event-filter-ui').style.display = 'block';
                 if(isCaptain) {
@@ -188,6 +228,10 @@
                 }
             }
             if(isAdmin) document.getElementById('tab-admin').style.display='block';
+        } else {
+            // Erst-Login: Profil-Tab erzwingen
+            switchTab('profile');
+            document.getElementById('profile-warning').style.display = 'block';
         }
         document.getElementById('loading-ui').style.display='none'; 
         document.getElementById('auth-ui').style.display='none'; 
@@ -235,9 +279,9 @@
         const list = document.getElementById('event-list');
         if(data && data.length > 0) {
             list.innerHTML = data.map(e => `
-                <div class="event-item" style="border-left: 4px solid ${e.team === userTeam ? '#2e7d32' : '#999'}; padding-left: 10px;">
+                <div class="event-item" style="border-left: 4px solid ${e.team === userTeam ? '#2e7d32' : '#999'}; padding-left: 10px; margin-bottom: 8px;">
                     <div style="flex-grow:1;">
-                        <small style="color:#666;">${e.team}</small><br>
+                        <small style="color:#666; font-weight:bold;">${e.team}</small><br>
                         <b>${new Date(e.date).toLocaleDateString('de-DE')}</b> - ${e.time || '--:--'} Uhr<br>
                         vs. ${e.opponent} ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}
                     </div>
@@ -299,7 +343,7 @@
     }
 
     async function deleteAdminEntry(id, uid, name) {
-        if(confirm("Eintrag unwiderruflich löschen?")) { await sb.from('work_hours').delete().eq('id', id); openExplorer(uid, name); loadAdminData(); }
+        if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); openExplorer(uid, name); loadAdminData(); }
     }
 
     async function toggleCaptain(uid, status) { await sb.from('profiles').update({ is_captain: status }).eq('id', uid); }
@@ -333,15 +377,18 @@
         if(tab === 'home') loadHistory();
     }
 
-    async function doLogin() {
-        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
-        if(error) alert(error.message); else location.reload();
-    }
     async function doLogout() { await sb.auth.signOut(); location.reload(); }
+    
     async function updateProfile() {
-        await sb.from('profiles').update({ full_name: document.getElementById('profile-name-input').value, team: document.getElementById('profile-team-input').value }).eq('id', currentUser.id);
-        alert("Gespeichert!"); location.reload();
+        const name = document.getElementById('profile-name-input').value;
+        const team = document.getElementById('profile-team-input').value;
+        if(!name || !team) return alert("Bitte fülle Name und Mannschaft aus!");
+        
+        await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, team: team });
+        alert("Profil gespeichert!"); 
+        location.reload();
     }
+    
     async function updatePassword() {
         const p1 = document.getElementById('new-password').value;
         const p2 = document.getElementById('new-password-confirm').value;
