@@ -22,40 +22,18 @@
         th { background: #f8f9fa; padding: 12px 10px; text-align: left; border-bottom: 2px solid #dee2e6; }
         td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
 
-        .status-ok { color: #2e7d32; font-weight: bold; }
-        .status-wait { color: #f57c00; font-weight: bold; }
-
-        /* Kalender Design (Mobil optimiert) */
+        /* Kalender Design */
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-weight: bold; font-size: 1.2em; }
-        .calendar-grid { 
-            display: grid; 
-            grid-template-columns: repeat(7, 1fr); 
-            gap: 1px; 
-            background: #ccc; 
-            border: 1px solid #ccc; 
-            border-radius: 8px; 
-            overflow: hidden;
-            width: 100%;
-        }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; width: 100%; }
         .calendar-day-head { background: #e9ecef; text-align: center; padding: 10px; font-weight: bold; font-size: 0.7em; text-transform: uppercase; }
-        .calendar-day { 
-            background: white; 
-            min-height: 60px; 
-            padding: 2px; 
-            position: relative; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        .calendar-day { background: white; min-height: 60px; padding: 2px; position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .calendar-day:hover { background: #f0f0f0; }
         .calendar-day.today { background: #fff9c4; }
         
-        /* Event-Markierungen */
         .event-dot { width: 8px; height: 8px; border-radius: 50%; margin: 2px auto; display: block; flex-shrink: 0; }
-
         @media (min-width: 600px) {
             .calendar-day { min-height: 90px; padding: 5px; }
             .event-dot { width: 90%; height: 4px; border-radius: 2px; }
-            .calendar-day-head { font-size: 0.8em; }
         }
 
         .team-lg1 { background-color: #2e7d32 !important; }
@@ -65,10 +43,12 @@
         .team-auflage { background-color: #ef6c00 !important; } 
         .team-default { background-color: #78909c !important; }
 
+        /* Detail-Popup/Box unter Kalender */
+        #calendar-selection-details { margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 8px; display: none; border: 1px solid #bbdefb; }
+
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
-        
         .admin-link { color: #1976d2; cursor: pointer; text-decoration: underline; font-weight: bold; }
     </style>
 </head>
@@ -114,18 +94,34 @@
 
         <div id="view-events" style="display:none;">
             <div style="margin-bottom:15px; background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6;">
-                <label style="font-weight:bold;">Anzeige:</label>
+                <label style="font-weight:bold;">Filter:</label>
                 <select id="event-view-filter" onchange="renderCalendar()">
                     <option value="my_team">Nur meine Mannschaft</option>
-                    <option value="all_teams">Gesamter Verein</option>
+                    <option value="all_teams" selected>Gesamter Verein</option>
                 </select>
             </div>
+            
             <div class="calendar-header">
                 <button onclick="changeMonth(-1)" style="width:50px;">&lt;</button>
                 <span id="current-month-display"></span>
                 <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
             </div>
+            
             <div id="calendar-container" class="calendar-grid"></div>
+
+            <div id="calendar-selection-details">
+                <h4 id="selection-date-label" style="margin-top:0;">Termine</h4>
+                <div id="selection-content"></div>
+            </div>
+
+            <div id="tournament-list-section" style="margin-top:30px;">
+                <h3>Alle Wettkämpfe (Liste)</h3>
+                <table id="tournament-table">
+                    <thead><tr><th>Datum</th><th>Mannschaft</th><th>Gegner / Ort</th></tr></thead>
+                    <tbody id="tournament-list-body"></tbody>
+                </table>
+            </div>
+
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:20px; margin-top:30px; border-radius:12px; background: #fff8e1;">
                 <h4 style="margin:0 0 15px 0; color:#e65100;">Wettkampf eintragen als <span id="cap-team-name"></span>-Kapitän</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -156,9 +152,10 @@
         <div id="view-admin" style="display:none;">
             <div id="admin-pending-section" style="background:#fff3e0; padding:15px; border-radius:12px; margin-bottom:25px; border:1px solid #ffe0b2; display:none;">
                 <h4 style="margin:0;">⏳ Offene Genehmigungen</h4>
-                <table id="admin-pending-table">
+                <tbody id="admin-pending-body"></tbody>
+                <table>
                     <thead><tr><th>Name</th><th>Datum</th><th>Tätigkeit</th><th>Dauer</th><th>Aktion</th></tr></thead>
-                    <tbody id="admin-pending-body"></tbody>
+                    <tbody id="admin-pending-body-real"></tbody>
                 </table>
             </div>
             <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Detail-Report generieren</button>
@@ -167,7 +164,6 @@
                 <thead><tr><th>Name</th><th>Mannschaft</th><th>Stunden</th><th style="text-align:center;">Kapitän</th></tr></thead>
                 <tbody id="admin-member-table"></tbody>
             </table>
-            
             <div id="admin-detail-view" style="margin-top:30px; display:none; padding:15px; background:#e8f5e9; border-radius:12px;">
                 <h4 id="detail-name">Details</h4>
                 <table id="detail-table">
@@ -237,8 +233,21 @@
     }
 
     async function loadAllEvents() {
-        const { data } = await sb.from('tournaments').select('*');
-        allEvents = data || []; renderCalendar();
+        const { data } = await sb.from('tournaments').select('*').order('date', {ascending: true});
+        allEvents = data || []; 
+        renderCalendar();
+        renderTournamentList();
+    }
+
+    function renderTournamentList() {
+        const listBody = document.getElementById('tournament-list-body');
+        listBody.innerHTML = allEvents.map(e => `
+            <tr>
+                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                <td><span style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td>
+                <td>${e.opponent} ${e.time ? '('+e.time+' Uhr)' : ''}</td>
+            </tr>
+        `).join('');
     }
 
     function getTeamClass(team) {
@@ -259,28 +268,54 @@
         const year = currentViewDate.getFullYear();
         const month = currentViewDate.getMonth();
         document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(currentViewDate);
+        
         ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => {
             const h = document.createElement('div'); h.className = 'calendar-day-head'; h.innerText = d; container.appendChild(h);
         });
+
         const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, month + 1, 0).getDate();
+
         for (let i = 0; i < firstDay; i++) { 
             const empty = document.createElement('div'); empty.className = 'calendar-day'; container.appendChild(empty); 
         }
+
         for (let d = 1; d <= daysInMonth; d++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const dayEl = document.createElement('div');
             dayEl.className = 'calendar-day';
             if(new Date().toISOString().split('T')[0] === dateStr) dayEl.classList.add('today');
             dayEl.innerHTML = `<b style="font-size: 0.8em; margin-bottom: 4px;">${d}</b>`;
-            allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam)).forEach(e => {
+            
+            const dayEvents = allEvents.filter(e => e.date === dateStr && (filter === 'all_teams' || e.team === userTeam));
+            dayEvents.forEach(e => {
                 const ev = document.createElement('div'); 
                 ev.className = `event-dot ${getTeamClass(e.team)}`;
-                ev.title = `${e.team}: ${e.opponent}`;
                 dayEl.appendChild(ev);
             });
+            
+            dayEl.onclick = () => showDayDetails(dateStr, dayEvents);
             container.appendChild(dayEl);
         }
+    }
+
+    function showDayDetails(dateStr, events) {
+        const detailBox = document.getElementById('calendar-selection-details');
+        const content = document.getElementById('selection-content');
+        const label = document.getElementById('selection-date-label');
+        
+        label.innerText = "Termine am " + new Date(dateStr).toLocaleDateString('de-DE');
+        if(events.length === 0) {
+            content.innerHTML = "<i>Keine Wettkämpfe an diesem Tag.</i>";
+        } else {
+            content.innerHTML = events.map(e => `
+                <div style="margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">
+                    <b>${e.team}:</b> ${e.opponent} ${e.time ? '<br><small>Zeit: '+e.time+' Uhr</small>' : ''}
+                </div>
+            `).join('');
+        }
+        detailBox.style.display = 'block';
+        detailBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     async function saveEvent() {
@@ -297,7 +332,7 @@
         const pending = hours ? hours.filter(h => h.status === 'pending') : [];
         if(pending.length) {
             document.getElementById('admin-pending-section').style.display = 'block';
-            document.getElementById('admin-pending-body').innerHTML = pending.map(h => {
+            document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
                 const u = profs.find(p => p.id === h.user_id);
                 return `<tr><td>${u?u.full_name:'?'}</td><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')">OK</button></td></tr>`;
             }).join('');
@@ -327,12 +362,7 @@
         const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-        doc.setFontSize(18);
         doc.text("Detaillierter Stunden-Report Hubertus", 14, 20);
-        doc.setFontSize(10);
-        doc.text("Erstellt am: " + new Date().toLocaleDateString(), 14, 28);
-
         let currentY = 35;
         profs.forEach((p) => {
             const userHours = hours.filter(h => h.user_id === p.id);
@@ -343,11 +373,11 @@
             currentY += 5;
             const bodyData = userHours.map(h => [new Date(h.date).toLocaleDateString('de-DE'), h.description || '-', h.duration + " h"]);
             if (bodyData.length > 0) {
-                doc.autoTable({ startY: currentY, head: [['Datum', 'Tätigkeit', 'Dauer']], body: bodyData, theme: 'grid', styles: { fontSize: 9 } });
+                doc.autoTable({ startY: currentY, head: [['Datum', 'Tätigkeit', 'Dauer']], body: bodyData, theme: 'grid' });
                 currentY = doc.lastAutoTable.finalY + 15;
-            } else { doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text("Keine Einträge.", 14, currentY + 5); currentY += 15; }
+            } else { currentY += 10; }
         });
-        doc.save("Hubertus_Detailliste.pdf");
+        doc.save("Hubertus_Report.pdf");
     }
 
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
@@ -360,14 +390,14 @@
             document.getElementById('tab-' + t).className = (t === tab) ? 'tab active' : 'tab';
         });
         if(tab === 'admin') loadAdmin();
-        if(tab === 'events') renderCalendar();
+        if(tab === 'events') { loadAllEvents(); document.getElementById('calendar-selection-details').style.display='none'; }
     }
 
     async function updateProfile() {
         const name = document.getElementById('prof-name').value;
         const team = document.getElementById('prof-team').value;
         await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, team: team });
-        alert("Gespeichert");
+        alert("Profil gespeichert!");
     }
 </script>
 </body>
