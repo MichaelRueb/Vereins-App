@@ -8,55 +8,52 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 10px; background: #f4f7f6; margin: 0; display: flex; flex-direction: column; align-items: center; }
-        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 900px; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: #f4f7f6; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 1000px; box-sizing: border-box; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .tabs { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; }
-        .tab { flex: 1; padding: 10px; text-align: center; background: #ddd; border-radius: 8px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
-        .tab.active { background: #2e7d32; color: white; }
+        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #1b5e20; }
         
-        /* KALENDER */
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; font-weight: bold; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #ddd; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
-        .calendar-day-head { background: #eee; text-align: center; padding: 5px; font-size: 0.7em; font-weight: bold; }
-        .calendar-day { background: white; min-height: 70px; padding: 2px; font-size: 0.8em; position: relative; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; width: 100%; }
+        .tab { flex: 1; padding: 12px; text-align: center; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+        .tab.active { background: #2e7d32; color: white; shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        
+        /* Tabellen Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th { background: #f8f9fa; padding: 12px 10px; text-align: left; border-bottom: 2px solid #dee2e6; color: #495057; }
+        td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        tr:hover { background-color: #f1f3f5; }
+
+        /* Status & Badges */
+        .status-ok { color: #2e7d32; font-weight: bold; }
+        .status-wait { color: #f57c00; font-weight: bold; }
+
+        /* Kalender */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-weight: bold; font-size: 1.2em; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #dee2e6; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+        .calendar-day-head { background: #e9ecef; text-align: center; padding: 10px; font-weight: bold; }
+        .calendar-day { background: white; min-height: 90px; padding: 5px; position: relative; }
         .calendar-day.today { background: #fff9c4; }
-        .event-dot { font-size: 0.65em; padding: 2px 4px; border-radius: 3px; margin: 1px 0; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .event-dot { font-size: 0.75em; padding: 3px 6px; border-radius: 4px; margin: 2px 0; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
         
-        /* TEAM FARBEN */
+        /* Team Farben */
         .team-lg1 { background: #2e7d32; } .team-lg2 { background: #4caf50; } 
         .team-lp1 { background: #1565c0; } .team-lp2 { background: #2196f3; }
         .team-auflage { background: #ef6c00; } .team-default { background: #78909c; }
 
-        /* ADMIN & LISTEN */
-        table { width: 100%; border-collapse: collapse; font-size: 0.9em; table-layout: fixed; }
-        th, td { border-bottom: 1px solid #eee; padding: 12px 5px; text-align: left; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; }
-        
-        /* Spezifische Breiten für Admin-Tabelle */
-        .col-name { width: auto; }
-        .col-hours { width: 65px; text-align: right; font-weight: bold; }
-        .col-cap { width: 50px; text-align: center; }
-
-        .progress-container { background: #eee; border-radius: 10px; height: 20px; width: 100%; position: relative; overflow: hidden; margin: 10px 0; }
-        .progress-bar { background: #1976d2; height: 100%; transition: width 0.5s; }
-        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 20px; font-size: 11px; font-weight: bold; }
-        .section-box { border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; }
-        
-        @media (max-width: 600px) {
-            table { font-size: 0.8em; }
-            .col-hours { width: 55px; }
-            .col-cap { width: 45px; }
-        }
+        /* Progress */
+        .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; margin: 10px 0; border: 1px solid #ced4da; }
+        .progress-bar { background: linear-gradient(90deg, #1976d2, #2196f3); height: 100%; transition: width 0.6s ease; }
+        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; color: #000; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="loading-ui" style="text-align:center; padding:20px;">Lade Hubertus Pro...</div>
+    <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro wird geladen...</div>
 
     <div id="auth-ui" style="display:none;">
-        <h2 style="text-align:center;">Hubertus Login</h2>
+        <h2 style="text-align:center;">Login</h2>
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort">
         <button onclick="handleLogin()">Anmelden</button>
@@ -71,87 +68,100 @@
         </div>
 
         <div id="view-home">
-            <h3>Stundenübersicht</h3>
-            <div style="background:#e3f2fd; padding:10px; border-radius:10px;">
-                <label>Soll: 10 Stunden</label>
+            <h3>Deine Stunden</h3>
+            <div style="background:#e3f2fd; padding:15px; border-radius:12px; border: 1px solid #bbdefb;">
+                <label>Jahresziel: 10 Stunden</label>
                 <div class="progress-container">
                     <div id="my-progress-bar" class="progress-bar" style="width: 0%;"></div>
                     <div id="my-progress-label" class="progress-text">0 / 10 h</div>
                 </div>
             </div>
-            <h4>Stunden melden</h4>
-            <input type="date" id="date">
-            <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
-            <textarea id="description" placeholder="Tätigkeit..."></textarea>
-            <button onclick="sendHours()">Absenden</button>
-            <table style="table-layout: auto;">
-                <thead><tr><th>Datum</th><th>Was</th><th>Std.</th><th>Status</th></tr></thead>
+
+            <h4 style="margin-top:25px;">Neue Tätigkeit melden</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="date" id="date">
+                <input type="number" id="hours" step="0.5" placeholder="Stunden (z.B. 1.5)">
+            </div>
+            <textarea id="description" placeholder="Was hast du gemacht? (z.B. Standreinigung, Festdienst...)"></textarea>
+            <button onclick="sendHours()">Eintrag absenden</button>
+
+            <h4 style="margin-top:25px;">Deine Historie</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Tätigkeit</th>
+                        <th>Dauer</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
                 <tbody id="history-body"></tbody>
             </table>
         </div>
 
         <div id="view-events" style="display:none;">
-            <div id="event-filter-ui" style="margin-bottom:10px; background:#eee; padding:10px; border-radius:8px;">
-                <label style="font-size:0.8em; font-weight:bold;">Anzeige:</label>
+            <div id="event-filter-ui" style="margin-bottom:15px; background:#f8f9fa; padding:15px; border-radius:8px; border: 1px solid #dee2e6;">
+                <label style="font-weight:bold;">Filter:</label>
                 <select id="event-view-filter" onchange="renderCalendar()">
-                    <option value="my_team" selected>Nur meine Mannschaft</option>
-                    <option value="all_teams">Alle Mannschaften</option>
+                    <option value="my_team">Nur meine Mannschaft</option>
+                    <option value="all_teams">Gesamter Verein</option>
                 </select>
             </div>
             <div class="calendar-header">
-                <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
+                <button onclick="changeMonth(-1)" style="width:50px;">&lt;</button>
                 <span id="current-month-display"></span>
-                <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
+                <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
             </div>
             <div id="calendar-container" class="calendar-grid"></div>
-            <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:15px; margin-top:20px; border-radius:10px;">
-                <h4 style="margin:0 0 10px 0; color:#ef6c00;">Neuer Wettkampf für <span id="cap-team-name"></span></h4>
-                <input type="date" id="ev-date">
-                <input type="time" id="ev-time">
-                <input type="text" id="ev-opp" placeholder="Gegner / Ort">
+            
+            <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:20px; margin-top:30px; border-radius:12px; background: #fff8e1;">
+                <h4 style="margin:0 0 15px 0; color:#e65100;">Wettkampf eintragen für <span id="cap-team-name"></span></h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="ev-date">
+                    <input type="time" id="ev-time">
+                </div>
+                <input type="text" id="ev-opp" placeholder="Gegner & Ort">
                 <button onclick="saveEvent()" style="background:#ef6c00;">Termin speichern</button>
             </div>
         </div>
 
         <div id="view-profile" style="display:none;">
-            <h3>Profil-Einstellungen</h3>
-            <div class="section-box">
-                <label>Name:</label><input type="text" id="prof-name">
-                <label>Mannschaft:</label>
-                <select id="prof-team">
-                    <option value="Luftgewehr 1">Luftgewehr 1</option>
-                    <option value="Luftgewehr 2">Luftgewehr 2</option>
-                    <option value="Luftgewehr 3">Luftgewehr 3</option>
-                    <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
-                    <option value="Luftpistole 1">Luftpistole 1</option>
-                    <option value="Luftpistole 2">Luftpistole 2</option>
-                    <option value="Sportpistole">Sportpistole</option>
-                    <option value="Passiv / Sonstige">Passiv / Sonstige</option>
-                </select>
-                <button onclick="updateProfile()">Stammdaten speichern</button>
+            <h3>Dein Profil</h3>
+            <label>Vollständiger Name:</label><input type="text" id="prof-name">
+            <label>Stamm-Mannschaft:</label>
+            <select id="prof-team">
+                <option value="Luftgewehr 1">Luftgewehr 1</option>
+                <option value="Luftgewehr 2">Luftgewehr 2</option>
+                <option value="Luftgewehr Auflage">Luftgewehr Auflage</option>
+                <option value="Luftpistole 1">Luftpistole 1</option>
+                <option value="Sportpistole">Sportpistole</option>
+                <option value="Passiv / Sonstige">Passiv / Sonstige</option>
+            </select>
+            <button onclick="updateProfile()">Speichern</button>
+            
+            <div style="margin-top:30px; padding:15px; background:#f1f3f5; border-radius:8px;">
+                <h4>Passwort ändern</h4>
+                <input type="password" id="new-password" placeholder="Neues Passwort">
+                <input type="password" id="new-password-confirm" placeholder="Wiederholen">
+                <button onclick="updatePassword()" style="background:#495057;">Passwort aktualisieren</button>
             </div>
-            <div class="section-box" style="background: #f9f9f9; padding: 10px; border-radius: 8px;">
-                <label>Neues Passwort:</label>
-                <input type="password" id="new-password" placeholder="Mind. 6 Zeichen">
-                <input type="password" id="new-password-confirm" placeholder="Passwort wiederholen">
-                <button onclick="updatePassword()" style="background: #555;">Passwort ändern</button>
-            </div>
-            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:30px;">Abmelden</button>
+            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Logout</button>
         </div>
 
         <div id="view-admin" style="display:none;">
-            <div id="admin-pending-section" style="background:#fff3e0; padding:10px; border-radius:8px; margin-bottom:20px; display:none;">
-                <h4>⏳ Offene Anträge</h4>
-                <table id="admin-pending-table" style="table-layout: auto;"></table>
+            <div id="admin-pending-section" style="background:#fff3e0; padding:15px; border-radius:12px; margin-bottom:25px; border: 1px solid #ffe0b2; display:none;">
+                <h4 style="margin-top:0;">⏳ Offene Genehmigungen</h4>
+                <table id="admin-pending-table"></table>
             </div>
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export</button>
-            <h4 style="margin-bottom: 5px;">Mitglieder-Übersicht</h4>
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Report generieren</button>
+            <h4>Mitglieder-Statusübersicht</h4>
             <table>
                 <thead>
                     <tr>
-                        <th class="col-name">Name</th>
-                        <th class="col-hours">Std.</th>
-                        <th class="col-cap">Cap</th>
+                        <th>Name</th>
+                        <th>Mannschaft</th>
+                        <th>Stunden</th>
+                        <th style="text-align:center;">Kapitän</th>
                     </tr>
                 </thead>
                 <tbody id="admin-member-table"></tbody>
@@ -207,6 +217,7 @@
         const desc = document.getElementById('description').value;
         if(!date || !hours) return alert("Bitte Datum und Stunden angeben");
         await sb.from('work_hours').insert([{ user_id: currentUser.id, date, duration: hours, description: desc, status: 'pending' }]);
+        alert("Eingereicht!");
         loadHistory();
     }
 
@@ -215,7 +226,13 @@
         const approved = data ? data.filter(h => h.status === 'approved').reduce((sum, h) => sum + h.duration, 0) : 0;
         document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
         document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
-        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status === 'approved' ? '✅' : '⏳'}</td></tr>`).join('') : "";
+        document.getElementById('history-body').innerHTML = data ? data.map(h => `
+            <tr>
+                <td>${new Date(h.date).toLocaleDateString('de-DE')}</td>
+                <td>${h.description}</td>
+                <td>${h.duration} h</td>
+                <td class="${h.status==='approved'?'status-ok':'status-wait'}">${h.status==='approved'?'✅ Genehmigt':'⏳ Wartend'}</td>
+            </tr>`).join('') : "";
     }
 
     async function loadAllEvents() {
@@ -262,35 +279,35 @@
 
     async function saveEvent() {
         const date = document.getElementById('ev-date').value;
+        const time = document.getElementById('ev-time').value;
         const opp = document.getElementById('ev-opp').value;
-        if(!date || !opp) return alert("Datum und Gegner fehlen");
-        await sb.from('tournaments').insert([{ date, opponent: opp, team: userTeam }]);
+        if(!date || !opp) return alert("Daten unvollständig");
+        await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam }]);
         loadAllEvents();
-    }
-
-    async function updatePassword() {
-        const p1 = document.getElementById('new-password').value;
-        const p2 = document.getElementById('new-password-confirm').value;
-        if (p1.length < 6) return alert("Passwort zu kurz.");
-        if (p1 !== p2) return alert("Differenz.");
-        const { error } = await sb.auth.updateUser({ password: p1 });
-        if (error) alert(error.message); else alert("OK");
     }
 
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
         const pending = hours ? hours.filter(h => h.status === 'pending') : [];
+        
         if(pending.length) {
             document.getElementById('admin-pending-section').style.display = 'block';
-            document.getElementById('admin-pending-table').innerHTML = pending.map(h => `<tr><td>${profs.find(p=>p.id===h.user_id)?.full_name}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:5px; width:auto;">✅</button></td></tr>`).join('');
+            document.getElementById('admin-pending-table').innerHTML = pending.map(h => `
+                <tr>
+                    <td>${profs.find(p=>p.id===h.user_id)?.full_name}</td>
+                    <td>${h.duration}h - ${h.description}</td>
+                    <td><button onclick="approve('${h.id}')" style="width:auto; padding:5px 10px;">Genehmigen ✅</button></td>
+                </tr>`).join('');
         }
+        
         document.getElementById('admin-member-table').innerHTML = profs.map(p => {
             const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + h.duration, 0) : 0;
             return `<tr>
-                <td class="col-name">${p.full_name || 'Unbekannt'}</td>
-                <td class="col-hours">${sum}/10h</td>
-                <td class="col-cap"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:20px; height:20px; margin:0;"></td>
+                <td>${p.full_name || 'Gast'}</td>
+                <td>${p.team || '-'}</td>
+                <td style="font-weight:bold;">${sum} / 10 h</td>
+                <td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:20px;height:20px;"></td>
             </tr>`;
         }).join('');
     }
@@ -311,7 +328,14 @@
         const name = document.getElementById('prof-name').value;
         const team = document.getElementById('prof-team').value;
         await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, team: team });
-        alert("OK"); location.reload();
+        alert("Profil gespeichert!");
+    }
+
+    async function updatePassword() {
+        const p1 = document.getElementById('new-password').value;
+        if(p1.length < 6) return alert("Passwort zu kurz!");
+        await sb.auth.updateUser({ password: p1 });
+        alert("Passwort geändert!");
     }
 </script>
 </body>
