@@ -27,10 +27,7 @@
         .event-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .badge-home { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 5px; border: 1px solid #c8e6c9; }
         .pending-container { background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 10px; margin-bottom: 20px; }
-        .status-rejected { color: #b71c1c; font-weight: bold; }
         .reason-text { color: #d32f2f; font-style: italic; display: block; font-size: 0.9em; }
-
-        /* NEU: Fortschrittsbalken Styles */
         .progress-container { background: #eee; border-radius: 10px; height: 24px; width: 100%; margin: 10px 0; overflow: hidden; position: relative; border: 1px solid #ccc; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.5s ease-in-out; }
         .progress-text { position: absolute; width: 100%; text-align: center; top: 0; line-height: 24px; font-size: 12px; font-weight: bold; color: #000; }
@@ -59,14 +56,13 @@
 
         <div id="view-home">
             <h3>Deine Stundenübersicht</h3>
-            <div id="personal-stats" class="section-box" style="background:#e3f2fd; border-color:#bbdefb; margin-top:0;">
+            <div class="section-box" style="background:#e3f2fd; border-color:#bbdefb; margin-top:0;">
                 <label>Fortschritt (Soll: 10 Stunden)</label>
                 <div class="progress-container">
                     <div id="my-progress-bar" class="progress-bar" style="width: 0%;"></div>
                     <div id="my-progress-label" class="progress-text">0 / 10 Stunden</div>
                 </div>
             </div>
-
             <h4 style="margin-top:20px;">Stunden melden</h4>
             <input type="date" id="date">
             <select id="activity">
@@ -75,7 +71,6 @@
             <textarea id="description" placeholder="Was wurde genau gemacht?"></textarea>
             <input type="number" id="hours" step="0.5" placeholder="Stundenanzahl">
             <button onclick="sendData()">Absenden</button>
-            
             <table>
                 <thead><tr><th>Datum</th><th>Info</th><th>Std.</th><th>Status</th></tr></thead>
                 <tbody id="history-body"></tbody>
@@ -84,6 +79,13 @@
 
         <div id="view-events" style="display:none;">
             <h3>Wettkämpfe & Termine</h3>
+            <div id="event-filter-ui" style="display:none; margin-bottom: 15px; padding: 10px; background: #eee; border-radius: 8px;">
+                <label style="font-size: 0.85em; font-weight: bold;">Anzeige-Modus:</label>
+                <select id="event-view-filter" onchange="loadEvents()">
+                    <option value="my_team">Nur meine Mannschaft</option>
+                    <option value="all_teams">Alle Mannschaften (Gesamtübersicht)</option>
+                </select>
+            </div>
             <div id="captain-form" style="display:none; background:#fff3e0; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid #ffe0b2;">
                 <h4>Neuer Termin für <span id="cap-team-name"></span></h4>
                 <div style="display: flex; gap: 10px;">
@@ -136,15 +138,12 @@
                     <tbody id="admin-pending-body"></tbody>
                 </table>
             </div>
-
             <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:15px;">📄 PDF Export (Detailliert)</button>
-            
             <h4>Mitglieder Übersicht</h4>
             <table>
                 <thead><tr><th>Name</th><th>Stunden (genehmigt)</th><th>Kapitän</th></tr></thead>
                 <tbody id="admin-member-body"></tbody>
             </table>
-
             <div id="admin-explorer" class="explorer-card" style="display:none;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ccc; padding-bottom:5px;">
                     <h4 id="explorer-name" style="margin:0;">Stunden-Details</h4>
@@ -181,9 +180,12 @@
             userTeam = p.team || "Nicht zugewiesen";
             document.getElementById('profile-name-input').value = p.full_name || '';
             document.getElementById('profile-team-input').value = userTeam;
-            if(isCaptain) { 
-                document.getElementById('captain-form').style.display='block'; 
-                document.getElementById('cap-team-name').innerText = userTeam; 
+            if(isCaptain || isAdmin) {
+                document.getElementById('event-filter-ui').style.display = 'block';
+                if(isCaptain) {
+                    document.getElementById('captain-form').style.display='block'; 
+                    document.getElementById('cap-team-name').innerText = userTeam; 
+                }
             }
             if(isAdmin) document.getElementById('tab-admin').style.display='block';
         }
@@ -193,6 +195,7 @@
         loadHistory(); loadEvents();
     }
 
+    // STUNDEN LOGIK
     async function sendData() {
         const date = document.getElementById('date').value;
         const dur = parseFloat(document.getElementById('hours').value);
@@ -205,11 +208,8 @@
 
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', { ascending: false });
-        
-        // Berechnung für Balken (nur genehmigte)
         const approvedHours = data.filter(h => h.status === 'approved').reduce((sum, h) => sum + (h.duration || 0), 0);
         updateProgressBar(approvedHours);
-
         document.getElementById('history-body').innerHTML = data.map(h => {
             const statusIcon = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
             const reason = h.rejection_reason ? `<br><small class="reason-text">Grund: ${h.rejection_reason}</small>` : '';
@@ -221,28 +221,29 @@
         const goal = 10;
         const percent = Math.min((hours / goal) * 100, 100);
         const bar = document.getElementById('my-progress-bar');
-        const label = document.getElementById('my-progress-label');
-        
         bar.style.width = percent + "%";
-        label.innerText = `${hours} / ${goal} Stunden erreicht`;
-        
-        if(hours >= goal) bar.classList.add('goal-reached');
-        else bar.classList.remove('goal-reached');
+        document.getElementById('my-progress-label').innerText = `${hours} / ${goal} Stunden erreicht`;
+        if(hours >= goal) bar.classList.add('goal-reached'); else bar.classList.remove('goal-reached');
     }
 
-    // --- RESTRICHTE ADMIN/PROFIL/WETTKAMPF FUNKTIONEN --- (Identisch zu vorher)
+    // WETTKAMPF LOGIK
     async function loadEvents() {
+        const filterValue = document.getElementById('event-view-filter').value;
         let query = sb.from('tournaments').select('*').order('date', { ascending: true });
-        if(!isAdmin) query = query.eq('team', userTeam);
+        if(!isAdmin && (!isCaptain || filterValue === 'my_team')) query = query.eq('team', userTeam);
         const { data } = await query;
         const list = document.getElementById('event-list');
         if(data && data.length > 0) {
             list.innerHTML = data.map(e => `
-                <div class="event-item">
-                    <div><b>${new Date(e.date).toLocaleDateString('de-DE')}</b> - ${e.time || ''} Uhr<br>${e.opponent} ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}</div>
-                    ${(isCaptain || isAdmin) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">Löschen</button>` : ''}
+                <div class="event-item" style="border-left: 4px solid ${e.team === userTeam ? '#2e7d32' : '#999'}; padding-left: 10px;">
+                    <div style="flex-grow:1;">
+                        <small style="color:#666;">${e.team}</small><br>
+                        <b>${new Date(e.date).toLocaleDateString('de-DE')}</b> - ${e.time || '--:--'} Uhr<br>
+                        vs. ${e.opponent} ${e.is_home ? '<span class="badge-home">Heim</span>' : ''}
+                    </div>
+                    ${(isAdmin || (isCaptain && e.team === userTeam)) ? `<button class="btn-delete" onclick="deleteEvent('${e.id}')">🗑️</button>` : ''}
                 </div>`).join('');
-        } else { list.innerHTML = "Keine Termine."; }
+        } else list.innerHTML = "<p style='text-align:center; color:#777;'>Keine Termine.</p>";
     }
 
     async function saveEvent() {
@@ -250,21 +251,19 @@
         const time = document.getElementById('event-time').value;
         const opp = document.getElementById('event-opponent').value;
         const isHome = document.getElementById('event-is-home').checked;
-        const { error } = await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
-        if(error) alert(error.message); else loadEvents();
+        if(!date || !opp) return alert("Pflichtfelder ausfüllen!");
+        await sb.from('tournaments').insert([{ date, time, opponent: opp, team: userTeam, is_home: isHome, created_by: currentUser.id }]);
+        loadEvents();
     }
 
     async function deleteEvent(id) {
-        if(confirm("Wettkampf löschen?")) {
-            await sb.from('tournaments').delete().eq('id', id);
-            loadEvents();
-        }
+        if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadEvents(); }
     }
 
+    // ADMIN LOGIK
     async function loadAdminData() {
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').order('date', { ascending: false });
-        
         const pending = hours.filter(h => h.status === 'pending');
         if(pending.length > 0) {
             document.getElementById('pending-section').style.display = 'block';
@@ -282,16 +281,14 @@
 
     async function approveEntry(id, uid = null, name = null) {
         await sb.from('work_hours').update({ status: 'approved', rejection_reason: null }).eq('id', id);
-        if(uid) openExplorer(uid, name);
-        loadAdminData();
+        if(uid) openExplorer(uid, name); loadAdminData();
     }
 
     async function rejectEntry(id, uid = null, name = null) {
         const reason = prompt("Grund für die Ablehnung:");
         if (reason === null) return;
         await sb.from('work_hours').update({ status: 'rejected', rejection_reason: reason }).eq('id', id);
-        if(uid) openExplorer(uid, name);
-        loadAdminData();
+        if(uid) openExplorer(uid, name); loadAdminData();
     }
 
     async function openExplorer(uid, name) {
@@ -302,8 +299,10 @@
     }
 
     async function deleteAdminEntry(id, uid, name) {
-        if(confirm("Löschen?")) { await sb.from('work_hours').delete().eq('id', id); openExplorer(uid, name); loadAdminData(); }
+        if(confirm("Eintrag unwiderruflich löschen?")) { await sb.from('work_hours').delete().eq('id', id); openExplorer(uid, name); loadAdminData(); }
     }
+
+    async function toggleCaptain(uid, status) { await sb.from('profiles').update({ is_captain: status }).eq('id', uid); }
 
     async function exportToPDF() {
         const { data: profiles } = await sb.from('profiles').select('*').order('full_name');
@@ -323,6 +322,7 @@
         doc.save("Hubertus_Stunden.pdf");
     }
 
+    // ALLGEMEINE UI LOGIK
     function switchTab(tab) {
         ['home', 'events', 'profile', 'admin'].forEach(t => {
             document.getElementById('view-' + t).style.display = (t === tab) ? 'block' : 'none';
@@ -346,7 +346,7 @@
         const p1 = document.getElementById('new-password').value;
         const p2 = document.getElementById('new-password-confirm').value;
         if(p1 && p1 === p2) { await sb.auth.updateUser({ password: p1 }); alert("Passwort geändert!"); }
-        else alert("Fehler bei Passworteingabe!");
+        else alert("Passwörter stimmen nicht überein!");
     }
 </script>
 </body>
