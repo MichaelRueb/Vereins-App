@@ -22,7 +22,6 @@
         th { background: #f8f9fa; padding: 12px 10px; text-align: left; border-bottom: 2px solid #dee2e6; }
         td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
 
-        /* Status & Kalender */
         .status-ok { color: #2e7d32; font-weight: bold; }
         .status-wait { color: #f57c00; font-weight: bold; }
 
@@ -40,6 +39,8 @@
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
+        
+        .admin-link { color: #1976d2; cursor: pointer; text-decoration: underline; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -96,7 +97,6 @@
                 <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
             </div>
             <div id="calendar-container" class="calendar-grid"></div>
-            
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:20px; margin-top:30px; border-radius:12px; background: #fff8e1;">
                 <h4 style="margin:0 0 15px 0; color:#e65100;">Wettkampf eintragen als <span id="cap-team-name"></span>-Kapitän</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -137,7 +137,7 @@
                     <tbody id="admin-pending-body"></tbody>
                 </table>
             </div>
-            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Export</button>
+            <button onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Report generieren</button>
             <h4>Mitgliederübersicht</h4>
             <table>
                 <thead>
@@ -150,6 +150,14 @@
                 </thead>
                 <tbody id="admin-member-table"></tbody>
             </table>
+            
+            <div id="admin-detail-view" style="margin-top:30px; display:none; padding:15px; background:#e8f5e9; border-radius:12px;">
+                <h4 id="detail-name">Stunden-Details</h4>
+                <table id="detail-table">
+                    <thead><tr><th>Datum</th><th>Tätigkeit</th><th>Dauer</th></tr></thead>
+                    <tbody id="detail-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -194,7 +202,6 @@
         loadHistory(); loadAllEvents();
     }
 
-    /* STUNDEN LOGIK */
     async function sendHours() {
         const date = document.getElementById('date').value;
         const h = document.getElementById('hours').value;
@@ -212,7 +219,6 @@
         document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('') : "";
     }
 
-    /* KALENDER LOGIK */
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*');
         allEvents = data || []; renderCalendar();
@@ -263,7 +269,6 @@
         loadAllEvents();
     }
 
-    /* ADMIN LOGIK */
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
@@ -276,9 +281,48 @@
             }).join('');
         }
         document.getElementById('admin-member-table').innerHTML = profs.map(p => {
-            const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + h.duration, 0) : 0;
-            return `<tr><td>${p.full_name || 'Gast'}</td><td><small>${p.team || '-'}</small></td><td><b>${sum}/10h</b></td><td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td></tr>`;
+            const userHours = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved') : [];
+            const sum = userHours.reduce((s, h) => s + h.duration, 0);
+            return `<tr>
+                <td><span class="admin-link" onclick='showDetails("${p.id}", "${p.full_name}")'>${p.full_name || 'Gast'}</span></td>
+                <td><small>${p.team || '-'}</small></td>
+                <td><b>${sum}/10h</b></td>
+                <td style="text-align:center;"><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''}></td>
+            </tr>`;
         }).join('');
+    }
+
+    async function showDetails(userId, name) {
+        const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', userId).eq('status', 'approved').order('date', {ascending: false});
+        document.getElementById('detail-name').innerText = "Details für: " + name;
+        document.getElementById('detail-body').innerHTML = hours.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td></tr>`).join('');
+        document.getElementById('admin-detail-view').style.display = 'block';
+    }
+
+    async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
+
+        doc.setFontSize(18);
+        doc.text("Arbeitsstunden Hubertus Schützen", 14, 20);
+        doc.setFontSize(10);
+        doc.text("Stand: " + new Date().toLocaleDateString(), 14, 28);
+
+        const tableData = profs.map(p => {
+            const sum = hours.filter(h => h.user_id === p.id).reduce((s, h) => s + h.duration, 0);
+            return [p.full_name, p.team || '-', sum + " h"];
+        });
+
+        doc.autoTable({
+            startY: 35,
+            head: [['Mitglied', 'Mannschaft', 'Stunden Gesamt']],
+            body: tableData,
+            theme: 'striped'
+        });
+
+        doc.save("Hubertus_Stunden_Report.pdf");
     }
 
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
