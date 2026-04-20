@@ -51,8 +51,9 @@
         .checkbox-container { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 0.9em; }
         .checkbox-container input { width: auto; margin: 0; }
         
-        .edit-btn { cursor: pointer; background: #f0f0f0; border-radius: 4px; padding: 4px 8px; font-size: 1.2em; border: 1px solid #ccc; }
+        .edit-btn, .delete-btn { cursor: pointer; background: #f0f0f0; border-radius: 4px; padding: 4px 6px; font-size: 1.1em; border: 1px solid #ccc; margin: 0 2px; display: inline-block; }
         .edit-btn:hover { background: #e0e0e0; }
+        .delete-btn:hover { background: #ffebee; border-color: #ef5350; }
         
         .section-divider { margin: 25px 0 15px 0; border-top: 2px solid #eee; padding-top: 15px; }
     </style>
@@ -128,7 +129,7 @@
                     </select>
                 </div>
                 <table>
-                    <thead><tr><th>Datum</th><th>Mannschaft</th><th>Gegner</th><th>Aktion</th></tr></thead>
+                    <thead><tr><th>Datum</th><th>Mannschaft</th><th>Gegner</th><th style="text-align:center;">Aktion</th></tr></thead>
                     <tbody id="tournament-list-body"></tbody>
                 </table>
             </div>
@@ -249,19 +250,11 @@
     async function changePassword() {
         const newPass = document.getElementById('new-password').value;
         const confirmPass = document.getElementById('new-password-confirm').value;
-        
         if (newPass.length < 6) return alert("Das Passwort muss mindestens 6 Zeichen lang sein.");
         if (newPass !== confirmPass) return alert("Die Passwörter stimmen nicht überein.");
-
         const { error } = await sb.auth.updateUser({ password: newPass });
-        
-        if (error) {
-            alert("Fehler beim Ändern des Passworts: " + error.message);
-        } else {
-            alert("Passwort erfolgreich geändert!");
-            document.getElementById('new-password').value = "";
-            document.getElementById('new-password-confirm').value = "";
-        }
+        if (error) { alert("Fehler beim Ändern des Passworts: " + error.message); } 
+        else { alert("Passwort erfolgreich geändert!"); document.getElementById('new-password').value = ""; document.getElementById('new-password-confirm').value = ""; }
     }
 
     async function loadAllEvents() {
@@ -278,27 +271,38 @@
         
         listBody.innerHTML = filteredEvents.map(e => {
             const canEdit = isAdmin || (isCaptain && e.team === userTeam);
-            const editIcon = canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span>` : '';
+            const actions = canEdit ? `
+                <span class="edit-btn" onclick="editEvent('${e.id}')" title="Bearbeiten">✏️</span>
+                <span class="delete-btn" onclick="deleteEvent('${e.id}')" title="Löschen">🗑️</span>
+            ` : '';
             return `
                 <tr>
                     <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
                     <td><span style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;" class="${getTeamClass(e.team)}"></span>${e.team}</td>
                     <td>${e.opponent} ${e.time ? '('+e.time+' Uhr)' : ''}</td>
-                    <td style="text-align:center;">${editIcon}</td>
+                    <td style="text-align:center;">${actions}</td>
                 </tr>
             `;
         }).join('');
     }
 
+    async function deleteEvent(id) {
+        const ev = allEvents.find(e => e.id == id);
+        if(!ev) return;
+        if(confirm(`Möchtest du den Wettkampf gegen "${ev.opponent}" am ${new Date(ev.date).toLocaleDateString('de-DE')} wirklich löschen?`)) {
+            const { error } = await sb.from('tournaments').delete().eq('id', id);
+            if(error) alert("Fehler beim Löschen: " + error.message);
+            else loadAllEvents();
+        }
+    }
+
     function editEvent(id) {
         const ev = allEvents.find(e => e.id == id);
         if(!ev) return;
-        
         editingEventTeam = ev.team; 
         document.getElementById('edit-event-id').value = ev.id;
         document.getElementById('ev-date').value = ev.date;
         document.getElementById('ev-time').value = ev.time || "";
-        
         if(ev.opponent.includes(" (Heim)")) {
             document.getElementById('ev-opp').value = ev.opponent.replace(" (Heim)", "");
             document.getElementById('ev-home-check').checked = true;
@@ -306,7 +310,6 @@
             document.getElementById('ev-opp').value = ev.opponent;
             document.getElementById('ev-home-check').checked = false;
         }
-
         document.getElementById('form-event-title').innerText = "Wettkampf bearbeiten (" + editingEventTeam + ")";
         document.getElementById('save-event-btn').innerText = "Änderungen speichern";
         document.getElementById('cancel-edit-btn').style.display = "inline-block";
@@ -329,7 +332,6 @@
         const id = document.getElementById('edit-event-id').value;
         let opponent = document.getElementById('ev-opp').value;
         if(document.getElementById('ev-home-check').checked) { opponent += " (Heim)"; }
-
         const targetTeam = id ? editingEventTeam : userTeam;
         const eventData = { 
             date: document.getElementById('ev-date').value, 
@@ -337,13 +339,8 @@
             opponent: opponent, 
             team: targetTeam 
         };
-
-        if(id) {
-            await sb.from('tournaments').update(eventData).eq('id', id);
-        } else {
-            await sb.from('tournaments').insert([eventData]);
-        }
-
+        if(id) await sb.from('tournaments').update(eventData).eq('id', id);
+        else await sb.from('tournaments').insert([eventData]);
         resetEventForm();
         loadAllEvents();
     }
