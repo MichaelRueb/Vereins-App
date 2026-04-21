@@ -145,14 +145,25 @@
             </div>
         </div>
 
-        <div id="view-profile" style="display:none;">
-            <h3>Dein Profil</h3>
-            <input type="text" id="prof-name" placeholder="Voller Name">
-            <label style="font-weight:bold; display:block; margin-top:10px;">Meine Mannschaften:</label>
-            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top:5px;"></div>
-            <button onclick="updateProfile()" style="margin-top:15px;">Profil Speichern</button>
-            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
-        </div>
+       <div id="view-profile" style="display:none;">
+    <h3>Dein Profil</h3>
+    <label style="font-size: 0.8em; font-weight: bold;">Name:</label>
+    <input type="text" id="prof-name" placeholder="Voller Name">
+    
+    <label style="font-weight:bold; display:block; margin-top:10px;">Meine Mannschaften:</label>
+    <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top:5px;"></div>
+    
+    <button onclick="updateProfile()" style="margin-top:15px;">Name & Teams speichern</button>
+
+    <hr style="margin: 25px 0; border: 0; border-top: 1px dashed #ccc;">
+
+    <h4 style="color: #2e7d32;">Passwort ändern</h4>
+    <input type="password" id="new-password" placeholder="Neues Passwort">
+    <input type="password" id="new-password-confirm" placeholder="Neues Passwort bestätigen">
+    <button onclick="changePassword()" style="background: #555;">Passwort aktualisieren</button>
+
+    <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:40px;">Abmelden</button>
+</div>
 
         <div id="view-admin" style="display:none;">
             <button onclick="exportToPDF()" style="background:#0277bd;">📄 PDF Report</button>
@@ -463,6 +474,28 @@
         if(id) await sb.from('tournaments').update(d).eq('id', id); else await sb.from('tournaments').insert([d]);
         resetEventForm(); loadAllEvents();
     }
+    async function changePassword() {
+    const newPass = document.getElementById('new-password').value;
+    const confirmPass = document.getElementById('new-password-confirm').value;
+
+    if (!newPass || newPass.length < 6) {
+        return alert("Das Passwort muss mindestens 6 Zeichen lang sein.");
+    }
+
+    if (newPass !== confirmPass) {
+        return alert("Die Passwörter stimmen nicht überein!");
+    }
+
+    const { error } = await sb.auth.updateUser({ password: newPass });
+
+    if (error) {
+        alert("Fehler: " + error.message);
+    } else {
+        alert("Passwort erfolgreich geändert!");
+        document.getElementById('new-password').value = "";
+        document.getElementById('new-password-confirm').value = "";
+    }
+}
 </script>
 </body>
 </html>
