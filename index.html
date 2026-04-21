@@ -354,19 +354,86 @@
         if(t==='admin') loadAdmin(); if(t==='events') loadAllEvents();
     }
 
-    async function exportToPDF() {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
-        doc.text("Hubertus Report", 14, 15); let y = 25;
-        profs.forEach(p => {
-            const mH = hours.filter(h => h.user_id === p.id);
-            const total = mH.reduce((s, h) => s + parseFloat(h.duration), 0);
-            doc.text(`${p.full_name || 'Gast'} - ${total}h`, 14, y);
-            y += 10; if(y > 280) { doc.addPage(); y = 20; }
-        });
-        doc.save("Report.pdf");
+   async function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Daten holen
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+
+    // 1. Kopfzeile & Titel
+    doc.setFontSize(22);
+    doc.setTextColor(46, 125, 50); // Hubertus Grün
+    doc.text("Hubertus Stunden-Report", 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const dateString = new Date().toLocaleDateString('de-DE');
+    doc.text(`Erstellt am: ${dateString}`, 14, 28);
+    
+    // Horizontale Linie
+    doc.setDrawColor(200);
+    doc.line(14, 32, 196, 32);
+
+    let currentY = 40;
+
+    // 2. Tabellen-Logik
+    const tableRows = [];
+
+    profs.forEach(p => {
+        const memberHours = hours.filter(h => h.user_id === p.id);
+        const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+        
+        // Hauptzeile für das Mitglied
+        tableRows.push([
+            { content: p.full_name || 'Gast', styles: { fontStyle: 'bold' } },
+            p.team || '-',
+            { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right' } }
+        ]);
+
+        // Detailzeilen (kleiner gedruckt darunter)
+        if (memberHours.length > 0) {
+            let detailText = memberHours.map(h => `${h.date}: ${h.description} (${h.duration}h)`).join('\n');
+            tableRows.push([
+                { content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {top: 1, bottom: 3, left: 10} } }
+            ]);
+        } else {
+            tableRows.push([
+                { content: "Keine Stunden erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic', cellPadding: {left: 10} } }
+            ]);
+        }
+    });
+
+    // 3. Tabelle generieren mit AutoTable
+    doc.autoTable({
+        startY: currentY,
+        head: [['Mitglied', 'Mannschaft', 'Gesamt']],
+        body: tableRows,
+        theme: 'striped',
+        headStyles: { fillColor: [46, 125, 50], textColor: 255 },
+        columnStyles: {
+            2: { cellWidth: 30 }
+        },
+        didParseCell: function(data) {
+            // Entfernt die Trennlinie zwischen Name und Details für eine sauberere Optik
+            if (data.row.index % 2 !== 0) {
+                data.cell.styles.fillColor = data.row.index % 4 === 1 ? [255, 255, 255] : [245, 245, 245];
+            }
+        }
+    });
+
+    // 4. Fusszeile auf jeder Seite
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Seite ${i} von ${pageCount} - SV Hubertus Pro`, 14, 285);
     }
+
+    doc.save(`Hubertus_Report_${dateString.replace(/\./g, '-')}.pdf`);
+}
 
     async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
     function editEvent(id) { 
