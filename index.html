@@ -350,12 +350,26 @@
     }
 
     function renderTournamentList() {
-        const filter = document.getElementById('event-view-filter').value;
-        document.getElementById('tournament-list-body').innerHTML = allEvents.filter(e => filter === 'all_teams' || e.team === filter).map(e => {
-            const canEdit = isAdmin || (isCaptain && userTeam.includes(e.team));
-            return `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td><span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block;"></span> ${e.team}</td><td>${e.opponent}</td><td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td></tr>`;
-        }).join('');
-    }
+    const filter = document.getElementById('event-view-filter').value;
+    
+    // Hier prüfen wir das Profil erneut auf is_official für die Buttons
+    sb.from('profiles').select('is_official').eq('id', currentUser.id).single().then(({data}) => {
+        const isOfficial = data?.is_official;
+        const canManageAll = isAdmin || isOfficial;
+
+        document.getElementById('tournament-list-body').innerHTML = allEvents
+            .filter(e => filter === 'all_teams' || e.team === filter)
+            .map(e => {
+                const canEdit = canManageAll || (isCaptain && userTeam.includes(e.team));
+                return `<tr>
+                    <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                    <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
+                    <td>${e.opponent}</td>
+                    <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
+                </tr>`;
+            }).join('');
+    });
+}
 
     function renderCalendar() {
         const container = document.getElementById('calendar-container'); container.innerHTML = '';
