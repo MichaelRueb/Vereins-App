@@ -524,35 +524,52 @@ async function exportToPDF() {
     }
     function resetEventForm() { document.getElementById('edit-event-id').value=""; document.getElementById('ev-opp').value=""; document.getElementById('cancel-edit-btn').style.display='none'; }
 
-    async function saveEvent() {
+   async function saveEvent() {
     const id = document.getElementById('edit-event-id').value;
     let opp = document.getElementById('ev-opp').value;
-    if (!opp || !document.getElementById('ev-date').value) return alert("Bitte Datum und Gegner angeben!");
+    const evDate = document.getElementById('ev-date').value;
+    const evTeam = document.getElementById('ev-team-select').value;
 
-    if (document.getElementById('ev-home-check').checked) opp += " (Heim)";
+    if (!opp || !evDate) return alert("Bitte Datum und Gegner angeben!");
+
+    // Heimspiel-Suffix hinzufügen
+    if (document.getElementById('ev-home-check').checked && !opp.includes("(Heim)")) {
+        opp += " (Heim)";
+    }
     
     const eventData = { 
-        date: document.getElementById('ev-date').value, 
+        date: evDate, 
         opponent: opp, 
-        team: document.getElementById('ev-team-select').value 
+        team: evTeam 
     };
 
-    // WICHTIG: Wir laden kurz den Status des aktuellen Nutzers
+    // 1. Aktuellen Nutzer-Status frisch abrufen
     const { data: p } = await sb.from('profiles').select('is_official, is_captain').eq('id', currentUser.id).single();
 
-    const canSave = isAdmin || p?.is_official || (p?.is_captain && userTeam.includes(eventData.team));
+    // 2. Berechtigung prüfen (Admin, Funktionär oder Kapitän des Teams)
+    const canSave = isAdmin || p?.is_official || (p?.is_captain && userTeam.includes(evTeam));
 
     if (canSave) {
+        let result;
         if (id) {
-            await sb.from('tournaments').update(eventData).eq('id', id);
+            // Update bestehender Termin
+            result = await sb.from('tournaments').update(eventData).eq('id', id);
         } else {
-            await sb.from('tournaments').insert([eventData]);
+            // Neu anlegen
+            result = await sb.from('tournaments').insert([eventData]);
         }
-        resetEventForm();
-        loadAllEvents();
-        alert("Wettkampf gespeichert!");
+
+        // 3. Fehlerprüfung von Supabase
+        if (result.error) {
+            console.error("Supabase Fehler:", result.error);
+            alert("Fehler beim Speichern in der Datenbank: " + result.error.message);
+        } else {
+            alert("Wettkampf erfolgreich gespeichert!");
+            resetEventForm();
+            await loadAllEvents(); // Kalender und Liste neu laden
+        }
     } else {
-        alert("Du hast keine Berechtigung, für dieses Team zu speichern.");
+        alert("Fehler: Du hast keine Berechtigung, für das Team '" + evTeam + "' zu speichern.");
     }
 }
     
