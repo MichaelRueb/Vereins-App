@@ -225,24 +225,39 @@
     }
 
     async function setupApp(user) {
-        currentUser = user;
-        isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        if (p) {
-            userTeam = p.team || ""; isCaptain = p.is_captain;
-            document.getElementById('prof-name').value = p.full_name || "";
-            renderTeamCheckboxes(userTeam);
-            if(isAdmin) document.getElementById('tab-admin').style.display = 'block';
-            if(isCaptain || isAdmin) {
-                document.getElementById('captain-form').style.display = 'block';
-                const myTeams = isAdmin ? ALL_TEAMS : userTeam.split(', ');
-                document.getElementById('ev-team-select').innerHTML = myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
-            }
+    currentUser = user;
+    // 1. Admin-Check über E-Mail
+    isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    
+    // Profil laden
+    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    
+    if (p) {
+        userTeam = p.team || ""; 
+        isCaptain = p.is_captain;
+        const isOfficial = p.is_official; // Wert aus der DB laden
+
+        document.getElementById('prof-name').value = p.full_name || "";
+        renderTeamCheckboxes(userTeam);
+
+        // 2. Tab-Sichtbarkeit: Zeige Admin-Tab für Admins ODER Funktionäre
+        if (isAdmin || isOfficial) {
+            document.getElementById('tab-admin').style.display = 'block';
         }
-        document.getElementById('loading-ui').style.display='none';
-        document.getElementById('form-ui').style.display='block';
-        loadHistory(); loadAllEvents();
+
+        // Wettkampf-Formular: Zeige für Kapitäne, Admins ODER Funktionäre
+        if (isCaptain || isAdmin || isOfficial) {
+            document.getElementById('captain-form').style.display = 'block';
+            const myTeams = (isAdmin || isOfficial) ? ALL_TEAMS : userTeam.split(', ');
+            document.getElementById('ev-team-select').innerHTML = myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+        }
     }
+    
+    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('form-ui').style.display = 'block';
+    loadHistory(); 
+    loadAllEvents();
+}
 
     function renderTeamCheckboxes(selected) {
         const selArray = selected ? selected.split(', ') : [];
