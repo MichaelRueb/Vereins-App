@@ -476,8 +476,7 @@ async function exportToPDF() {
     const doc = new jsPDF();
     
     // Offizielle Logo-URL
-    const logoUrl = 'https://hubertus-strullendorf.de/wp-content/uploads/2023/12/logo_hubertus_strullendorf.png'; 
-
+    doc.addImage(LOGO_BASE64, 'PNG', 14, 8, 22, 22);
     // Hilfsfunktion zum Laden des Bildes (Wichtig für die Sichtbarkeit!)
     const loadImage = (url) => {
         return new Promise((resolve, reject) => {
