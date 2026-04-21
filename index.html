@@ -475,23 +475,17 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // FLEXIBLE DATENSUCHE:
-    // Wir schauen nach, ob die Daten unter 'profiles' oder 'allProfiles' liegen
-    let dataToExport = [];
-    if (typeof profiles !== 'undefined' && profiles.length > 0) {
-        dataToExport = profiles;
-    } else if (typeof allProfiles !== 'undefined' && allProfiles.length > 0) {
-        dataToExport = allProfiles;
+    // DATEN-RETTUNG: Wir suchen in allen möglichen Variablen nach den Profilen
+    let sourceData = [];
+    if (typeof allProfiles !== 'undefined' && allProfiles && allProfiles.length > 0) {
+        sourceData = allProfiles;
+    } else if (typeof profiles !== 'undefined' && profiles && profiles.length > 0) {
+        sourceData = profiles;
     }
 
-    let hoursToExport = [];
-    if (typeof allHours !== 'undefined') {
-        hoursToExport = allHours;
-    }
-
-    // Wenn immer noch nichts da ist, versuchen wir die Daten direkt aus der Tabelle zu ziehen
-    if (dataToExport.length === 0) {
-        return alert("Keine Daten gefunden. Bitte stelle sicher, dass du im Admin-Tab bist und die Mitgliederliste siehst.");
+    // Wenn die Liste immer noch leer ist, brechen wir ab
+    if (sourceData.length === 0) {
+        return alert("Fehler: Die Mitgliederliste ist im Speicher leer. Bitte lade die Seite neu und klicke erst auf 'Admin', dann auf 'PDF Report'.");
     }
 
     // Kopfzeile
@@ -506,19 +500,21 @@ async function exportToPDF() {
     doc.line(14, 32, 196, 32);
 
     // Daten aufbereiten
-    const tableData = dataToExport.map(p => {
-        const userHours = hoursToExport.filter(h => String(h.profile_id) === String(p.id));
+    const tableData = sourceData.map(p => {
+        // Wir suchen die Stunden in 'allHours'
+        const hoursList = (typeof allHours !== 'undefined') ? allHours : [];
+        const userEntries = hoursList.filter(h => String(h.profile_id) === String(p.id));
         
         let detailText = "Keine Einträge vorhanden";
-        if (userHours.length > 0) {
-            userHours.sort((a, b) => new Date(b.date) - new Date(a.date));
-            detailText = userHours.map(h => `• ${h.date}: ${h.task} (${h.hours}h)`).join('\n');
+        if (userEntries.length > 0) {
+            userEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+            detailText = userEntries.map(h => `• ${h.date}: ${h.task} (${h.hours}h)`).join('\n');
         }
 
         return [
             { 
                 content: p.full_name + "\n" + detailText, 
-                styles: { fontSize: 9, cellPadding: { top: 5, bottom: 5 } } 
+                styles: { fontSize: 9, cellPadding: { top: 4, bottom: 4 } } 
             },
             p.team || '-',
             { 
