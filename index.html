@@ -273,14 +273,17 @@
                 <td><small>${p.team || '-'}</small></td>
                 <td><b>${genSum}</b></td>
                 <td><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:auto; margin:0;"></td>
-                <td><input type="checkbox" onchange="setStaff('${p.id}', this.checked)" ${p.is_staff?'checked':''} style="width:auto; margin:0;"></td>
+                <td><input type="checkbox" onchange="setStaff('${p.id}', this.checked)" ${p.is_official?'checked':''} style="width:auto; margin:0;"></td>
             </tr>`;
         }).join('');
     }
 
     async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
-    async function setStaff(id, val) { await sb.from('profiles').update({ is_staff: val }).eq('id', id); }
-
+    async function setStaff(id, val) { await sb.from('profiles').update({ is_official: val }).eq('id', id); }
+    if(error) {
+        console.error("Fehler beim Speichern:", error.message);
+        }
+    }
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
     async function reject(id) {
         const reason = prompt("Grund:");
