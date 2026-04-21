@@ -523,13 +523,39 @@ async function exportToPDF() {
         document.getElementById('cancel-edit-btn').style.display = 'block';
     }
     function resetEventForm() { document.getElementById('edit-event-id').value=""; document.getElementById('ev-opp').value=""; document.getElementById('cancel-edit-btn').style.display='none'; }
+
     async function saveEvent() {
-        const id = document.getElementById('edit-event-id').value; let opp = document.getElementById('ev-opp').value;
-        if(document.getElementById('ev-home-check').checked) opp += " (Heim)";
-        const d = { date: document.getElementById('ev-date').value, opponent: opp, team: document.getElementById('ev-team-select').value };
-        if(id) await sb.from('tournaments').update(d).eq('id', id); else await sb.from('tournaments').insert([d]);
-        resetEventForm(); loadAllEvents();
+    const id = document.getElementById('edit-event-id').value;
+    let opp = document.getElementById('ev-opp').value;
+    if (!opp || !document.getElementById('ev-date').value) return alert("Bitte Datum und Gegner angeben!");
+
+    if (document.getElementById('ev-home-check').checked) opp += " (Heim)";
+    
+    const eventData = { 
+        date: document.getElementById('ev-date').value, 
+        opponent: opp, 
+        team: document.getElementById('ev-team-select').value 
+    };
+
+    // WICHTIG: Wir laden kurz den Status des aktuellen Nutzers
+    const { data: p } = await sb.from('profiles').select('is_official, is_captain').eq('id', currentUser.id).single();
+
+    const canSave = isAdmin || p?.is_official || (p?.is_captain && userTeam.includes(eventData.team));
+
+    if (canSave) {
+        if (id) {
+            await sb.from('tournaments').update(eventData).eq('id', id);
+        } else {
+            await sb.from('tournaments').insert([eventData]);
+        }
+        resetEventForm();
+        loadAllEvents();
+        alert("Wettkampf gespeichert!");
+    } else {
+        alert("Du hast keine Berechtigung, für dieses Team zu speichern.");
     }
+}
+    
     async function changePassword() {
     const newPass = document.getElementById('new-password').value;
     const confirmPass = document.getElementById('new-password-confirm').value;
