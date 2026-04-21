@@ -216,7 +216,8 @@
 
     let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
-
+let profiles = [];  // Hier liegen alle Mitglieder
+let allHours = [];  // Hier liegen alle Stunden-Einträge
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
         if (session) setupApp(session.user);
@@ -474,7 +475,16 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // 1. Kopfzeile
+    // Wir holen uns die aktuell geladenen Daten direkt aus der Admin-Logik
+    // Falls deine globale Variable anders heißt (z.B. allProfiles), passen wir das hier an
+    const dataToExport = (typeof profiles !== 'undefined') ? profiles : [];
+    const hoursToExport = (typeof allHours !== 'undefined') ? allHours : [];
+
+    if (dataToExport.length === 0) {
+        return alert("Keine Daten zum Exportieren gefunden. Bitte lade die Seite neu.");
+    }
+
+    // Kopfzeile
     doc.setFontSize(20);
     doc.setTextColor(40, 116, 52); 
     doc.text("SV Hubertus 1955 e.V. Strullendorf", 14, 20);
@@ -483,27 +493,18 @@ async function exportToPDF() {
     doc.setTextColor(100);
     const dateStr = new Date().toLocaleDateString('de-DE');
     doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateStr}`, 14, 28);
-
-    doc.setDrawColor(40, 116, 52);
     doc.line(14, 32, 196, 32);
 
-    // 2. Daten für die Tabelle aufbereiten
-    // Wir stellen sicher, dass wir auf die richtigen globalen Variablen zugreifen
-    const tableData = profiles.map(p => {
-        // Filtere alle Stunden, die zu diesem Mitglied gehören
-        const userHours = allHours.filter(h => String(h.profile_id) === String(p.id));
+    // Daten aufbereiten
+    const tableData = dataToExport.map(p => {
+        const userHours = hoursToExport.filter(h => String(h.profile_id) === String(p.id));
         
-        // Erstelle den Detail-Text
-        let detailText = "";
+        let detailText = "Keine Einträge vorhanden";
         if (userHours.length > 0) {
-            // Sortiere Stunden nach Datum (neuere zuerst)
             userHours.sort((a, b) => new Date(b.date) - new Date(a.date));
             detailText = userHours.map(h => `• ${h.date}: ${h.task} (${h.hours}h)`).join('\n');
-        } else {
-            detailText = "Keine Einträge vorhanden";
         }
 
-        // Rückgabe der Zeile: Name fett + Details darunter in der ersten Spalte
         return [
             { 
                 content: p.full_name + "\n" + detailText, 
@@ -517,20 +518,14 @@ async function exportToPDF() {
         ];
     });
 
-    // 3. Tabelle generieren
     doc.autoTable({
         startY: 38,
         head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
         body: tableData,
-        theme: 'grid', // 'grid' sorgt für bessere Lesbarkeit bei vielen Zeilen
-        headStyles: { fillColor: [40, 116, 52], textColor: [255, 255, 255] },
-        columnStyles: {
-            0: { cellWidth: 120 }, // Viel Platz für den Namen und die Liste
-            1: { cellWidth: 40 },
-            2: { cellWidth: 26 }
-        },
-        styles: { overflow: 'linebreak', cellPadding: 3 },
-        margin: { top: 38 }
+        theme: 'grid',
+        headStyles: { fillColor: [40, 116, 52] },
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 40 }, 2: { cellWidth: 26 } },
+        styles: { overflow: 'linebreak' }
     });
 
     doc.save(`Arbeitsstunden_Hubertus_${dateStr}.pdf`);
