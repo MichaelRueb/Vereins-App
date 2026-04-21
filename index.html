@@ -216,8 +216,7 @@
 
     let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
-let profiles = [];  // Hier liegen alle Mitglieder
-let allHours = [];  // Hier liegen alle Stunden-Einträge
+
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
         if (session) setupApp(session.user);
@@ -317,6 +316,8 @@ let allHours = [];  // Hier liegen alle Stunden-Einträge
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
+        profiles = [];  // Hier liegen alle Mitglieder
+        allHours = [];  // Hier liegen alle Stunden-Einträge
         const pending = hours ? hours.filter(h => h.status === 'pending') : [];
         document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
         document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
@@ -475,17 +476,9 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // DATEN-RETTUNG: Wir suchen in allen möglichen Variablen nach den Profilen
-    let sourceData = [];
-    if (typeof allProfiles !== 'undefined' && allProfiles && allProfiles.length > 0) {
-        sourceData = allProfiles;
-    } else if (typeof profiles !== 'undefined' && profiles && profiles.length > 0) {
-        sourceData = profiles;
-    }
-
-    // Wenn die Liste immer noch leer ist, brechen wir ab
-    if (sourceData.length === 0) {
-        return alert("Fehler: Die Mitgliederliste ist im Speicher leer. Bitte lade die Seite neu und klicke erst auf 'Admin', dann auf 'PDF Report'.");
+    // Wir nutzen die globalen Variablen, die jetzt in loadAdmin befüllt werden
+    if (!profiles || profiles.length === 0) {
+        return alert("Keine Daten gefunden. Bitte klicke erst auf den Admin-Tab, damit die Daten geladen werden.");
     }
 
     // Kopfzeile
@@ -500,25 +493,33 @@ async function exportToPDF() {
     doc.line(14, 32, 196, 32);
 
     // Daten aufbereiten
-    const tableData = sourceData.map(p => {
-        // Wir suchen die Stunden in 'allHours'
-        const hoursList = (typeof allHours !== 'undefined') ? allHours : [];
-        const userEntries = hoursList.filter(h => String(h.profile_id) === String(p.id));
+    const tableData = profiles.map(p => {
+        // Filter korrigiert auf 'user_id'
+        const userEntries = allHours.filter(h => String(h.user_id) === String(p.id));
         
         let detailText = "Keine Einträge vorhanden";
+        let summeGeprueft = 0;
+
         if (userEntries.length > 0) {
+            // Sortieren nach Datum
             userEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-            detailText = userEntries.map(h => `• ${h.date}: ${h.task} (${h.hours}h)`).join('\n');
+            
+            // Detail-Text zusammenbauen (Felder: description & duration)
+            detailText = userEntries.map(h => {
+                const statusIcon = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
+                if(h.status === 'approved') summeGeprueft += parseFloat(h.duration || 0);
+                return `${statusIcon} ${h.date}: ${h.description} (${h.duration}h)`;
+            }).join('\n');
         }
 
         return [
             { 
                 content: p.full_name + "\n" + detailText, 
-                styles: { fontSize: 9, cellPadding: { top: 4, bottom: 4 } } 
+                styles: { fontSize: 8, cellPadding: { top: 4, bottom: 4 } } 
             },
             p.team || '-',
             { 
-                content: `${p.total_hours || 0} h`, 
+                content: `${summeGeprueft} h`, 
                 styles: { fontStyle: 'bold', halign: 'right' } 
             }
         ];
@@ -526,7 +527,7 @@ async function exportToPDF() {
 
     doc.autoTable({
         startY: 38,
-        head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
+        head: [['Mitglied / Details (Status: ✅=OK, ⏳=Offen)', 'Mannschaft', 'Summe (bestätigt)']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [40, 116, 52] },
