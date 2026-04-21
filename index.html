@@ -365,22 +365,39 @@
         if(t==='admin') loadAdmin(); if(t==='events') loadAllEvents();
     }
 
-  async function exportToPDF() {
+async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Offizielle Logo-URL von eurer Webseite
+    // Offizielle Logo-URL
     const logoUrl = 'https://hubertus-strullendorf.de/wp-content/uploads/2023/12/logo_hubertus_strullendorf.png'; 
-    
-    // 1. Logo einbinden (mit Fallback, falls das Laden fehlschlägt)
+
+    // Hilfsfunktion zum Laden des Bildes (Wichtig für die Sichtbarkeit!)
+    const loadImage = (url) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous'; // Verhindert CORS-Fehler
+            img.onload = () => resolve(img);
+            img.onerror = (e) => reject(e);
+            img.src = url;
+        });
+    };
+
     try {
-        // Position: x=14, y=10 | Größe: 22mm x 22mm
-        doc.addImage(logoUrl, 'PNG', 14, 10, 22, 22); 
+        // 1. Logo laden und einbinden
+        const logoImg = await loadImage(logoUrl);
+        // Position: x=14, y=8 | Größe: 22mm x 22mm
+        doc.addImage(logoImg, 'PNG', 14, 8, 22, 22); 
     } catch (e) {
-        console.warn("Logo-Pfad eventuell blockiert, Text-Header wird genutzt.");
+        console.error("Logo konnte nicht geladen werden:", e);
+        // Fallback: Ein grünes Quadrat oder Text, falls das Logo fehlt
+        doc.setDrawColor(46, 125, 50);
+        doc.rect(14, 10, 22, 22);
+        doc.setFontSize(8);
+        doc.text("LOGO", 20, 22);
     }
 
-    // Daten aus Supabase abrufen
+    // --- Restlicher Datenabruf (Supabase) ---
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
@@ -401,20 +418,18 @@
     doc.setLineWidth(0.5);
     doc.line(14, 35, 196, 35);
 
-    // 3. Tabellen-Vorbereitung
+    // 3. Tabellen-Vorbereitung (unverändert)
     const tableRows = [];
     profs.forEach(p => {
         const memberHours = hours.filter(h => h.user_id === p.id);
         const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
         
-        // Zeile für das Mitglied
         tableRows.push([
             { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fontSize: 10 } },
             { content: p.team || '-', styles: { fontSize: 9 } },
             { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fontSize: 10 } }
         ]);
 
-        // Detailzeilen (eingerückt)
         if (memberHours.length > 0) {
             let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
             tableRows.push([
@@ -434,12 +449,8 @@
         body: tableRows,
         theme: 'grid',
         headStyles: { fillColor: [46, 125, 50], textColor: 255 },
-        columnStyles: {
-            1: { cellWidth: 55 },
-            2: { cellWidth: 20 }
-        },
+        columnStyles: { 1: { cellWidth: 55 }, 2: { cellWidth: 20 } },
         styles: { font: "helvetica", cellPadding: 2.5 },
-        // Sorgt dafür, dass Name und Details auf derselben Seite bleiben
         didParseCell: function(data) {
             if (data.row.index % 2 !== 0) {
                 data.cell.styles.fillColor = [248, 249, 248];
@@ -453,10 +464,10 @@
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(`SV Hubertus Strullendorf - Arbeitsstunden-Nachweis - Seite ${i} von ${pageCount}`, 105, 287, {align: 'center'});
+        doc.text(`SV Hubertus Strullendorf - Seite ${i} von ${pageCount}`, 105, 287, {align: 'center'});
     }
 
-    doc.save(`Stunden_Report_Hubertus_${dateString.replace(/\./g, '-')}.pdf`);
+    doc.save(`Arbeitsstunden_Hubertus_${dateString}.pdf`);
 }
     async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
     function editEvent(id) { 
