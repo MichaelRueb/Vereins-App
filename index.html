@@ -28,6 +28,14 @@
         .calendar-day { background: white; min-height: 60px; padding: 2px; position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
         .calendar-day:hover { background: #f0f0f0; }
         .calendar-day.today { background: #fff9c4; }
+        .calendar-holiday {
+    background-color: #fff3f3 !important;
+    color: #d9534f !important;
+}
+.calendar-holiday small {
+    font-weight: bold;
+    text-decoration: underline;
+}
         
         .event-dot { width: 8px; height: 8px; border-radius: 50%; margin: 2px auto; display: block; flex-shrink: 0; }
         
@@ -203,6 +211,21 @@
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
 
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
+    const HOLIDAYS_BY = {
+    "2026-01-01": "Neujahr",
+    "2026-01-06": "Hl. Drei Könige",
+    "2026-04-03": "Karfreitag",
+    "2026-04-06": "Ostermontag",
+    "2026-05-01": "Tag der Arbeit",
+    "2026-05-14": "Christi Himmelfahrt",
+    "2026-05-25": "Pfingstmontag",
+    "2026-06-04": "Fronleichnam",
+    "2026-08-15": "Mariä Himmelfahrt",
+    "2026-10-03": "Tag der Dt. Einheit",
+    "2026-11-01": "Allerheiligen",
+    "2026-12-25": "1. Weihnachtstag",
+    "2026-12-26": "2. Weihnachtstag"
+};
 
     let currentUser, userTeam, isAdmin, isCaptain, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
@@ -382,28 +405,70 @@
 }
 
     function renderCalendar() {
-        const container = document.getElementById('calendar-container'); container.innerHTML = '';
-        const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
-        document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
-        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => { const h=document.createElement('div'); h.className='calendar-day-head'; h.innerText=d; container.appendChild(h); });
-        const first = (new Date(year, month, 1).getDay()+6)%7, days = new Date(year, month+1, 0).getDate();
-        for(let i=0; i<first; i++) container.appendChild(document.createElement('div')).className='calendar-day';
-        for(let d=1; d<=days; d++) {
-            const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, el = document.createElement('div');
-            el.className='calendar-day'; el.innerHTML=`<small>${d}</small>`;
-            allEvents.filter(e => e.date === ds).forEach(e => {
-                const dot=document.createElement('div'); dot.className=`event-dot ${getTeamClass(e.team)}`; el.appendChild(dot);
-            });
-           el.onclick = () => {
-    const evs = allEvents.filter(e => e.date === ds);
-    document.getElementById('selection-content').innerHTML = evs.length 
-        ? evs.map(e => `<div>[${e.time ? e.time.substring(0, 5) : '??:??'}] <b>${e.team}:</b> ${e.opponent}</div>`).join('') 
-        : 'Keine Termine';
-    document.getElementById('calendar-selection-details').style.display='block';
-};
-            container.appendChild(el);
+    const container = document.getElementById('calendar-container'); 
+    container.innerHTML = '';
+    
+    const year = currentViewDate.getFullYear();
+    const month = currentViewDate.getMonth();
+    
+    document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
+    
+    // Wochentage Header
+    ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => { 
+        const h = document.createElement('div'); 
+        h.className = 'calendar-day-head'; 
+        h.innerText = d; 
+        container.appendChild(h); 
+    });
+
+    const first = (new Date(year, month, 1).getDay() + 6) % 7;
+    const days = new Date(year, month + 1, 0).getDate();
+
+    // Leere Zellen am Monatsanfang
+    for(let i = 0; i < first; i++) container.appendChild(document.createElement('div')).className = 'calendar-day';
+
+    // Die einzelnen Tage zeichnen
+    for(let d = 1; d <= days; d++) {
+        const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const el = document.createElement('div');
+        el.className = 'calendar-day';
+        
+        // --- NEU: FEIERTAGS-CHECK ---
+        const holidayName = HOLIDAYS_BY[ds];
+        if (holidayName) {
+            el.classList.add('calendar-holiday');
+            el.title = holidayName; // Name erscheint beim Drüberfahren mit der Maus
         }
+        // ----------------------------
+
+        el.innerHTML = `<small>${d}</small>`;
+
+        // Wettkampf-Dots hinzufügen
+        allEvents.filter(e => e.date === ds).forEach(e => {
+            const dot = document.createElement('div'); 
+            dot.className = `event-dot ${getTeamClass(e.team)}`; 
+            el.appendChild(dot);
+        });
+
+        // Klick-Event für Details
+        el.onclick = () => {
+            const evs = allEvents.filter(e => e.date === ds);
+            let content = evs.length 
+                ? evs.map(e => `<div>[${e.time ? e.time.substring(0, 5) : '??:??'}] <b>${e.team}:</b> ${e.opponent}</div>`).join('') 
+                : 'Keine Termine';
+            
+            // Falls es ein Feiertag ist, oben im Detail-Fenster anzeigen
+            if(holidayName) {
+                content = `<div style="color:#d9534f; font-weight:bold; margin-bottom:5px;">🚩 ${holidayName}</div>` + content;
+            }
+
+            document.getElementById('selection-content').innerHTML = content;
+            document.getElementById('calendar-selection-details').style.display = 'block';
+        };
+
+        container.appendChild(el);
     }
+}
 
     function getTeamClass(t) {
         if(!t) return 'team-default'; t=t.toLowerCase();
