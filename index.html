@@ -474,9 +474,9 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Titel-Bereich (nach oben gerückt, da Logo fehlt)
+    // Titel
     doc.setFontSize(20);
-    doc.setTextColor(40, 116, 52); // Vereinsgrün
+    doc.setTextColor(40, 116, 52);
     doc.text("SV Hubertus 1955 e.V. Strullendorf", 14, 20);
 
     doc.setFontSize(10);
@@ -484,34 +484,28 @@ async function exportToPDF() {
     const dateStr = new Date().toLocaleDateString('de-DE');
     doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateStr}`, 14, 28);
 
-    // Trennlinie
     doc.setDrawColor(40, 116, 52);
-    doc.setLineWidth(0.5);
     doc.line(14, 32, 196, 32);
 
-    // Tabelle generieren
+    // Wir nutzen 'profiles' (deine globale Variable) statt 'allProfiles'
+    const dataForTable = (typeof profiles !== 'undefined' ? profiles : []).map(p => {
+        const row = [[{ content: p.full_name, styles: { fontStyle: 'bold' } }], p.team || '-', `${p.total_hours || 0} h` ];
+        const userHours = allHours.filter(h => h.profile_id === p.id);
+        if (userHours.length > 0) {
+            const details = userHours.map(h => `  • ${h.date}: ${h.task} (${h.hours}h)`).join('\n');
+            row.push([{ content: details, styles: { fontSize: 8, textColor: [100, 100, 100] } }]);
+        } else {
+            row.push([{ content: '  Keine Stunden erfasst', styles: { fontSize: 8, fontStyle: 'italic', textColor: [150, 150, 150] } }]);
+        }
+        return row;
+    });
+
     doc.autoTable({
         startY: 38,
         head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
-        body: allProfiles.map(p => {
-            const row = [[{ content: p.full_name, styles: { fontStyle: 'bold' } }], p.team || '-', `${p.total_hours || 0} h` ];
-            const userHours = allHours.filter(h => h.profile_id === p.id);
-            if (userHours.length > 0) {
-                const details = userHours.map(h => `  • ${h.date}: ${h.task} (${h.hours}h)`).join('\n');
-                row.push([{ content: details, styles: { fontSize: 8, textColor: [100, 100, 100] } }]);
-            } else {
-                row.push([{ content: '  Keine Arbeitsstunden im Zeitraum erfasst', styles: { fontSize: 8, fontStyle: 'italic', textColor: [150, 150, 150] } }]);
-            }
-            return row;
-        }),
+        body: dataForTable,
         theme: 'striped',
-        headStyles: { fillColor: [40, 116, 52] },
-        columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: 60 }, 2: { cellWidth: 22, halign: 'right' } },
-        didParseCell: function(data) {
-            if (data.row.index % 2 === 0 && data.cell.raw && data.cell.raw[0] && data.cell.raw[0].content) {
-                // Dies ist die Hauptzeile (Name)
-            }
-        }
+        headStyles: { fillColor: [40, 116, 52] }
     });
 
     doc.save(`Arbeitsstunden_${dateStr}.pdf`);
