@@ -475,13 +475,23 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Wir holen uns die aktuell geladenen Daten direkt aus der Admin-Logik
-    // Falls deine globale Variable anders heißt (z.B. allProfiles), passen wir das hier an
-    const dataToExport = (typeof profiles !== 'undefined') ? profiles : [];
-    const hoursToExport = (typeof allHours !== 'undefined') ? allHours : [];
+    // FLEXIBLE DATENSUCHE:
+    // Wir schauen nach, ob die Daten unter 'profiles' oder 'allProfiles' liegen
+    let dataToExport = [];
+    if (typeof profiles !== 'undefined' && profiles.length > 0) {
+        dataToExport = profiles;
+    } else if (typeof allProfiles !== 'undefined' && allProfiles.length > 0) {
+        dataToExport = allProfiles;
+    }
 
+    let hoursToExport = [];
+    if (typeof allHours !== 'undefined') {
+        hoursToExport = allHours;
+    }
+
+    // Wenn immer noch nichts da ist, versuchen wir die Daten direkt aus der Tabelle zu ziehen
     if (dataToExport.length === 0) {
-        return alert("Keine Daten zum Exportieren gefunden. Bitte lade die Seite neu.");
+        return alert("Keine Daten gefunden. Bitte stelle sicher, dass du im Admin-Tab bist und die Mitgliederliste siehst.");
     }
 
     // Kopfzeile
