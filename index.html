@@ -584,31 +584,29 @@ async function exportToPDF() {
     }
     function resetEventForm() { document.getElementById('edit-event-id').value=""; document.getElementById('ev-opp').value=""; document.getElementById('cancel-edit-btn').style.display='none'; }
 
-   async function saveEvent() {
+  async function saveEvent() {
     const id = document.getElementById('edit-event-id').value;
     let opp = document.getElementById('ev-opp').value;
     const evDate = document.getElementById('ev-date').value;
-    const evTime = document.getElementById('ev-time').value; // NEU: Zeit auslesen
+    const evTime = document.getElementById('ev-time').value; // Hier wird die Zeit ausgelesen
     const evTeam = document.getElementById('ev-team-select').value;
 
-    if (!opp || !evDate || !evTime) { // NEU: Zeit ist jetzt Pflichtfeld
+    // Sicherheits-Check: Wenn Zeit fehlt, direkt abbrechen und Warnung zeigen
+    if (!opp || !evDate || !evTime) {
         return alert("Bitte Datum, Uhrzeit und Gegner angeben!");
     }
 
-    // Heimspiel-Suffix
     if (document.getElementById('ev-home-check').checked && !opp.includes("(Heim)")) {
         opp += " (Heim)";
     }
     
-    // Das Objekt muss alle Spalten enthalten, die in Supabase "NOT NULL" sind
     const eventData = { 
         date: evDate,
-        time: evTime, // NEU: Wird jetzt an die DB gesendet
+        time: evTime, // Diese Variable darf nicht leer sein
         opponent: opp, 
         team: evTeam 
     };
 
-    // Berechtigung prüfen
     const { data: p } = await sb.from('profiles').select('is_official, is_captain').eq('id', currentUser.id).single();
     const canSave = isAdmin || p?.is_official || (p?.is_captain && userTeam.includes(evTeam));
 
@@ -621,15 +619,14 @@ async function exportToPDF() {
         }
 
         if (result.error) {
-            console.error("Supabase Fehler:", result.error);
-            alert("Fehler beim Speichern: " + result.error.message);
+            alert("Datenbank-Fehler: " + result.error.message);
         } else {
-            alert("Wettkampf erfolgreich gespeichert!");
+            alert("Erfolgreich gespeichert!");
             resetEventForm();
             await loadAllEvents();
         }
     } else {
-        alert("Keine Berechtigung für dieses Team.");
+        alert("Keine Berechtigung.");
     }
 }
     
