@@ -476,67 +476,91 @@ let allHours = [];
 async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+    
+    // Die offizielle URL des Vereinslogos
+    const logoUrl = 'https://hubertus-strullendorf.de/wp-content/uploads/2023/12/logo_hubertus_strullendorf.png'; 
 
-    // Wir nutzen die globalen Variablen, die jetzt in loadAdmin befüllt werden
-    if (!profiles || profiles.length === 0) {
-        return alert("Keine Daten gefunden. Bitte klicke erst auf den Admin-Tab, damit die Daten geladen werden.");
+    // Hilfsfunktion: Lädt das Bild und wandelt es für jsPDF um
+    const loadImage = (url) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous'; // Verhindert CORS-Probleme beim Laden
+            img.onload = () => resolve(img);
+            img.onerror = (e) => reject(e);
+            img.src = url;
+        });
+    };
+
+    try {
+        // 1. Logo laden und oben links positionieren
+        const logoImg = await loadImage(logoUrl);
+        // Parameter: Image, Typ, x, y, Breite, Höhe
+        doc.addImage(logoImg, 'PNG', 14, 10, 25, 25); 
+    } catch (e) {
+        console.warn("Logo konnte nicht geladen werden, verwende Platzhalter.");
+        doc.setDrawColor(200);
+        doc.rect(14, 10, 25, 25); // Platzhalter-Rahmen
     }
 
-    // Kopfzeile
+    // --- Datenabruf (Supabase) ---
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+
+    // 2. Kopfzeile (neben dem Logo positioniert)
     doc.setFontSize(20);
-    doc.setTextColor(40, 116, 52); 
-    doc.text("SV Hubertus 1955 e.V. Strullendorf", 14, 20);
-
+    doc.setTextColor(46, 125, 50); // Hubertus Grün
+    doc.setFont("helvetica", "bold");
+    doc.text("SV Hubertus 1955 e.V. Strullendorf", 45, 22);
+    
     doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
-    const dateStr = new Date().toLocaleDateString('de-DE');
-    doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateStr}`, 14, 28);
-    doc.line(14, 32, 196, 32);
+    const dateString = new Date().toLocaleDateString('de-DE');
+    doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 45, 29);
+    
+    // Grüne Trennlinie unter dem Header
+    doc.setDrawColor(46, 125, 50);
+    doc.setLineWidth(0.5);
+    doc.line(14, 40, 196, 40);
 
-    // Daten aufbereiten
-    const tableData = profiles.map(p => {
-        // Filter korrigiert auf 'user_id'
-        const userEntries = allHours.filter(h => String(h.user_id) === String(p.id));
+    // 3. Tabellen-Daten aufbereiten
+    const tableRows = [];
+    profs.forEach(p => {
+        const memberHours = hours.filter(h => h.user_id === p.id);
+        const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
         
-        let detailText = "Keine Einträge vorhanden";
-        let summeGeprueft = 0;
+        // Hauptzeile Mitglied
+        tableRows.push([
+            { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold' } },
+            { content: p.team || '-' },
+            { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right' } }
+        ]);
 
-        if (userEntries.length > 0) {
-            // Sortieren nach Datum
-            userEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            // Detail-Text zusammenbauen (Felder: description & duration)
-            detailText = userEntries.map(h => {
-                const statusIcon = h.status === 'approved' ? '✅' : (h.status === 'rejected' ? '❌' : '⏳');
-                if(h.status === 'approved') summeGeprueft += parseFloat(h.duration || 0);
-                return `${statusIcon} ${h.date}: ${h.description} (${h.duration}h)`;
-            }).join('\n');
+        // Detailzeile (Arbeitseinsätze)
+        if (memberHours.length > 0) {
+            let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
+            tableRows.push([
+                { content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10} } }
+            ]);
+        } else {
+            tableRows.push([
+                { content: "  Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }
+            ]);
         }
-
-        return [
-            { 
-                content: p.full_name + "\n" + detailText, 
-                styles: { fontSize: 8, cellPadding: { top: 4, bottom: 4 } } 
-            },
-            p.team || '-',
-            { 
-                content: `${summeGeprueft} h`, 
-                styles: { fontStyle: 'bold', halign: 'right' } 
-            }
-        ];
     });
 
+    // 4. Tabelle mit autoTable generieren
     doc.autoTable({
-        startY: 38,
-        head: [['Mitglied / Details (Status: ✅=OK, ⏳=Offen)', 'Mannschaft', 'Summe (bestätigt)']],
-        body: tableData,
+        startY: 45,
+        head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
+        body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [40, 116, 52] },
-        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 40 }, 2: { cellWidth: 26 } },
-        styles: { overflow: 'linebreak' }
+        headStyles: { fillColor: [46, 125, 50] },
+        styles: { font: "helvetica" }
     });
 
-    doc.save(`Arbeitsstunden_Hubertus_${dateStr}.pdf`);
+    // 5. PDF speichern
+    doc.save(`Hubertus_Report_${dateString}.pdf`);
 }
     
     async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
