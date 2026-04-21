@@ -136,7 +136,7 @@
                     <option disabled>──────────</option>
                     <option value="Verein">📅 Nur Vereinstermine</option>
                     <option disabled>──────────</option>
-                    <option value="Luftgewehr 1">Alle Mannschaften</option>
+                    <option value="only_sports">Alle Mannschaften</option>
                     <option value="Luftgewehr 1">Luftgewehr 1</option>
                     <option value="Luftgewehr 2">Luftgewehr 2</option>
                     <option value="Luftgewehr 3">Luftgewehr 3</option>
@@ -406,22 +406,23 @@ let allHours = [];
     renderTournamentList();
 }
 
-   function renderTournamentList() {
+  function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     
-    document.getElementById('tournament-list-body').innerHTML = allEvents
-        .filter(e => filter === 'all_teams' || e.team === filter)
+    const filteredEvents = allEvents.filter(e => {
+        if (filter === 'all_teams') return true; // Zeige alles
+        if (filter === 'Verein') return e.team === 'Verein'; // Nur Vereinstermine
+        if (filter === 'only_sports') return e.team !== 'Verein'; // Alles AUẞER Verein
+        return e.team === filter; // Spezifische Mannschaft
+    });
+
+    document.getElementById('tournament-list-body').innerHTML = filteredEvents
         .map(e => {
-            // Abgrenzung: Ist es ein Vereinstermin?
-            const isClub = e.team === 'Verein' || e.isClubEvent;
-            
-            // Berechtigungen: Vereinstermine dürfen nur Admins/Funktionäre editieren
+            const isClub = e.team === 'Verein';
             const canEdit = isAdmin || (!isClub && isCaptain && userTeam.includes(e.team));
-            
             const timeDisplay = e.time ? e.time.substring(0, 5) : '--:--'; 
             
-            // Dynamisches Styling für die Abgrenzung
-            const rowStyle = isClub ? 'style="background-color: rgba(255, 215, 0, 0.05);"' : '';
+            const rowStyle = isClub ? 'style="background-color: rgba(255, 215, 0, 0.1);"' : '';
             const textStyle = isClub ? 'style="font-weight: bold; color: #B8860B;"' : '';
             const displayName = isClub ? `📅 ${e.opponent}` : e.opponent;
 
