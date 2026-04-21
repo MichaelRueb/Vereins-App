@@ -354,87 +354,99 @@
         if(t==='admin') loadAdmin(); if(t==='events') loadAllEvents();
     }
 
-   async function exportToPDF() {
+  async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Daten holen
+    // Offizielle Logo-URL von eurer Webseite
+    const logoUrl = 'https://hubertus-strullendorf.de/wp-content/uploads/2023/12/logo_hubertus_strullendorf.png'; 
+    
+    // 1. Logo einbinden (mit Fallback, falls das Laden fehlschlägt)
+    try {
+        // Position: x=14, y=10 | Größe: 22mm x 22mm
+        doc.addImage(logoUrl, 'PNG', 14, 10, 22, 22); 
+    } catch (e) {
+        console.warn("Logo-Pfad eventuell blockiert, Text-Header wird genutzt.");
+    }
+
+    // Daten aus Supabase abrufen
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
-    // 1. Kopfzeile & Titel
-    doc.setFontSize(22);
+    // 2. Kopfzeile (neben dem Logo)
+    doc.setFontSize(20);
     doc.setTextColor(46, 125, 50); // Hubertus Grün
-    doc.text("Hubertus Stunden-Report", 14, 20);
+    doc.setFont("helvetica", "bold");
+    doc.text("SV Hubertus 1955 e.V. Strullendorf", 42, 20);
     
     doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
     const dateString = new Date().toLocaleDateString('de-DE');
-    doc.text(`Erstellt am: ${dateString}`, 14, 28);
+    doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 42, 27);
     
-    // Horizontale Linie
-    doc.setDrawColor(200);
-    doc.line(14, 32, 196, 32);
+    // Grüne Trennlinie
+    doc.setDrawColor(46, 125, 50);
+    doc.setLineWidth(0.5);
+    doc.line(14, 35, 196, 35);
 
-    let currentY = 40;
-
-    // 2. Tabellen-Logik
+    // 3. Tabellen-Vorbereitung
     const tableRows = [];
-
     profs.forEach(p => {
         const memberHours = hours.filter(h => h.user_id === p.id);
         const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
         
-        // Hauptzeile für das Mitglied
+        // Zeile für das Mitglied
         tableRows.push([
-            { content: p.full_name || 'Gast', styles: { fontStyle: 'bold' } },
-            p.team || '-',
-            { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right' } }
+            { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fontSize: 10 } },
+            { content: p.team || '-', styles: { fontSize: 9 } },
+            { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fontSize: 10 } }
         ]);
 
-        // Detailzeilen (kleiner gedruckt darunter)
+        // Detailzeilen (eingerückt)
         if (memberHours.length > 0) {
-            let detailText = memberHours.map(h => `${h.date}: ${h.description} (${h.duration}h)`).join('\n');
+            let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
             tableRows.push([
-                { content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {top: 1, bottom: 3, left: 10} } }
+                { content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {top: 2, bottom: 4, left: 12} } }
             ]);
         } else {
             tableRows.push([
-                { content: "Keine Stunden erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic', cellPadding: {left: 10} } }
+                { content: "  Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }
             ]);
         }
     });
 
-    // 3. Tabelle generieren mit AutoTable
+    // 4. Tabelle generieren
     doc.autoTable({
-        startY: currentY,
-        head: [['Mitglied', 'Mannschaft', 'Gesamt']],
+        startY: 40,
+        head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
         body: tableRows,
-        theme: 'striped',
+        theme: 'grid',
         headStyles: { fillColor: [46, 125, 50], textColor: 255 },
         columnStyles: {
-            2: { cellWidth: 30 }
+            1: { cellWidth: 55 },
+            2: { cellWidth: 20 }
         },
+        styles: { font: "helvetica", cellPadding: 2.5 },
+        // Sorgt dafür, dass Name und Details auf derselben Seite bleiben
         didParseCell: function(data) {
-            // Entfernt die Trennlinie zwischen Name und Details für eine sauberere Optik
             if (data.row.index % 2 !== 0) {
-                data.cell.styles.fillColor = data.row.index % 4 === 1 ? [255, 255, 255] : [245, 245, 245];
+                data.cell.styles.fillColor = [248, 249, 248];
             }
         }
     });
 
-    // 4. Fusszeile auf jeder Seite
+    // 5. Fußzeile
     const pageCount = doc.internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(`Seite ${i} von ${pageCount} - SV Hubertus Pro`, 14, 285);
+        doc.text(`SV Hubertus Strullendorf - Arbeitsstunden-Nachweis - Seite ${i} von ${pageCount}`, 105, 287, {align: 'center'});
     }
 
-    doc.save(`Hubertus_Report_${dateString.replace(/\./g, '-')}.pdf`);
+    doc.save(`Stunden_Report_Hubertus_${dateString.replace(/\./g, '-')}.pdf`);
 }
-
     async function deleteEvent(id) { if(confirm("Löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
     function editEvent(id) { 
         const e = allEvents.find(x => x.id == id);
