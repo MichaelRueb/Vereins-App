@@ -47,7 +47,17 @@
         .team-default { background-color: #78909c !important; }
         .team-verein { background-color: #FFD700 !important; border: 1px solid #B8860B; 
 }
+/* Goldene Farbe für Vereinstermine */
+.team-verein { 
+    background-color: #FFD700 !important; 
+    border: 1px solid #B8860B; 
+    border-radius: 3px !important; /* Etwas eckiger als die Wettkampf-Punkte */
+}
 
+/* Optional: Ein Icon vor dem Text in der Liste */
+.event-tag-verein::before {
+    content: "📅 ";
+}
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
@@ -123,6 +133,8 @@
                 <h3>Wettkampf-Übersicht</h3>
                 <select id="event-view-filter" onchange="renderTournamentList()">
                     <option value="all_teams">Alle Mannschaften</option>
+                    <option value="Verein">📅 Nur Vereinstermine</option>
+                    <option disabled>──────────</option>
                     <option value="Luftgewehr 1">Luftgewehr 1</option>
                     <option value="Luftgewehr 2">Luftgewehr 2</option>
                     <option value="Luftgewehr 3">Luftgewehr 3</option>
@@ -370,21 +382,22 @@ let allHours = [];
         document.getElementById('hours').value = ""; document.getElementById('description').value = ""; loadHistory();
     }
 
-    async function loadAllEvents() {
-    // Wettkämpfe laden
+   async function loadAllEvents() {
+    // 1. Wettkämpfe laden
     const { data: tourneys } = await sb.from('tournaments').select('*').order('date', {ascending: true});
     
-    // Vereinstermine laden
+    // 2. Vereinstermine laden (aus der eigenen Tabelle)
     const { data: clubEvents } = await sb.from('club_events').select('*').order('date', {ascending: true});
 
-    // Beides in einer Liste kombinieren
-    // Wir geben den Vereinsterminen das virtuelle Team "Verein", damit dein Kalender-Code sie erkennt
+    // 3. Markierung hinzufügen
     const formattedClubEvents = (clubEvents || []).map(e => ({
         ...e,
-        team: 'Verein',
-        opponent: e.title // Das Ziel/Gegner-Feld wird hier für den Titel genutzt
+        team: 'Verein', // Einheitliches Label
+        isClubEvent: true, // Flag zur Abgrenzung
+        opponent: e.title // Wir nutzen 'opponent' als Titel für die Anzeige
     }));
 
+    // Kombinieren
     allEvents = [...(tourneys || []), ...formattedClubEvents];
     
     renderCalendar(); 
@@ -394,20 +407,36 @@ let allHours = [];
    function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     
-    // Wir filtern und mappen die Events
     document.getElementById('tournament-list-body').innerHTML = allEvents
         .filter(e => filter === 'all_teams' || e.team === filter)
         .map(e => {
-            const canEdit = isAdmin || (isCaptain && userTeam.includes(e.team));
-            // Zeit-Formatierung (falls mal kein Wert da ist, Fallback auf --:--)
+            // Abgrenzung: Ist es ein Vereinstermin?
+            const isClub = e.team === 'Verein' || e.isClubEvent;
+            
+            // Berechtigungen: Vereinstermine dürfen nur Admins/Funktionäre editieren
+            const canEdit = isAdmin || (!isClub && isCaptain && userTeam.includes(e.team));
+            
             const timeDisplay = e.time ? e.time.substring(0, 5) : '--:--'; 
             
-            return `<tr>
+            // Dynamisches Styling für die Abgrenzung
+            const rowStyle = isClub ? 'style="background-color: rgba(255, 215, 0, 0.05);"' : '';
+            const textStyle = isClub ? 'style="font-weight: bold; color: #B8860B;"' : '';
+            const displayName = isClub ? `📅 ${e.opponent}` : e.opponent;
+
+            return `<tr ${rowStyle}>
                 <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
                 <td>${timeDisplay} Uhr</td>
-                <td><span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block;"></span> ${e.team}</td>
-                <td>${e.opponent}</td>
-                <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
+                <td>
+                    <span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block;"></span> 
+                    <span ${textStyle}>${e.team}</span>
+                </td>
+                <td ${textStyle}>${displayName}</td>
+                <td>
+                    ${canEdit ? `
+                        <span class="edit-btn" onclick="editEvent('${e.id}', ${isClub})">✏️</span>
+                        <span class="delete-btn" onclick="deleteEvent('${e.id}', ${isClub})">🗑️</span>
+                    ` : '-'}
+                </td>
             </tr>`;
         }).join('');
 }
