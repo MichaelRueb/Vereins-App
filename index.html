@@ -20,7 +20,7 @@
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
         th { background: #f8f9fa; padding: 12px 10px; text-align: left; border-bottom: 2px solid #dee2e6; }
-        td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; text-align: left; } /* Links-Ausrichtung für alle Zellen */
 
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-weight: bold; font-size: 1.2em; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; width: 100%; }
@@ -109,7 +109,6 @@
                 <h4 id="selection-date-label">Termine</h4>
                 <div id="selection-content"></div>
             </div>
-
             <div style="margin-top:30px;">
                 <h3>Wettkampf-Übersicht</h3>
                 <select id="event-view-filter" onchange="renderTournamentList()">
@@ -128,7 +127,6 @@
                     <tbody id="tournament-list-body"></tbody>
                 </table>
             </div>
-
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:15px; margin-top:20px; border-radius:12px; background:#fff8e1;">
                 <h4 id="form-event-title" style="color:#e65100;">Wettkampf eintragen</h4>
                 <input type="hidden" id="edit-event-id">
@@ -273,17 +271,15 @@
                 <td><small>${p.team || '-'}</small></td>
                 <td><b>${genSum}</b></td>
                 <td><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:auto; margin:0;"></td>
-                <td><input type="checkbox" onchange="setStaff('${p.id}', this.checked)" ${p.is_official?'checked':''} style="width:auto; margin:0;"></td>
+                <td><input type="checkbox" onchange="setOfficial('${p.id}', this.checked)" ${p.is_official?'checked':''} style="width:auto; margin:0;"></td>
             </tr>`;
         }).join('');
     }
 
+    // Angepasste Speicherfunktionen mit is_official
     async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
-    async function setStaff(id, val) { await sb.from('profiles').update({ is_official: val }).eq('id', id); }
-    if(error) {
-        console.error("Fehler beim Speichern:", error.message);
-        }
-    }
+    async function setOfficial(id, val) { await sb.from('profiles').update({ is_official: val }).eq('id', id); }
+
     async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
     async function reject(id) {
         const reason = prompt("Grund:");
