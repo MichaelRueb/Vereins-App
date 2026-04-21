@@ -45,6 +45,8 @@
         .team-gk { background-color: #c62828 !important; } 
         .team-auflage { background-color: #ef6c00 !important; } 
         .team-default { background-color: #78909c !important; }
+        .team-verein { background-color: #FFD700 !important; border: 1px solid #B8860B; 
+}
 
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
@@ -369,9 +371,25 @@ let allHours = [];
     }
 
     async function loadAllEvents() {
-        const { data } = await sb.from('tournaments').select('*').order('date', {ascending: true});
-        allEvents = data || []; renderCalendar(); renderTournamentList();
-    }
+    // Wettkämpfe laden
+    const { data: tourneys } = await sb.from('tournaments').select('*').order('date', {ascending: true});
+    
+    // Vereinstermine laden
+    const { data: clubEvents } = await sb.from('club_events').select('*').order('date', {ascending: true});
+
+    // Beides in einer Liste kombinieren
+    // Wir geben den Vereinsterminen das virtuelle Team "Verein", damit dein Kalender-Code sie erkennt
+    const formattedClubEvents = (clubEvents || []).map(e => ({
+        ...e,
+        team: 'Verein',
+        opponent: e.title // Das Ziel/Gegner-Feld wird hier für den Titel genutzt
+    }));
+
+    allEvents = [...(tourneys || []), ...formattedClubEvents];
+    
+    renderCalendar(); 
+    renderTournamentList();
+}
 
    function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
@@ -461,11 +479,16 @@ let allHours = [];
 }
 
     function getTeamClass(t) {
-        if(!t) return 'team-default'; t=t.toLowerCase();
-        if(t.includes('auflage')) return 'team-auflage'; if(t.includes('gewehr')) return 'team-lg';
-        if(t.includes('pistole')) return 'team-lp'; if(t.includes('sportpistole')) return 'team-spopi';
-        if(t.includes('großkaliber')) return 'team-gk'; return 'team-default';
-    }
+    if(!t) return 'team-default'; 
+    t = t.toLowerCase();
+    if(t === 'verein') return 'team-verein'; // Goldene Farbe
+    if(t.includes('auflage')) return 'team-auflage';
+    if(t.includes('gewehr')) return 'team-lg';
+    if(t.includes('pistole')) return 'team-lp';
+    if(t.includes('sportpistole')) return 'team-spopi';
+    if(t.includes('großkaliber')) return 'team-gk';
+    return 'team-default';
+}
 
     function changeMonth(s) { currentViewDate.setMonth(currentViewDate.getMonth()+s); renderCalendar(); }
     function switchTab(t) {
