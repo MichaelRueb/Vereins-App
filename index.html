@@ -406,44 +406,66 @@ let allHours = [];
     renderTournamentList();
 }
 
-  function renderTournamentList() {
+ function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
-    
-    const filteredEvents = allEvents.filter(e => {
-        if (filter === 'all_teams') return true; // Zeige alles
-        if (filter === 'Verein') return e.team === 'Verein'; // Nur Vereinstermine
-        if (filter === 'only_sports') return e.team !== 'Verein'; // Alles AUẞER Verein
-        return e.team === filter; // Spezifische Mannschaft
+    const listBody = document.getElementById('tournament-list-body');
+    listBody.innerHTML = ''; // Liste leeren
+
+    // 1. Sortieren: Erst alle Wettkämpfe, dann alle Vereinstermine (oder nach Datum)
+    // Damit die Trennung Sinn ergibt, sortieren wir hier nach Typ und Datum
+    const sortedEvents = [...allEvents].sort((a, b) => {
+        if (a.team === 'Verein' && b.team !== 'Verein') return 1;
+        if (a.team !== 'Verein' && b.team === 'Verein') return -1;
+        return new Date(a.date) - new Date(b.date);
     });
 
-    document.getElementById('tournament-list-body').innerHTML = filteredEvents
+    let separatorAdded = false;
+
+    const htmlContent = sortedEvents
+        .filter(e => {
+            if (filter === 'all_teams') return true;
+            if (filter === 'Verein') return e.team === 'Verein';
+            if (filter === 'only_sports') return e.team !== 'Verein';
+            return e.team === filter;
+        })
         .map(e => {
             const isClub = e.team === 'Verein';
+            let separator = '';
+
+            // 2. Visuelle Trennung einfügen, sobald der erste Vereinstermin kommt
+            if (isClub && !separatorAdded && filter === 'all_teams') {
+                separator = `
+                    <tr style="background-color: #f0f0f0; border-top: 3px solid #B8860B; border-bottom: 2px solid #B8860B;">
+                        <td colspan="5" style="text-align: center; padding: 10px; font-weight: bold; color: #B8860B; letter-spacing: 2px;">
+                            🏆 ALLGEMEINE VEREINSTERMINE & FESTE
+                        </td>
+                    </tr>`;
+                separatorAdded = true;
+            }
+
             const canEdit = isAdmin || (!isClub && isCaptain && userTeam.includes(e.team));
-            const timeDisplay = e.time ? e.time.substring(0, 5) : '--:--'; 
-            
-            const rowStyle = isClub ? 'style="background-color: rgba(255, 215, 0, 0.1);"' : '';
+            const timeDisplay = e.time ? e.time.substring(0, 5) : '--:--';
+            const rowClass = isClub ? 'style="background-color: rgba(255, 215, 0, 0.08);"' : '';
             const textStyle = isClub ? 'style="font-weight: bold; color: #B8860B;"' : '';
-            const displayName = isClub ? `📅 ${e.opponent}` : e.opponent;
 
-            return `<tr ${rowStyle}>
-                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                <td>${timeDisplay} Uhr</td>
-                <td>
-                    <span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block;"></span> 
-                    <span ${textStyle}>${e.team}</span>
-                </td>
-                <td ${textStyle}>${displayName}</td>
-                <td>
-                    ${canEdit ? `
-                        <span class="edit-btn" onclick="editEvent('${e.id}', ${isClub})">✏️</span>
-                        <span class="delete-btn" onclick="deleteEvent('${e.id}', ${isClub})">🗑️</span>
-                    ` : '-'}
-                </td>
-            </tr>`;
+            return `
+                ${separator}
+                <tr ${rowClass}>
+                    <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                    <td>${timeDisplay} Uhr</td>
+                    <td>
+                        <span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block;"></span> 
+                        <span ${textStyle}>${e.team}</span>
+                    </td>
+                    <td ${textStyle}>${isClub ? '📅 ' + e.opponent : e.opponent}</td>
+                    <td>
+                        ${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}', ${isClub})">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}', ${isClub})">🗑️</span>` : '-'}
+                    </td>
+                </tr>`;
         }).join('');
-}
 
+    listBody.innerHTML = htmlContent;
+}
     function renderCalendar() {
     const container = document.getElementById('calendar-container'); 
     container.innerHTML = '';
