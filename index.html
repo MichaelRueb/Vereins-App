@@ -122,10 +122,17 @@
                     <option value="Sportpistole">Sportpistole</option>
                     <option value="Großkaliber">Großkaliber</option>
                 </select>
-                <table style="font-size: 0.85em;">
-                    <thead><tr><th>Datum</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead>
-                    <tbody id="tournament-list-body"></tbody>
-                </table>
+              <table style="font-size: 0.85em;">
+    <thead>
+        <tr>
+            <th>Datum</th>
+            <th>Zeit</th> <th>Team</th>
+            <th>Gegner</th>
+            <th>Aktion</th>
+        </tr>
+    </thead>
+    <tbody id="tournament-list-body"></tbody>
+</table>
             </div>
             <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:15px; margin-top:20px; border-radius:12px; background:#fff8e1;">
                 <h4 id="form-event-title" style="color:#e65100;">Wettkampf eintragen</h4>
@@ -353,26 +360,25 @@
         allEvents = data || []; renderCalendar(); renderTournamentList();
     }
 
-    function renderTournamentList() {
+   function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     
-    // Hier prüfen wir das Profil erneut auf is_official für die Buttons
-    sb.from('profiles').select('is_official').eq('id', currentUser.id).single().then(({data}) => {
-        const isOfficial = data?.is_official;
-        const canManageAll = isAdmin || isOfficial;
-
-        document.getElementById('tournament-list-body').innerHTML = allEvents
-            .filter(e => filter === 'all_teams' || e.team === filter)
-            .map(e => {
-                const canEdit = canManageAll || (isCaptain && userTeam.includes(e.team));
-                return `<tr>
-                    <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                    <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
-                    <td>${e.opponent}</td>
-                    <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
-                </tr>`;
-            }).join('');
-    });
+    // Wir filtern und mappen die Events
+    document.getElementById('tournament-list-body').innerHTML = allEvents
+        .filter(e => filter === 'all_teams' || e.team === filter)
+        .map(e => {
+            const canEdit = isAdmin || (isCaptain && userTeam.includes(e.team));
+            // Zeit-Formatierung (falls mal kein Wert da ist, Fallback auf --:--)
+            const timeDisplay = e.time ? e.time.substring(0, 5) : '--:--'; 
+            
+            return `<tr>
+                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                <td>${timeDisplay} Uhr</td>
+                <td><span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block;"></span> ${e.team}</td>
+                <td>${e.opponent}</td>
+                <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
+            </tr>`;
+        }).join('');
 }
 
     function renderCalendar() {
@@ -388,11 +394,13 @@
             allEvents.filter(e => e.date === ds).forEach(e => {
                 const dot=document.createElement('div'); dot.className=`event-dot ${getTeamClass(e.team)}`; el.appendChild(dot);
             });
-            el.onclick = () => {
-                const evs = allEvents.filter(e => e.date === ds);
-                document.getElementById('selection-content').innerHTML = evs.length ? evs.map(e => `<div><b>${e.team}:</b> ${e.opponent}</div>`).join('') : 'Keine Termine';
-                document.getElementById('calendar-selection-details').style.display='block';
-            };
+           el.onclick = () => {
+    const evs = allEvents.filter(e => e.date === ds);
+    document.getElementById('selection-content').innerHTML = evs.length 
+        ? evs.map(e => `<div>[${e.time ? e.time.substring(0, 5) : '??:??'}] <b>${e.team}:</b> ${e.opponent}</div>`).join('') 
+        : 'Keine Termine';
+    document.getElementById('calendar-selection-details').style.display='block';
+};
             container.appendChild(el);
         }
     }
