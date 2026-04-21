@@ -226,50 +226,54 @@
 
     async function setupApp(user) {
     currentUser = user;
+    // Admin-Check über die E-Mail
     isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    
-    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-    
+
+    // Profil aus Supabase laden
+    const { data: p, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+
+    if (error) {
+        console.error("Fehler beim Laden des Profils:", error);
+    }
+
     if (p) {
-        userTeam = p.team || ""; 
+        userTeam = p.team || "";
         isCaptain = p.is_captain;
-        const isOfficial = p.is_official; // Wert aus der Datenbank
+        const isOfficial = p.is_official; // Status für Funktionäre aus DB laden
 
         document.getElementById('prof-name').value = p.full_name || "";
         renderTeamCheckboxes(userTeam);
 
-        // RECHTE-LOGIK: Admin oder Funktionär?
+        // Rechte-Logik: Admin oder Funktionär haben identische Rechte
         const hasFullAccess = isAdmin || isOfficial;
 
         if (hasFullAccess) {
+            // Admin-Tab und Wettkampf-Formular anzeigen
             document.getElementById('tab-admin').style.display = 'block';
             document.getElementById('captain-form').style.display = 'block';
-            
-            // Zugriff auf alle Mannschaften im Wettkampf-Dropdown
-            document.getElementById('ev-team-select').innerHTML = ALL_TEAMS.map(t => 
+
+            // Zugriff auf alle Mannschaften im Dropdown
+            document.getElementById('ev-team-select').innerHTML = ALL_TEAMS.map(t =>
                 `<option value="${t}">${t}</option>`
             ).join('');
         } else if (isCaptain) {
-            // Nur Kapitäne sehen das Formular für ihre eigenen Teams
+            // Kapitäne sehen nur ihre eigenen Teams
             document.getElementById('captain-form').style.display = 'block';
             const myTeams = userTeam.split(', ');
-            document.getElementById('ev-team-select').innerHTML = myTeams.map(t => 
+            document.getElementById('ev-team-select').innerHTML = myTeams.map(t =>
                 `<option value="${t}">${t}</option>`
             ).join('');
         }
     }
-    
+
+    // UI umschalten
     document.getElementById('loading-ui').style.display = 'none';
     document.getElementById('form-ui').style.display = 'block';
-    loadHistory(); 
+
+    // Daten laden
+    loadHistory();
     loadAllEvents();
-}
-    
-    document.getElementById('loading-ui').style.display = 'none';
-    document.getElementById('form-ui').style.display = 'block';
-    loadHistory(); 
-    loadAllEvents();
-}
+} // <--- Prüfe, ob diese Klammer die Funktion korrekt schließt
 
     function renderTeamCheckboxes(selected) {
         const selArray = selected ? selected.split(', ') : [];
