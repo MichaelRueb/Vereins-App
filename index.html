@@ -594,14 +594,38 @@
 }
 
     async function exportToPDF() {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
-        doc.text("Hubertus Strullendorf - Arbeitsstunden Report", 14, 20);
-        const rows = profs.map(p => [p.full_name, p.team, (hours.filter(h => h.user_id === p.id).reduce((s, h) => s + parseFloat(h.duration), 0) + " h")]);
-        doc.autoTable({ head: [['Name', 'Team', 'Summe']], body: rows, startY: 30 });
-        doc.save("Hubertus_Report.pdf");
-    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const { data: profs } = await sb.from('profiles').select('*');
+    const { data: hours } = await sb.from('work_hours').select('*').eq('status','approved');
+
+    // Gleiches Styling wie beim Fahrtenbuch
+    doc.setFontSize(18);
+    doc.setTextColor(46, 125, 50); // Hubertus Grün
+    doc.text("Hubertus Stundenreport - SV Hubertus Strullendorf", 14, 20);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(80);
+    doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 14, 30);
+
+    const rows = profs.map(p => [
+        p.full_name,
+        p.team || '-',
+        hours.filter(h => h.user_id === p.id).reduce((s, h) => s + parseFloat(h.duration), 0) + ' h'
+    ]);
+
+    doc.autoTable({
+        head: [['Name', 'Mannschaft', 'Stunden Gesamt']],
+        body: rows,
+        startY: 40,
+        theme: 'grid', // Gitterlinien wie beim Fahrtenbuch
+        headStyles: { fillColor: [46, 125, 50] }, // Grüner Header
+        styles: { fontSize: 10 }
+    });
+
+    doc.save("Hubertus_Stundenreport.pdf");
+}
 </script>
 </body>
 </html>
