@@ -116,16 +116,43 @@
                 <thead><tr><th>Datum</th><th>Was?</th><th>Dauer</th><th>Status</th></tr></thead>
                 <tbody id="history-body"></tbody>
             </table>
-        </div> <div id="view-events" style="display:none;">
+
+    
+       </div> 
+
+        <div id="view-events" style="display:none;">
+            <h3>Wettkampfkalender</h3>
             <div class="calendar-header">
                 <button onclick="changeMonth(-1)" style="width:50px;">&lt;</button>
                 <span id="current-month-display"></span>
                 <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
             </div>
             <div id="calendar-container" class="calendar-grid"></div>
-            </div> <div id="view-mileage" style="display:none;">
+            
+            <div id="calendar-selection-details" class="card" style="display:none; background:#e3f2fd; padding:15px; margin-top:15px;">
+                <h4 style="margin:0 0 10px 0;">Termine am gewählten Tag:</h4>
+                <div id="selection-content"></div>
+            </div>
+
+            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ccc;">
+            
+            <h4>Wettkampf-Übersicht</h4>
+            <select id="event-view-filter" onchange="renderTournamentList()" style="margin-bottom:15px;">
+                <option value="all_teams">Komplette Ansicht</option>
+                <option value="only_sports">Nur Mannschaften</option>
+                <option value="Verein">Nur Verein (Feste/Termine)</option>
+            </select>
+
+            <table>
+                <thead>
+                    <tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr>
+                </thead>
+                <tbody id="tournament-list-body"></tbody>
+            </table>
+            
+        </div> <div id="view-mileage" style="display:none;">
             <h3>🚗 Fahrtenbuch</h3>
-            <div class="card" style="background: #f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px; padding: 15px;">
+            <div class="card" style="background: #f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px; padding:15px;">
                 <h4 style="margin-top:0;">Neue Fahrt erfassen</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <input type="date" id="ml-date">
@@ -162,9 +189,14 @@
                 </thead>
                 <tbody id="mileage-history-body"></tbody>
             </table>
-        </div> <div id="view-profile" style="display:none;">
-            </div>
+        </div> ```
 
+### Was ich korrigiert habe:
+1.  **Tabellentrennung:** Der "Wettkampf-Übersicht"-Teil wurde wieder in den `view-events` Block verschoben. Er wird jetzt nur noch angezeigt, wenn du oben auf "Wettkampfkalender" klickst.
+2.  **Knöpfe fixiert:** Die grünen `< >` Knöpfe (für den Kalendermonat) sind jetzt wieder oben beim Kalender und nicht mehr unter der Fahrtenbuch-Tabelle.
+3.  **Verschachtelung gelöst:** Durch das Einfügen der fehlenden `</div>` vor dem Fahrtenbuch weiß der Browser jetzt, dass das zwei völlig verschiedene Seiten sind.
+
+Wenn du das so einfügst, sieht das Fahrtenbuch wieder sauber aus und der Kalender bleibt dort, wo er hingehört. Gib kurz Bescheid, ob es jetzt passt!
     <h4 style="margin-top:25px;">Deine letzten Fahrten</h4>
     <div id="mileage-sum-display" style="font-size: 0.9em; margin-bottom: 5px; font-weight: bold;">Gesamt diesen Monat: 0,00 km</div>
     <table>
