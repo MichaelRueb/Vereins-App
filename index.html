@@ -119,6 +119,52 @@
         </div>
 
         <div id="view-events" style="display:none;">
+<div id="view-mileage" style="display:none;">
+    <h3>🚗 Fahrtenbuch</h3>
+    <div class="card" style="background: #f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
+        <h4 style="margin-top:0;">Neue Fahrt erfassen</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="date" id="ml-date">
+            <input type="text" id="ml-purpose" placeholder="Zweck (z.B. Sitzung)">
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:5px;">
+            <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
+            <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
+        </div>
+        <datalist id="start-suggestions"></datalist>
+        <datalist id="end-suggestions"></datalist>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top:10px; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()" style="width:auto; margin:0;">
+                <label for="ml-roundtrip" style="font-size: 0.9em;">Hin- & Rückfahrt</label>
+            </div>
+            <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 100px; margin:0;">
+        </div>
+        
+        <div id="ml-result" style="text-align: center; margin: 12px 0; font-weight: bold; color: #2e7d32; font-size: 1.1em;">
+            Gesamtstrecke: 0,00 km
+        </div>
+        
+        <button onclick="saveMileage()" style="background: #2e7d32; margin-top: 0;">Fahrt speichern</button>
+    </div>
+
+    <h4 style="margin-top:25px;">Deine letzten Fahrten</h4>
+    <div id="mileage-sum-display" style="font-size: 0.9em; margin-bottom: 5px; font-weight: bold;">Gesamt diesen Monat: 0,00 km</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Route / Zweck</th>
+                <th>KM</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="mileage-history-body"></tbody>
+    </table>
+</div>
+            
             <div class="calendar-header">
                 <button onclick="changeMonth(-1)" style="width:50px;">&lt;</button>
                 <span id="current-month-display"></span>
