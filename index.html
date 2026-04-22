@@ -213,6 +213,7 @@
 </div>
 
 <script>
+<script>
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
@@ -257,30 +258,21 @@
     async function setupApp(user) {
         currentUser = user;
         isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        
         if (p) {
             userTeam = p.team || "";
             isCaptain = p.is_captain;
-            const isOfficial = p.is_official;
             document.getElementById('prof-name').value = p.full_name || "";
             renderTeamCheckboxes(userTeam);
-
-            const hasFullAccess = isAdmin || isOfficial;
-            if (hasFullAccess) {
+            if (isAdmin || p.is_official) {
                 document.getElementById('tab-admin').style.display = 'block';
                 document.getElementById('captain-form').style.display = 'block';
                 document.getElementById('ev-team-select').innerHTML = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('') + `<option value="Verein">Verein</option>`;
             } else if (isCaptain) {
                 document.getElementById('captain-form').style.display = 'block';
-                const myTeams = userTeam.split(', ');
-                document.getElementById('ev-team-select').innerHTML = myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+                document.getElementById('ev-team-select').innerHTML = userTeam.split(', ').map(t => `<option value="${t}">${t}</option>`).join('');
             }
-        } else {
-            renderTeamCheckboxes("");
-        }
-
+        } else { renderTeamCheckboxes(""); }
         document.getElementById('loading-ui').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
         loadHistory();
@@ -289,9 +281,7 @@
 
     function renderTeamCheckboxes(selected) {
         const selArray = selected ? selected.split(', ') : [];
-        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
-            <div style="font-size:0.85em;"><input type="checkbox" name="prof-teams" value="${t}" style="width:auto;" ${selArray.includes(t)?'checked':''}> ${t}</div>
-        `).join('');
+        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<div style="font-size:0.85em;"><input type="checkbox" name="prof-teams" value="${t}" style="width:auto;" ${selArray.includes(t)?'checked':''}> ${t}</div>`).join('');
     }
 
     async function updateProfile() {
@@ -300,136 +290,162 @@
         alert("Gespeichert!"); location.reload();
     }
 
+    function switchTab(t) {
+        ['home','events','profile','admin','mileage'].forEach(v => {
+            const el = document.getElementById('view-'+v);
+            if(el) el.style.display = (v===t)?'block':'none';
+            const tab = document.getElementById('tab-'+v);
+            if(tab) tab.className = (v===t)?'tab active':'tab';
+        });
+        if(t==='admin') loadAdmin();
+        if(t==='events') loadAllEvents();
+        if(t==='mileage') { loadMileageHistory(); loadRouteSuggestions(); document.getElementById('ml-date').valueAsDate = new Date(); }
+    }
+
+    // --- FAHRTENBUCH LOGIK ---
+    function calcTotalKm() {
+        const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
+        const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
+        document.getElementById('ml-result').innerText = `Gesamtstrecke: ${total.toFixed(2).replace('.', ',')} km`;
+        return total;
+    }
+
+    async function loadRouteSuggestions() {
+        const { data: routes } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
+        if (routes) {
+            document.getElementById('start-suggestions').innerHTML = [...new Set(routes.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
+            document.getElementById('end-suggestions').innerHTML = [...new Set(routes.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
+            window.mySavedRoutes = routes;
+        }
+        const { data: logs } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+        if (logs) {
+            const uniquePurposes = [...new Set(logs.map(l => l.purpose).filter(p => p))];
+            document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
+        }
+    }
+
+    function checkFavRoute() {
+        const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value;
+        if(window.mySavedRoutes) {
+            const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
+            if(found) { document.getElementById('ml-km-single').value = found.distance_single; calcTotalKm(); }
+        }
+    }
+
+    async function saveMileage() {
+        const d = document.getElementById('ml-date').value, p = document.getElementById('ml-purpose').value;
+        const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value;
+        const single = parseFloat(document.getElementById('ml-km-single').value);
+        if(!d || !p || !start || !end || !single) return alert("Daten fehlen!");
+
+        const payload = {
+            user_id: currentUser.id, date: d, purpose: p, start_location: start, end_location: end,
+            distance_single: single, is_round_trip: document.getElementById('ml-roundtrip').checked,
+            distance_total: calcTotalKm(), status: 'approved'
+        };
+
+        let result = currentEditMileageId ? await sb.from('mileage_logs').update(payload).eq('id', currentEditMileageId) : await sb.from('mileage_logs').insert([payload]);
+
+        if (result.error) alert("Fehler: " + result.error.message);
+        else {
+            await sb.from('saved_routes').upsert({ user_id: currentUser.id, start_point: start, end_point: end, distance_single: single }, { onConflict: 'user_id,start_point,end_point' });
+            alert(currentEditMileageId ? "Fahrt aktualisiert!" : "Fahrt gespeichert!");
+            resetMileageForm(); loadMileageHistory();
+        }
+    }
+
+    function editMileage(m) {
+        currentEditMileageId = m.id;
+        document.getElementById('ml-date').value = m.date;
+        document.getElementById('ml-purpose').value = m.purpose;
+        document.getElementById('ml-start').value = m.start_location;
+        document.getElementById('ml-end').value = m.end_location;
+        document.getElementById('ml-km-single').value = m.distance_single;
+        document.getElementById('ml-roundtrip').checked = m.is_round_trip;
+        calcTotalKm();
+        document.querySelector("button[onclick='saveMileage()']").innerText = "Änderungen speichern";
+        document.querySelector('#view-mileage h3').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetMileageForm() {
+        currentEditMileageId = null;
+        document.getElementById('ml-purpose').value = ""; document.getElementById('ml-start').value = ""; document.getElementById('ml-end').value = "";
+        document.getElementById('ml-km-single').value = ""; document.getElementById('ml-result').innerText = "Gesamtstrecke: 0,00 km";
+        document.querySelector("button[onclick='saveMileage()']").innerText = "Fahrt speichern";
+    }
+
+    async function loadMileageHistory() {
+        if (!currentUser) return;
+        const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
+        const tbody = document.getElementById('mileage-history-body');
+        if (!tbody) return;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Keine Einträge</td></tr>';
+            return;
+        }
+
+        const now = new Date();
+        const mSum = data.filter(m => new Date(m.date).getMonth() === now.getMonth()).reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
+        document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${mSum.toFixed(2).replace('.', ',')} km`;
+
+        tbody.innerHTML = data.map(m => `
+            <tr>
+                <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
+                <td><strong>${m.purpose}</strong><br><small>${m.start_location} ➔ ${m.end_location}</small></td>
+                <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
+                <td>✅</td>
+                <td><span class="edit-btn" onclick='editMileage(${JSON.stringify(m)})'>✏️</span></td>
+            </tr>
+        `).join('');
+    }
+
+    async function exportMileagePDF() {
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
+        const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+        doc.setFontSize(18); doc.setTextColor(46, 125, 50); doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
+        const rows = logs.map(l => [new Date(l.date).toLocaleDateString('de-DE'), l.purpose, `${l.start_location}-${l.end_location}`, l.is_round_trip?'Ja':'Nein', `${parseFloat(l.distance_total).toFixed(2)} km`]);
+        doc.autoTable({ head: [['Datum', 'Zweck', 'Route', 'H+R', 'KM']], body: rows, startY: 40, theme: 'grid', headStyles: { fillColor: [46, 125, 50] } });
+        doc.save("Fahrtenbuch.pdf");
+    }
+
+    // --- STUNDEN & KALENDER ---
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {ascending:false});
         const approved = data ? data.filter(h => h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
         document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
         document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
-        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':(h.status==='rejected'?'❌':'⏳')}</td></tr>`).join('') : "";
+        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':'⏳'}</td></tr>`).join('') : "";
     }
-
-    async function loadAdmin() {
-        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*');
-        const pending = hours ? hours.filter(h => h.status === 'pending') : [];
-        document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
-        document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
-            const u = profs.find(p => p.id === h.user_id);
-            return `<tr><td>${u?.full_name||'Gast'}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:4px; width:auto;">OK</button> <button onclick="reject('${h.id}')" style="width:auto; background:#c62828;">X</button></td></tr>`;
-        }).join('');
-
-        document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
-            const genSum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
-            return `<tr>
-                <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
-                <td><small>${p.team || '-'}</small></td>
-                <td><b>${genSum}</b></td>
-                <td><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:auto; margin:0;"></td>
-                <td><input type="checkbox" onchange="setOfficial('${p.id}', this.checked)" ${p.is_official?'checked':''} style="width:auto; margin:0;"></td>
-            </tr>`;
-        }).join('');
-    }
-
-    async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
-    async function setOfficial(id, val) { await sb.from('profiles').update({ is_official: val }).eq('id', id); }
-    async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
-    async function reject(id) {
-        const reason = prompt("Grund für Ablehnung:");
-        if (reason !== null) {
-            const { data: cur } = await sb.from('work_hours').select('description').eq('id', id).single();
-            await sb.from('work_hours').update({ status: 'rejected', description: cur.description + " | ABGELEHNT: " + reason }).eq('id', id);
-            loadAdmin();
-        }
-    }
-
-    async function showAdminMemberDetails(uid, name) {
-        const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', {ascending:false});
-        document.getElementById('admin-detail-name').innerText = name;
-        document.getElementById('admin-detail-body').innerHTML = hours.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':(h.status==='rejected'?'❌':'⏳')}</td><td><span class="delete-btn" onclick="deleteHoursAdmin('${h.id}', '${uid}', '${name}')">🗑️</span></td></tr>`).join('');
-        document.getElementById('admin-detail-view').style.display = 'block';
-    }
-
-    async function deleteHoursAdmin(id, uid, name) { if(confirm("Eintrag wirklich löschen?")) { await sb.from('work_hours').delete().eq('id', id); showAdminMemberDetails(uid, name); loadAdmin(); } }
 
     async function sendHours() {
         const cat = document.getElementById('work-category').value, h = document.getElementById('hours').value, d = document.getElementById('date').value;
-        if(!cat || !h || !d) return alert("Fehlende Daten!");
+        if(!cat || !h || !d) return alert("Daten fehlen!");
         await sb.from('work_hours').insert([{ user_id: currentUser.id, date: d, duration: h, description: cat + ": " + document.getElementById('description').value, status: 'pending' }]);
-        document.getElementById('hours').value = ""; document.getElementById('description').value = ""; alert("Meldung gesendet!"); loadHistory();
+        alert("Gesendet!"); loadHistory();
     }
 
     async function loadAllEvents() {
         const { data: tourneys } = await sb.from('tournaments').select('*').order('date', {ascending: true});
-        const { data: clubEvents } = await sb.from('club_events').select('*').order('date', {ascending: true});
-        const formattedClubEvents = (clubEvents || []).map(e => ({ ...e, team: 'Verein', isClubEvent: true, opponent: e.title }));
-        allEvents = [...(tourneys || []), ...formattedClubEvents];
-        renderCalendar(); 
-        renderTournamentList();
-    }
-
-    function changeMonth(delta) {
-        currentViewDate.setMonth(currentViewDate.getMonth() + delta);
-        renderCalendar();
-    }
-
-    function renderTournamentList() {
-        const filter = document.getElementById('event-view-filter').value;
-        const listBody = document.getElementById('tournament-list-body');
-        listBody.innerHTML = ''; 
-        const sortedEvents = [...allEvents].sort((a, b) => new Date(a.date) - new Date(b.date));
-        let separatorAdded = false;
-
-        listBody.innerHTML = sortedEvents.filter(e => {
-            if (filter === 'all_teams') return true;
-            if (filter === 'Verein') return e.team === 'Verein';
-            if (filter === 'only_sports') return e.team !== 'Verein';
-            return e.team === filter;
-        }).map(e => {
-            const isClub = e.team === 'Verein';
-            let separator = '';
-            if (isClub && !separatorAdded && filter === 'all_teams') {
-                separator = `<tr style="background:#f0f0f0;"><td colspan="5" style="text-align:center;font-weight:bold;color:#B8860B;">🏆 VEREINSTERMINE</td></tr>`;
-                separatorAdded = true;
-            }
-            const canEdit = isAdmin || (!isClub && isCaptain && userTeam.includes(e.team));
-            return `${separator}<tr>
-                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
-                <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
-                <td>${e.opponent}</td>
-                <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
-            </tr>`;
-        }).join('');
+        const { data: club } = await sb.from('club_events').select('*');
+        allEvents = [...(tourneys || []), ...(club || []).map(e => ({...e, team: 'Verein', opponent: e.title}))];
+        renderCalendar(); renderTournamentList();
     }
 
     function renderCalendar() {
-        const container = document.getElementById('calendar-container'); 
-        container.innerHTML = '';
+        const container = document.getElementById('calendar-container'); container.innerHTML = '';
         const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
         document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
-        
-        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => { 
-            const h = document.createElement('div'); h.className = 'calendar-day-head'; h.innerText = d; container.appendChild(h); 
-        });
-
-        const first = (new Date(year, month, 1).getDay() + 6) % 7;
-        const days = new Date(year, month + 1, 0).getDate();
-
-        for(let i = 0; i < first; i++) container.appendChild(document.createElement('div')).className = 'calendar-day';
-
-        for(let d = 1; d <= days; d++) {
-            const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const el = document.createElement('div'); el.className = 'calendar-day';
-            if (HOLIDAYS_BY[ds]) el.classList.add('calendar-holiday');
+        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => { const h = document.createElement('div'); h.className='calendar-day-head'; h.innerText=d; container.appendChild(h); });
+        const first = (new Date(year, month, 1).getDay() + 6) % 7, days = new Date(year, month + 1, 0).getDate();
+        for(let i=0; i<first; i++) container.appendChild(document.createElement('div')).className='calendar-day';
+        for(let d=1; d<=days; d++) {
+            const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, el = document.createElement('div');
+            el.className='calendar-day'; if(HOLIDAYS_BY[ds]) el.classList.add('calendar-holiday');
             el.innerHTML = `<small>${d}</small>`;
-            allEvents.filter(e => e.date === ds).forEach(e => {
-                const dot = document.createElement('div'); dot.className = `event-dot ${getTeamClass(e.team)}`; el.appendChild(dot);
-            });
-            el.onclick = () => {
-                const evs = allEvents.filter(e => e.date === ds);
-                document.getElementById('selection-content').innerHTML = evs.length ? evs.map(e => `<div><b>${e.team}:</b> ${e.opponent}</div>`).join('') : 'Keine Termine';
-                document.getElementById('calendar-selection-details').style.display = 'block';
-            };
+            allEvents.filter(e => e.date === ds).forEach(e => { const dot=document.createElement('div'); dot.className=`event-dot ${getTeamClass(e.team)}`; el.appendChild(dot); });
+            el.onclick = () => { const evs=allEvents.filter(e=>e.date===ds); document.getElementById('selection-content').innerHTML = evs.length ? evs.map(e=>`<div><b>${e.team}:</b> ${e.opponent}</div>`).join('') : 'Keine Termine'; document.getElementById('calendar-selection-details').style.display='block'; };
             container.appendChild(el);
         }
     }
@@ -440,346 +456,36 @@
         if(t.includes('auflage')) return 'team-auflage';
         if(t.includes('gewehr')) return 'team-lg';
         if(t.includes('pistole')) return 'team-lp';
-        if(t.includes('sportpistole')) return 'team-spopi';
-        if(t.includes('großkaliber')) return 'team-gk';
         return 'team-default';
     }
 
-    function switchTab(t) {
-        ['home','events','profile','admin','mileage'].forEach(v => { 
-            const el = document.getElementById('view-'+v);
-            if(el) el.style.display = (v===t)?'block':'none'; 
-            const tab = document.getElementById('tab-'+v);
-            if(tab) tab.className = (v===t)?'tab active':'tab'; 
-        });
-        if(t==='admin') loadAdmin(); 
-        if(t==='events') loadAllEvents();
-        if(t==='mileage') { loadMileageHistory(); loadRouteSuggestions(); document.getElementById('ml-date').valueAsDate = new Date(); }
+    function renderTournamentList() {
+        const filter = document.getElementById('event-view-filter').value;
+        document.getElementById('tournament-list-body').innerHTML = allEvents.filter(e => filter==='all_teams' || e.team===filter).map(e => `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time || '--'}</td><td>${e.team}</td><td>${e.opponent}</td><td>-</td></tr>`).join('');
     }
 
-    async function saveEvent() {
-        const id = document.getElementById('edit-event-id').value;
-        let opp = document.getElementById('ev-opp').value;
-        const evDate = document.getElementById('ev-date').value, evTime = document.getElementById('ev-time').value, evTeam = document.getElementById('ev-team-select').value;
-        if (!opp || !evDate || !evTime) return alert("Bitte alle Felder ausfüllen!");
-        if (document.getElementById('ev-home-check').checked && !opp.includes("(Heim)")) opp += " (Heim)";
-        
-        const eventData = { date: evDate, time: evTime, opponent: opp, team: evTeam };
-        if (id) await sb.from('tournaments').update(eventData).eq('id', id);
-        else await sb.from('tournaments').insert([eventData]);
-        
-        resetEventForm(); loadAllEvents();
+    async function loadAdmin() {
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*');
+        if(!profs) return;
+        const pending = hours ? hours.filter(h => h.status === 'pending') : [];
+        document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
+        document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => `<tr><td>${profs.find(p=>p.id===h.user_id)?.full_name || 'Gast'}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')">OK</button></td></tr>`).join('');
+        document.getElementById('admin-member-table-list').innerHTML = profs.map(p => `<tr><td>${p.full_name}</td><td>${p.team}</td><td>${hours ? hours.filter(h=>h.user_id===p.id && h.status==='approved').reduce((s,h)=>s+parseFloat(h.duration),0) : 0}h</td><td>${p.is_captain?'Ja':'-'}</td><td><input type="checkbox" onchange="sb.from('profiles').update({is_official:this.checked}).eq('id','${p.id}')" ${p.is_official?'checked':''}></td></tr>`).join('');
     }
 
-    function editEvent(id) { 
-        const e = allEvents.find(x => x.id == id);
-        document.getElementById('edit-event-id').value = e.id; 
-        document.getElementById('ev-date').value = e.date;
-        document.getElementById('ev-time').value = e.time || "";
-        document.getElementById('ev-team-select').value = e.team; 
-        document.getElementById('ev-opp').value = e.opponent.replace(" (Heim)", "");
-        document.getElementById('ev-home-check').checked = e.opponent.includes("(Heim)");
-        document.getElementById('cancel-edit-btn').style.display = 'block';
-    }
+    async function approveHours(id) { await sb.from('work_hours').update({status:'approved'}).eq('id',id); loadAdmin(); }
 
-    function resetEventForm() { document.getElementById('edit-event-id').value=""; document.getElementById('ev-opp').value=""; document.getElementById('cancel-edit-btn').style.display='none'; }
-    async function deleteEvent(id) { if(confirm("Wettkampf löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
-
-    async function changePassword() {
-        const newPass = document.getElementById('new-password').value;
-        if (newPass.length < 6) return alert("Mindestens 6 Zeichen!");
-        const { error } = await sb.auth.updateUser({ password: newPass });
-        if (error) alert(error.message); else alert("Passwort geändert!");
-    }
-
-    // FAHRTENBUCH
-    function calcTotalKm() {
-        const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
-        const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
-        document.getElementById('ml-result').innerText = `Gesamtstrecke: ${total.toFixed(2).replace('.', ',')} km`;
-        return total;
-    }
-
-   async function loadRouteSuggestions() {
-    // Lädt Routen (Start/Ziel)
-    const { data: routes } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
-    if (routes) {
-        document.getElementById('start-suggestions').innerHTML = [...new Set(routes.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
-        document.getElementById('end-suggestions').innerHTML = [...new Set(routes.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
-        window.mySavedRoutes = routes;
-    }
-
-    // Lädt alle bisherigen Zwecke aus dem Fahrtenbuch
-    const { data: logs } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
-    if (logs) {
-        // Set() entfernt Duplikate
-        const uniquePurposes = [...new Set(logs.map(l => l.purpose))];
-        document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
-    }
-}
-
-    function checkFavRoute() {
-        const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value;
-        if(window.mySavedRoutes) {
-            const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
-            if(found) { document.getElementById('ml-km-single').value = found.distance_single; calcTotalKm(); }
-        }
-    }
-
-   async function saveMileage() {
-    const d = document.getElementById('ml-date').value;
-    const p = document.getElementById('ml-purpose').value;
-    const start = document.getElementById('ml-start').value;
-    const end = document.getElementById('ml-end').value;
-    const single = parseFloat(document.getElementById('ml-km-single').value);
-
-    if(!d || !p || !start || !end || !single) return alert("Daten fehlen!");
-
-    const payload = {
-        user_id: currentUser.id,
-        date: d,
-        purpose: p,
-        start_location: start,
-        end_location: end,
-        distance_single: single,
-        is_round_trip: document.getElementById('ml-roundtrip').checked,
-        distance_total: calcTotalKm(),
-        status: 'approved'
-    };
-
-    let result;
-    if (currentEditMileageId) {
-        // Update eines bestehenden Eintrags
-        result = await sb.from('mileage_logs').update(payload).eq('id', currentEditMileageId);
-    } else {
-        // Neuer Eintrag
-        result = await sb.from('mileage_logs').insert([payload]);
-    }
-
-    if (result.error) {
-        alert("Fehler: " + result.error.message);
-    } else {
-        alert(currentEditMileageId ? "Fahrt aktualisiert!" : "Fahrt gespeichert!");
-        resetMileageForm();
-        loadMileageHistory();
-    }
-}
-
-// Hilfsfunktion zum Zurücksetzen
-function resetMileageForm() {
-    currentEditMileageId = null;
-    document.getElementById('ml-purpose').value = "";
-    document.getElementById('ml-start').value = "";
-    document.getElementById('ml-end').value = "";
-    document.getElementById('ml-km-single').value = "";
-    document.getElementById('ml-result').innerText = "Gesamtstrecke: 0,00 km";
-    const saveBtn = document.querySelector("button[onclick='saveMileage()']");
-    if (saveBtn) saveBtn.innerText = "Fahrt speichern";
-}
-
-async function loadMileageHistory() {
-    // Falls noch kein User geladen ist, abbrechen
-    if (!currentUser) return;
-
-    // Daten aus Supabase abrufen
-    const { data, error } = await sb.from('mileage_logs')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('date', {ascending: false});
-    if (error) {
-        console.error("Fehler beim Laden der Fahrten:", error);
-        return;
-    }
-    const tbody = document.getElementById('mileage-history-body');
-    const sumDisplay = document.getElementById('mileage-sum-display');
-    if (!tbody) return;
-    // Falls keine Daten da sind
-    if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Noch keine Fahrten eingetragen</td></tr>';
-        if (sumDisplay) sumDisplay.innerText = "Gesamt diesen Monat: 0,00 km";
-        return;
-    }
-    // Monats-Summe berechnen (für den aktuellen Monat)
-    const now = new Date();
-    const mSum = data
-        .filter(m => {
-            const d = new Date(m.date);
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        })
-        .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
-    if (sumDisplay) {
-        sumDisplay.innerText = `Gesamt diesen Monat: ${mSum.toFixed(2).replace('.', ',')} km`;
-    }
-    // Tabelle mit den Einträgen befüllen
-    tbody.innerHTML = data.map(m => `
-       tbody.innerHTML = data.map(m => `
-    <tr>
-        <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
-        <td>
-            <strong>${m.purpose}</strong><br>
-            <small>${m.start_location} ➔ ${m.end_location}</small>
-        </td>
-        <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
-        <td>
-            <span class="edit-btn" onclick='editMileage(${JSON.stringify(m)})' style="cursor:pointer; color:#ef6c00;">✏️</span>
-        </td>
-    </tr>
-`).join('');
-    `).join('');
-}
-
-    function editMileage(entry) {
-    currentEditMileageId = entry.id; // ID merken
-    
-    document.getElementById('ml-date').value = entry.date;
-    document.getElementById('ml-purpose').value = entry.purpose;
-    document.getElementById('ml-start').value = entry.start_location;
-    document.getElementById('ml-end').value = entry.end_location;
-    document.getElementById('ml-km-single').value = entry.distance_single;
-    document.getElementById('ml-roundtrip').checked = entry.is_round_trip;
-    
-    // Kilometer neu berechnen
-    calcTotalKm();
-    
-    // Zum Formular hochscrollen
-    document.querySelector('#view-mileage h3').scrollIntoView({ behavior: 'smooth' });
-    
-    // Optional: Button-Text ändern
-    const saveBtn = document.querySelector("button[onclick='saveMileage()']");
-    if (saveBtn) saveBtn.innerText = "Änderungen speichern";
-}
-    
-    async function exportMileagePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    // Nutzerdaten für den Header laden
-    const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
-    // Alle Fahrten dieses Nutzers laden
-    const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
-
-    if (!logs || logs.length === 0) {
-        return alert("Keine Fahrten zum Exportieren gefunden!");
-    }
-
-    // Header Styling
-    doc.setFontSize(18);
-    doc.setTextColor(46, 125, 50); // Hubertus Grün
-    doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
-    
-    doc.setFontSize(11);
-    doc.setTextColor(80);
-    doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
-    doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
-
-    // Daten für Tabelle aufbereiten
-    const tableRows = logs.map(l => [
-        new Date(l.date).toLocaleDateString('de-DE'),
-        l.purpose,
-        `${l.start_location} > ${l.end_location}`,
-        l.is_round_trip ? 'Ja' : 'Nein',
-        `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
-    ]);
-
-    // Gesamtsumme berechnen
-    const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
-    
-    // Summenzeile hinzufügen
-    tableRows.push([
-        { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
-        { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
-    ]);
-
-    // Tabelle generieren
-    doc.autoTable({
-        head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
-        body: tableRows,
-        startY: 45,
-        theme: 'grid',
-        headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
-        styles: { fontSize: 9 },
-        columnStyles: {
-            4: { halign: 'right' }
-        }
-    });
-
-    // PDF Speichern
-    const fileName = `Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`;
-    doc.save(fileName);
-}
+    function changeMonth(delta) { currentViewDate.setMonth(currentViewDate.getMonth() + delta); renderCalendar(); }
 
     async function exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    // --- Datenabruf (Direkt aus Supabase für aktuelle Daten) ---
-    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-    // 1. Kopfzeile (Zentriert ohne Logo)
-    doc.setFontSize(22);
-    doc.setTextColor(46, 125, 50); // Hubertus Grün
-    doc.setFont("helvetica", "bold");
-    doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    const dateString = new Date().toLocaleDateString('de-DE');
-    doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
-
-    // Grüne Trennlinie unter dem Header
-    doc.setDrawColor(46, 125, 50);
-    doc.setLineWidth(0.5);
-    doc.line(14, 35, 196, 35);
-
-    // 2. Tabellen-Daten aufbereiten
-    const tableRows = [];
-    if (!profs || profs.length === 0) {
-        alert("Keine Mitgliederdaten gefunden!");
-        return;
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status','approved');
+        doc.text("Hubertus Stundenreport", 14, 20);
+        doc.autoTable({ head:[['Name','Team','h']], body: profs.map(p => [p.full_name, p.team, hours.filter(h=>h.user_id===p.id).reduce((s,h)=>s+parseFloat(h.duration),0)]), startY: 30 });
+        doc.save("Report.pdf");
     }
-    profs.forEach(p => {
-        const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
-        const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-
-        // Hauptzeile Mitglied
-        tableRows.push([
-            { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
-            { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
-            { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
-        ]);
-
-        // Detailzeile (Arbeitseinsätze)
-        if (memberHours.length > 0) {
-            let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
-            tableRows.push([
-                { content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }
-            ]);
-        } else {
-            tableRows.push([
-                { content: "   Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }
-            ]);
-        }
-    });
-        
-    // 3. Tabelle mit autoTable generieren
-    doc.autoTable({
-        startY: 40,
-        head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
-        body: tableRows,
-        theme: 'grid',
-        headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
-        styles: { font: "helvetica", overflow: 'linebreak' },
-        columnStyles: {
-            0: { cellWidth: 'auto' },
-            1: { cellWidth: 40 },
-            2: { cellWidth: 25 }
-        }
-    });
-    // 4. PDF speichern
-    doc.save(`Hubertus_Report_${dateString}.pdf`);
-
-}
 </script>
 </body>
 </html>
