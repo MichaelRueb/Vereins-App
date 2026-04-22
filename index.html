@@ -148,6 +148,7 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <input type="date" id="ml-date">
                     <input type="text" id="ml-purpose" placeholder="Zweck">
+                    <datalist id="purpose-suggestions"></datalist>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:5px;">
                     <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
@@ -499,13 +500,22 @@
     }
 
     async function loadRouteSuggestions() {
-        const { data } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
-        if (data) {
-            document.getElementById('start-suggestions').innerHTML = [...new Set(data.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
-            document.getElementById('end-suggestions').innerHTML = [...new Set(data.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
-            window.mySavedRoutes = data;
-        }
+    // Lädt Routen (Start/Ziel)
+    const { data: routes } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
+    if (routes) {
+        document.getElementById('start-suggestions').innerHTML = [...new Set(routes.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
+        document.getElementById('end-suggestions').innerHTML = [...new Set(routes.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
+        window.mySavedRoutes = routes;
     }
+
+    // Lädt alle bisherigen Zwecke aus dem Fahrtenbuch
+    const { data: logs } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+    if (logs) {
+        // Set() entfernt Duplikate
+        const uniquePurposes = [...new Set(logs.map(l => l.purpose))];
+        document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
+    }
+}
 
     function checkFavRoute() {
         const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value;
