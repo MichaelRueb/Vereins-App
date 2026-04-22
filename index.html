@@ -614,7 +614,6 @@ async function loadMileageHistory() {
        tbody.innerHTML = data.map(m => `
     <tr>
         <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
-        <td>
             <strong>${m.purpose}</strong><br>
             <small>${m.start_location} ➔ ${m.end_location}</small>
         </td>
