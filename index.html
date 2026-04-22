@@ -544,11 +544,24 @@ let allHours = [];
     return 'team-default';
 }
 
-    function changeMonth(s) { currentViewDate.setMonth(currentViewDate.getMonth()+s); renderCalendar(); }
-    function switchTab(t) {
-        ['home','events','profile','admin'].forEach(v => { document.getElementById('view-'+v).style.display = (v===t)?'block':'none'; document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab'; });
-        if(t==='admin') loadAdmin(); if(t==='events') loadAllEvents();
+   function switchTab(t) {
+    // Liste aller Views (mileage hinzugefügt)
+    ['home','events','profile','admin','mileage'].forEach(v => { 
+        const el = document.getElementById('view-'+v);
+        if(el) el.style.display = (v===t)?'block':'none'; 
+        
+        const tab = document.getElementById('tab-'+v);
+        if(tab) tab.className = (v===t)?'tab active':'tab'; 
+    });
+
+    if(t==='admin') loadAdmin(); 
+    if(t==='events') loadAllEvents();
+    if(t==='mileage') {
+        loadMileageHistory();
+        loadRouteSuggestions();
+        document.getElementById('ml-date').valueAsDate = new Date(); // Heute vorselektieren
     }
+}
 
 async function exportToPDF() {
     const { jsPDF } = window.jspdf;
@@ -704,6 +717,105 @@ async function exportToPDF() {
         document.getElementById('new-password-confirm').value = "";
     }
 }
+
+// --- FAHRTENBUCH LOGIK ---
+
+// 1. Kilometer live berechnen
+function calcTotalKm() {
+    const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
+    const isRoundTrip = document.getElementById('ml-roundtrip').checked;
+    const total = isRoundTrip ? (single * 2) : single;
+    document.getElementById('ml-result').innerText = `Gesamtstrecke: ${total.toFixed(2).replace('.', ',')} km`;
+    return total;
+}
+
+// 2. Favoriten-Strecken laden (Datalists füllen)
+async function loadRouteSuggestions() {
+    const { data } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
+    if (data) {
+        // Startpunkte sammeln
+        const starts = [...new Set(data.map(r => r.start_point))];
+        document.getElementById('start-suggestions').innerHTML = starts.map(s => `<option value="${s}">`).join('');
+        // Zielpunkte sammeln
+        const ends = [...new Set(data.map(r => r.end_point))];
+        document.getElementById('end-suggestions').innerHTML = ends.map(e => `<option value="${e}">`).join('');
+        
+        window.mySavedRoutes = data; // Global für checkFavRoute speichern
+    }
+}
+
+// 3. Prüfen, ob Kombination schon bekannt ist (Automatisches Ausfüllen der KM)
+function checkFavRoute() {
+    const start = document.getElementById('ml-start').value;
+    const end = document.getElementById('ml-end').value;
+    if(window.mySavedRoutes) {
+        const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
+        if(found) {
+            document.getElementById('ml-km-single').value = found.distance_single;
+            calcTotalKm();
+        }
+    }
+}
+
+// 4. Fahrt speichern
+async function saveMileage() {
+    const d = document.getElementById('ml-date').value;
+    const p = document.getElementById('ml-purpose').value;
+    const start = document.getElementById('ml-start').value;
+    const end = document.getElementById('ml-end').value;
+    const single = parseFloat(document.getElementById('ml-km-single').value);
+    const isRound = document.getElementById('ml-roundtrip').checked;
+    const total = calcTotalKm();
+
+    if(!d || !p || !start || !end || !single) return alert("Bitte alle Felder ausfüllen!");
+
+    // A: In Logbuch speichern
+    const { error: logError } = await sb.from('mileage_logs').insert([{
+        user_id: currentUser.id, date: d, purpose: p, start_location: start,
+        end_location: end, distance_single: single, is_round_trip: isRound, distance_total: total
+    }]);
+
+    if(!logError) {
+        // B: Als Favorit/Route speichern/aktualisieren
+        await sb.from('saved_routes').upsert({ 
+            user_id: currentUser.id, start_point: start, end_point: end, distance_single: single 
+        }, { onConflict: 'user_id, start_point, end_point' });
+
+        alert("Fahrt erfolgreich gebucht!");
+        loadMileageHistory();
+        loadRouteSuggestions();
+        // Reset
+        document.getElementById('ml-purpose').value = "";
+        document.getElementById('ml-km-single').value = "";
+    } else {
+        alert("Fehler: " + logError.message);
+    }
+}
+
+// 5. Historie laden
+async function loadMileageHistory() {
+    const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
+    
+    if(data) {
+        // Monatssumme berechnen (Aktueller Monat)
+        const now = new Date();
+        const monthSum = data
+            .filter(m => new Date(m.date).getMonth() === now.getMonth() && new Date(m.date).getFullYear() === now.getFullYear())
+            .reduce((s, m) => s + parseFloat(m.distance_total), 0);
+        
+        document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${monthSum.toFixed(2).replace('.', ',')} km`;
+
+        document.getElementById('mileage-history-body').innerHTML = data.map(m => `
+            <tr>
+                <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
+                <td><b>${m.purpose}</b><br><small>${m.start_location} ➔ ${m.end_location} ${m.is_round_trip ? '(H+R)' : ''}</small></td>
+                <td>${parseFloat(m.distance_total).toFixed(1)} km</td>
+                <td>${m.status === 'approved' ? '✅' : '⏳'}</td>
+            </tr>
+        `).join('');
+    }
+}
+    
 </script>
 </body>
 </html>
