@@ -172,7 +172,7 @@
             <h4>Deine letzten Fahrten</h4>
             <div id="mileage-sum-display" style="font-size: 0.9em; margin-bottom: 5px; font-weight: bold;">Gesamt diesen Monat: 0,00 km</div>
             <table>
-                <thead><tr><th>Datum</th><th>Route / Zweck</th><th>KM</th><th>Status</th></tr></thead>
+                <thead><tr><th>Datum</th><th>Route / Zweck</th><th>KM</th><th>Status</th><th>Aktion</th> </tr></thead>
                 <tbody id="mileage-history-body"></tbody>
             </table>
         </div>
@@ -228,6 +228,7 @@
 
     let currentUser, userTeam = "", isAdmin = false, isCaptain = false, allEvents = [], currentViewDate = new Date();
     let isRegisterMode = false;
+    let currentEditMileageId = null;
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -525,55 +526,55 @@
         }
     }
 
-    async function saveMileage() {
+   async function saveMileage() {
     const d = document.getElementById('ml-date').value;
     const p = document.getElementById('ml-purpose').value;
     const start = document.getElementById('ml-start').value;
     const end = document.getElementById('ml-end').value;
     const single = parseFloat(document.getElementById('ml-km-single').value);
 
-    if(!d || !p || !start || !end || !single) {
-        return alert("Bitte alle Felder ausfüllen!");
-    }
+    if(!d || !p || !start || !end || !single) return alert("Daten fehlen!");
 
-    // Speichern in Supabase
-    const { error } = await sb.from('mileage_logs').insert([{ 
-        user_id: currentUser.id, 
-        date: d, 
-        purpose: p, 
-        start_location: start, 
-        end_location: end, 
-        distance_single: single, 
-        is_round_trip: document.getElementById('ml-roundtrip').checked, 
-        distance_total: calcTotalKm(), 
-        status: 'approved' 
-    }]);
+    const payload = {
+        user_id: currentUser.id,
+        date: d,
+        purpose: p,
+        start_location: start,
+        end_location: end,
+        distance_single: single,
+        is_round_trip: document.getElementById('ml-roundtrip').checked,
+        distance_total: calcTotalKm(),
+        status: 'approved'
+    };
 
-    if (error) {
-        alert("Fehler beim Speichern: " + error.message);
+    let result;
+    if (currentEditMileageId) {
+        // Update eines bestehenden Eintrags
+        result = await sb.from('mileage_logs').update(payload).eq('id', currentEditMileageId);
     } else {
-        // Favoriten-Route/Distanz in saved_routes merken
-        await sb.from('saved_routes').upsert({ 
-            user_id: currentUser.id, 
-            start_point: start, 
-            end_point: end, 
-            distance_single: single 
-        }, { onConflict: 'user_id,start_point,end_point' });
-
-        alert("Fahrt erfolgreich gespeichert!");
-
-        // --- HIER WERDEN DIE FELDER GELEERT ---
-        document.getElementById('ml-purpose').value = "";
-        document.getElementById('ml-start').value = "";
-        document.getElementById('ml-end').value = "";
-        document.getElementById('ml-km-single').value = "";
-        document.getElementById('ml-result').innerText = "Gesamtstrecke: 0,00 km";
-        // Datum lassen wir meistens stehen, falls man mehrere Fahrten am selben Tag einträgt
-        
-        // Listen aktualisieren
-        loadMileageHistory();
-        loadRouteSuggestions(); 
+        // Neuer Eintrag
+        result = await sb.from('mileage_logs').insert([payload]);
     }
+
+    if (result.error) {
+        alert("Fehler: " + result.error.message);
+    } else {
+        alert(currentEditMileageId ? "Fahrt aktualisiert!" : "Fahrt gespeichert!");
+        resetMileageForm();
+        loadMileageHistory();
+    }
+}
+
+// Hilfsfunktion zum Zurücksetzen
+function resetMileageForm() {
+    currentEditMileageId = null;
+    document.getElementById('ml-purpose').value = "";
+    document.getElementById('ml-start').value = "";
+    document.getElementById('ml-end').value = "";
+    document.getElementById('ml-km-single').value = "";
+    document.getElementById('ml-result').innerText = "Gesamtstrecke: 0,00 km";
+    const saveBtn = document.querySelector("button[onclick='saveMileage()']");
+    if (saveBtn) saveBtn.innerText = "Fahrt speichern";
 }
 
 async function loadMileageHistory() {
@@ -585,24 +586,19 @@ async function loadMileageHistory() {
         .select('*')
         .eq('user_id', currentUser.id)
         .order('date', {ascending: false});
-
     if (error) {
         console.error("Fehler beim Laden der Fahrten:", error);
         return;
     }
-
     const tbody = document.getElementById('mileage-history-body');
     const sumDisplay = document.getElementById('mileage-sum-display');
-
     if (!tbody) return;
-
     // Falls keine Daten da sind
     if (!data || data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Noch keine Fahrten eingetragen</td></tr>';
         if (sumDisplay) sumDisplay.innerText = "Gesamt diesen Monat: 0,00 km";
         return;
     }
-
     // Monats-Summe berechnen (für den aktuellen Monat)
     const now = new Date();
     const mSum = data
@@ -611,23 +607,46 @@ async function loadMileageHistory() {
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         })
         .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
-
     if (sumDisplay) {
         sumDisplay.innerText = `Gesamt diesen Monat: ${mSum.toFixed(2).replace('.', ',')} km`;
     }
-
     // Tabelle mit den Einträgen befüllen
     tbody.innerHTML = data.map(m => `
-        <tr>
-            <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
-            <td>
-                <strong>${m.purpose}</strong><br>
-                <small>${m.start_location} ➔ ${m.end_location} ${m.is_round_trip ? '(H+R)' : ''}</small>
-            </td>
-            <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
-            <td>✅</td>
-        </tr>
+       tbody.innerHTML = data.map(m => `
+    <tr>
+        <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
+        <td>
+            <strong>${m.purpose}</strong><br>
+            <small>${m.start_location} ➔ ${m.end_location}</small>
+        </td>
+        <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
+        <td>
+            <span class="edit-btn" onclick='editMileage(${JSON.stringify(m)})' style="cursor:pointer; color:#ef6c00;">✏️</span>
+        </td>
+    </tr>
+`).join('');
     `).join('');
+}
+
+    function editMileage(entry) {
+    currentEditMileageId = entry.id; // ID merken
+    
+    document.getElementById('ml-date').value = entry.date;
+    document.getElementById('ml-purpose').value = entry.purpose;
+    document.getElementById('ml-start').value = entry.start_location;
+    document.getElementById('ml-end').value = entry.end_location;
+    document.getElementById('ml-km-single').value = entry.distance_single;
+    document.getElementById('ml-roundtrip').checked = entry.is_round_trip;
+    
+    // Kilometer neu berechnen
+    calcTotalKm();
+    
+    // Zum Formular hochscrollen
+    document.querySelector('#view-mileage h3').scrollIntoView({ behavior: 'smooth' });
+    
+    // Optional: Button-Text ändern
+    const saveBtn = document.querySelector("button[onclick='saveMileage()']");
+    if (saveBtn) saveBtn.innerText = "Änderungen speichern";
 }
     
     async function exportMileagePDF() {
