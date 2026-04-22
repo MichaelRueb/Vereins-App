@@ -615,7 +615,7 @@ async function loadMileageHistory() {
         sumDisplay.innerText = `Gesamt diesen Monat: ${mSum.toFixed(2).replace('.', ',')} km`;
     }
 
-    // Tabelle mit den Einträgen befüllen (Korrigierte Version)
+    // Tabelle mit den Einträgen befüllen
     tbody.innerHTML = data.map(m => `
         <tr>
             <td>${m.date.split('-').reverse().join('.')}</td>
