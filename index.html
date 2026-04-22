@@ -102,12 +102,10 @@
             <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
         </div>
         <div id="calendar-container" class="calendar-grid"></div>
-        
         <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
             <h4 id="selection-date-label">Termine</h4>
             <div id="selection-content"></div>
         </div>
-
         <div style="margin-top:30px;">
             <h3>Wettkampf-Übersicht</h3>
             <select id="event-view-filter" onchange="renderTournamentList()">
@@ -120,7 +118,6 @@
                 <tbody id="tournament-list-body"></tbody>
             </table>
         </div>
-
         <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:15px; margin-top:20px; border-radius:12px; background:#fff8e1;">
             <h4 id="form-event-title" style="color:#e65100;">Wettkampf eintragen</h4>
             <input type="hidden" id="edit-event-id">
@@ -192,7 +189,8 @@
             <tbody id="admin-member-table-list"></tbody>
         </table>
     </div>
-</div> <script>
+</div>
+
 <script>
     const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
