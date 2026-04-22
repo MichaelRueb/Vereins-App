@@ -576,6 +576,60 @@
     }
 }
 
+async function loadMileageHistory() {
+    // Falls noch kein User geladen ist, abbrechen
+    if (!currentUser) return;
+
+    // Daten aus Supabase abrufen
+    const { data, error } = await sb.from('mileage_logs')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('date', {ascending: false});
+
+    if (error) {
+        console.error("Fehler beim Laden der Fahrten:", error);
+        return;
+    }
+
+    const tbody = document.getElementById('mileage-history-body');
+    const sumDisplay = document.getElementById('mileage-sum-display');
+
+    if (!tbody) return;
+
+    // Falls keine Daten da sind
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Noch keine Fahrten eingetragen</td></tr>';
+        if (sumDisplay) sumDisplay.innerText = "Gesamt diesen Monat: 0,00 km";
+        return;
+    }
+
+    // Monats-Summe berechnen (für den aktuellen Monat)
+    const now = new Date();
+    const mSum = data
+        .filter(m => {
+            const d = new Date(m.date);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        })
+        .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
+
+    if (sumDisplay) {
+        sumDisplay.innerText = `Gesamt diesen Monat: ${mSum.toFixed(2).replace('.', ',')} km`;
+    }
+
+    // Tabelle mit den Einträgen befüllen
+    tbody.innerHTML = data.map(m => `
+        <tr>
+            <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
+            <td>
+                <strong>${m.purpose}</strong><br>
+                <small>${m.start_location} ➔ ${m.end_location} ${m.is_round_trip ? '(H+R)' : ''}</small>
+            </td>
+            <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
+            <td>✅</td>
+        </tr>
+    `).join('');
+}
+    
     async function exportMileagePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
