@@ -165,6 +165,9 @@
                 <div id="ml-result" style="text-align: center; margin: 12px 0; font-weight: bold; color: #2e7d32; font-size: 1.1em;">Gesamtstrecke: 0,00 km</div>
                 <button onclick="saveMileage()" style="background: #2e7d32; margin-top: 0;">Fahrt speichern</button>
             </div>
+            <button onclick="exportMileagePDF()" style="background:#0277bd; margin-bottom:20px;">
+            📄 PDF Fahrtenbuch exportieren
+            </button>
             <h4>Deine letzten Fahrten</h4>
             <div id="mileage-sum-display" style="font-size: 0.9em; margin-bottom: 5px; font-weight: bold;">Gesamt diesen Monat: 0,00 km</div>
             <table>
@@ -530,6 +533,65 @@
             document.getElementById('mileage-history-body').innerHTML = data.map(m => `<tr><td>${m.date}</td><td>${m.purpose}<br><small>${m.start_location}➔${m.end_location}</small></td><td>${m.distance_total} km</td><td>${m.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
         }
     }
+
+    async function exportMileagePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Nutzerdaten für den Header laden
+    const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
+    // Alle Fahrten dieses Nutzers laden
+    const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+
+    if (!logs || logs.length === 0) {
+        return alert("Keine Fahrten zum Exportieren gefunden!");
+    }
+
+    // Header Styling
+    doc.setFontSize(18);
+    doc.setTextColor(46, 125, 50); // Hubertus Grün
+    doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(80);
+    doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
+    doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
+
+    // Daten für Tabelle aufbereiten
+    const tableRows = logs.map(l => [
+        new Date(l.date).toLocaleDateString('de-DE'),
+        l.purpose,
+        `${l.start_location} > ${l.end_location}`,
+        l.is_round_trip ? 'Ja' : 'Nein',
+        `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
+    ]);
+
+    // Gesamtsumme berechnen
+    const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
+    
+    // Summenzeile hinzufügen
+    tableRows.push([
+        { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+    ]);
+
+    // Tabelle generieren
+    doc.autoTable({
+        head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
+        body: tableRows,
+        startY: 45,
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
+        styles: { fontSize: 9 },
+        columnStyles: {
+            4: { halign: 'right' }
+        }
+    });
+
+    // PDF Speichern
+    const fileName = `Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`;
+    doc.save(fileName);
+}
 
     async function exportToPDF() {
         const { jsPDF } = window.jspdf; const doc = new jsPDF();
