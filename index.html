@@ -499,7 +499,7 @@
         return total;
     }
 
-    async function loadRouteSuggestions() {
+   async function loadRouteSuggestions() {
     // Lädt Routen (Start/Ziel)
     const { data: routes } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
     if (routes) {
@@ -526,23 +526,55 @@
     }
 
     async function saveMileage() {
-        const d = document.getElementById('ml-date').value, p = document.getElementById('ml-purpose').value;
-        const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value, single = parseFloat(document.getElementById('ml-km-single').value);
-        if(!d || !p || !start || !end || !single) return alert("Alle Felder füllen!");
-        const total = calcTotalKm();
-        await sb.from('mileage_logs').insert([{ user_id: currentUser.id, date: d, purpose: p, start_location: start, end_location: end, distance_single: single, is_round_trip: document.getElementById('ml-roundtrip').checked, distance_total: total }]);
-        await sb.from('saved_routes').upsert({ user_id: currentUser.id, start_point: start, end_point: end, distance_single: single }, { onConflict: 'user_id,start_point,end_point' });
-        alert("Gespeichert!"); loadMileageHistory();
+    const d = document.getElementById('ml-date').value;
+    const p = document.getElementById('ml-purpose').value;
+    const start = document.getElementById('ml-start').value;
+    const end = document.getElementById('ml-end').value;
+    const single = parseFloat(document.getElementById('ml-km-single').value);
+
+    if(!d || !p || !start || !end || !single) {
+        return alert("Bitte alle Felder ausfüllen!");
     }
 
-    async function loadMileageHistory() {
-        const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
-        if(data) {
-            const now = new Date(), monthSum = data.filter(m => new Date(m.date).getMonth() === now.getMonth()).reduce((s, m) => s + parseFloat(m.distance_total), 0);
-            document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${monthSum.toFixed(2)} km`;
-            document.getElementById('mileage-history-body').innerHTML = data.map(m => `<tr><td>${m.date}</td><td>${m.purpose}<br><small>${m.start_location}➔${m.end_location}</small></td><td>${m.distance_total} km</td><td>${m.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
-        }
+    // Speichern in Supabase
+    const { error } = await sb.from('mileage_logs').insert([{ 
+        user_id: currentUser.id, 
+        date: d, 
+        purpose: p, 
+        start_location: start, 
+        end_location: end, 
+        distance_single: single, 
+        is_round_trip: document.getElementById('ml-roundtrip').checked, 
+        distance_total: calcTotalKm(), 
+        status: 'approved' 
+    }]);
+
+    if (error) {
+        alert("Fehler beim Speichern: " + error.message);
+    } else {
+        // Favoriten-Route/Distanz in saved_routes merken
+        await sb.from('saved_routes').upsert({ 
+            user_id: currentUser.id, 
+            start_point: start, 
+            end_point: end, 
+            distance_single: single 
+        }, { onConflict: 'user_id,start_point,end_point' });
+
+        alert("Fahrt erfolgreich gespeichert!");
+
+        // --- HIER WERDEN DIE FELDER GELEERT ---
+        document.getElementById('ml-purpose').value = "";
+        document.getElementById('ml-start').value = "";
+        document.getElementById('ml-end').value = "";
+        document.getElementById('ml-km-single').value = "";
+        document.getElementById('ml-result').innerText = "Gesamtstrecke: 0,00 km";
+        // Datum lassen wir meistens stehen, falls man mehrere Fahrten am selben Tag einträgt
+        
+        // Listen aktualisieren
+        loadMileageHistory();
+        loadRouteSuggestions(); 
     }
+}
 
     async function exportMileagePDF() {
     const { jsPDF } = window.jspdf;
