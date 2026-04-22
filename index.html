@@ -597,34 +597,60 @@
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    const { data: profs } = await sb.from('profiles').select('*');
-    const { data: hours } = await sb.from('work_hours').select('*').eq('status','approved');
+    // Daten laden
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*').eq('status','approved').order('date', {ascending: false});
 
-    // Gleiches Styling wie beim Fahrtenbuch
+    // Header Styling (wie beim Fahrtenbuch)
     doc.setFontSize(18);
-    doc.setTextColor(46, 125, 50); // Hubertus Grün
-    doc.text("Hubertus Stundenreport - SV Hubertus Strullendorf", 14, 20);
+    doc.setTextColor(46, 125, 50);
+    doc.text("Hubertus Detail-Stundenreport", 14, 20);
     
     doc.setFontSize(11);
     doc.setTextColor(80);
     doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 14, 30);
+    doc.text(`Status: Nur bestätigte Stunden (approved)`, 14, 36);
 
-    const rows = profs.map(p => [
-        p.full_name,
-        p.team || '-',
-        hours.filter(h => h.user_id === p.id).reduce((s, h) => s + parseFloat(h.duration), 0) + ' h'
-    ]);
-
-    doc.autoTable({
-        head: [['Name', 'Mannschaft', 'Stunden Gesamt']],
-        body: rows,
-        startY: 40,
-        theme: 'grid', // Gitterlinien wie beim Fahrtenbuch
-        headStyles: { fillColor: [46, 125, 50] }, // Grüner Header
-        styles: { fontSize: 10 }
+    // Daten für die Tabelle aufbereiten (Einzelne Einträge mit Namen des Mitglieds)
+    const tableRows = hours.map(h => {
+        const member = profs.find(p => p.id === h.user_id);
+        return [
+            member ? member.full_name : 'Unbekannt',
+            new Date(h.date).toLocaleDateString('de-DE'),
+            h.description,
+            `${parseFloat(h.duration).toFixed(1)} h`
+        ];
     });
 
-    doc.save("Hubertus_Stundenreport.pdf");
+    // Summe berechnen
+    const totalSum = hours.reduce((s, h) => s + parseFloat(h.duration), 0);
+
+    // Tabelle generieren
+    doc.autoTable({
+        head: [['Mitglied', 'Datum', 'Tätigkeit', 'Dauer']],
+        body: tableRows,
+        startY: 45,
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50] },
+        styles: { fontSize: 9 },
+        // Gruppierung optisch unterstützen (optional)
+        columnStyles: {
+            3: { halign: 'right' }
+        },
+        // Am Ende eine Summenzeile hinzufügen
+        didDrawPage: (data) => {
+             // Optional: Falls du auf jeder Seite eine Info brauchst
+        }
+    });
+
+    // Gesamtsumme ganz unten anhängen
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Gesamtstunden aller Mitglieder: ${totalSum.toFixed(1)} h`, 14, finalY);
+
+    doc.save("Hubertus_Stunden_Detailansicht.pdf");
 }
 </script>
 </body>
