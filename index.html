@@ -295,7 +295,7 @@
         filterSelect.value = "my_relevant"; // Standard-Vorauswahl
     }
 
-   function renderTournamentList() {
+  function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     const listBody = document.getElementById('tournament-list-body');
     const myTeams = userTeam ? userTeam.split(', ') : [];
@@ -309,7 +309,7 @@
         return e.team === filter;
     });
 
-    // 2. Sortieren: Erst Sport, dann Verein
+    // 2. Sortieren: Erst alle sportlichen Wettkämpfe, dann alle Vereinstermine
     const sortedEvents = filteredEvents.sort((a, b) => {
         const isAClub = a.team === 'Verein';
         const isBClub = b.team === 'Verein';
@@ -321,11 +321,11 @@
     let competitionHeaderSent = false;
     let clubHeaderSent = false;
 
-    // 3. Generieren des HTML
+    // 3. HTML generieren
     sortedEvents.forEach(e => {
         const isClub = e.team === 'Verein';
 
-        // Header Wettkämpfe
+        // Header für Wettkämpfe (Blau)
         if (!isClub && !competitionHeaderSent) {
             html += `
                 <tr style="background-color: #f8f9fa;">
@@ -336,7 +336,7 @@
             competitionHeaderSent = true;
         }
 
-        // Header Verein
+        // Header für Verein (Grün)
         if (isClub && !clubHeaderSent) {
             html += `
                 <tr style="background-color: #f8f9fa;">
@@ -349,13 +349,13 @@
 
         const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
         
-        // Tabellenzeile (Hier wurden die Anführungszeichen für editEvent fixiert)
+        // Die Tabellenzeile - WICHTIG: Kein Backslash vor dem $
         html += `<tr>
             <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
             <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
             <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
             <td>${e.opponent}</td>
-            <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
+            <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span> <span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
         </tr>`;
     });
 
