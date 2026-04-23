@@ -300,7 +300,6 @@
     const listBody = document.getElementById('tournament-list-body');
     const myTeams = userTeam ? userTeam.split(', ') : [];
     
-    // 1. Filtern
     const filteredEvents = allEvents.filter(e => {
         if (filter === 'all_teams') return true;
         if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
@@ -309,21 +308,31 @@
         return e.team === filter;
     });
 
-    // 2. Sortieren: Erst nach Typ (Mannschaft vor Verein), dann nach Datum
     const sortedEvents = filteredEvents.sort((a, b) => {
         if (a.team === 'Verein' && b.team !== 'Verein') return 1;
         if (a.team !== 'Verein' && b.team === 'Verein') return -1;
         return new Date(a.date) - new Date(b.date);
     });
 
-    // 3. HTML generieren mit Trenner-Logik
     let html = "";
+    let competitionSeparatorInserted = false;
     let clubSeparatorInserted = false;
 
     sortedEvents.forEach(e => {
         const isClub = e.team === 'Verein';
 
-        // Wenn der erste Vereinstermin kommt und wir in einer gemischten Ansicht sind -> Trenner rein
+        // NEU: Überschrift für Wettkampftermine (wird vor dem ersten sportlichen Termin angezeigt)
+        if (!isClub && !competitionSeparatorInserted) {
+            html += `
+                <tr style="background-color: #f8f9fa;">
+                    <td colspan="5" style="text-align: center; font-weight: bold; color: #1565c0; padding: 12px; border-top: 2px solid #ddd; border-bottom: 2px solid #ddd;">
+                        --- WETTKAMPFTERMINE ---
+                    </td>
+                </tr>`;
+            competitionSeparatorInserted = true;
+        }
+
+        // Bestehende Überschrift für Vereinstermine
         if (isClub && !clubSeparatorInserted && (filter === 'all_teams' || filter === 'my_relevant')) {
             html += `
                 <tr style="background-color: #f8f9fa;">
@@ -333,6 +342,18 @@
                 </tr>`;
             clubSeparatorInserted = true;
         }
+
+        const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
+        html += `<tr>
+            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+            <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
+            <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
+            <td>${e.opponent}</td>
+            <td>${canEdit ? \`<span class="edit-btn" onclick="editEvent('\${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('\${e.id}')">🗑️</span>\` : '-'}</td>
+        </tr>`;
+    });
+    listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+}
 
         const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
         
