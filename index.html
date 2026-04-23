@@ -295,12 +295,12 @@
         filterSelect.value = "my_relevant"; // Standard-Vorauswahl
     }
 
-    function renderTournamentList() {
+   function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     const listBody = document.getElementById('tournament-list-body');
     const myTeams = userTeam ? userTeam.split(', ') : [];
     
-    // 1. Filtern der Events
+    // 1. Filtern
     const filteredEvents = allEvents.filter(e => {
         if (filter === 'all_teams') return true;
         if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
@@ -309,23 +309,23 @@
         return e.team === filter;
     });
 
-    // 2. Sortieren: Zuerst Sport (Wettkämpfe), dann Verein – jeweils chronologisch
+    // 2. Sortieren: Erst Sport, dann Verein
     const sortedEvents = filteredEvents.sort((a, b) => {
         const isAClub = a.team === 'Verein';
         const isBClub = b.team === 'Verein';
-        if (isAClub !== isBClub) return isAClub ? 1 : -1; // Verein nach unten
-        return new Date(a.date) - new Date(b.date);      // Innerhalb der Gruppe nach Datum
+        if (isAClub !== isBClub) return isAClub ? 1 : -1;
+        return new Date(a.date) - new Date(b.date);
     });
 
     let html = "";
     let competitionHeaderSent = false;
     let clubHeaderSent = false;
 
-    // 3. Mapping mit Header-Logik
+    // 3. Generieren des HTML
     sortedEvents.forEach(e => {
         const isClub = e.team === 'Verein';
 
-        // Header für Wettkämpfe einfügen (einmalig)
+        // Header Wettkämpfe
         if (!isClub && !competitionHeaderSent) {
             html += `
                 <tr style="background-color: #f8f9fa;">
@@ -336,7 +336,7 @@
             competitionHeaderSent = true;
         }
 
-        // Header für Verein/Events einfügen (einmalig)
+        // Header Verein
         if (isClub && !clubHeaderSent) {
             html += `
                 <tr style="background-color: #f8f9fa;">
@@ -349,6 +349,7 @@
 
         const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
         
+        // Tabellenzeile (Hier wurden die Anführungszeichen für editEvent fixiert)
         html += `<tr>
             <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
             <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
@@ -357,6 +358,9 @@
             <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
         </tr>`;
     });
+
+    listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+}
 
     listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
 }
