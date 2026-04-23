@@ -309,7 +309,7 @@
         return e.team === filter;
     });
 
-    // 2. Sortieren: Erst Sport, dann Verein
+    // 2. Sortieren: Erst Sport (Wettkämpfe), dann Verein
     const sortedEvents = filteredEvents.sort((a, b) => {
         const isAClub = a.team === 'Verein';
         const isBClub = b.team === 'Verein';
@@ -325,7 +325,7 @@
     sortedEvents.forEach(e => {
         const isClub = e.team === 'Verein';
 
-        // Header Wettkämpfe
+        // NEU: Header für Wettkämpfe (Blau)
         if (!isClub && !competitionHeaderSent) {
             html += '<tr style="background-color: #f8f9fa;">' +
                     '<td colspan="5" style="text-align: center; font-weight: bold; color: #1565c0; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
@@ -334,7 +334,7 @@
             competitionHeaderSent = true;
         }
 
-        // Header Verein
+        // Header für Verein (Grün)
         if (isClub && !clubHeaderSent) {
             html += '<tr style="background-color: #f8f9fa;">' +
                     '<td colspan="5" style="text-align: center; font-weight: bold; color: #2e7d32; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
