@@ -296,57 +296,41 @@
     }
 
     function renderTournamentList() {
-    const filter = document.getElementById('event-view-filter').value;
-    const listBody = document.getElementById('tournament-list-body');
-    const myTeams = userTeam ? userTeam.split(', ') : [];
-    
-    // 1. Filtern
-    let filteredEvents = allEvents.filter(e => {
-        if (filter === 'all_teams') return true;
-        if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
-        if (filter === 'Verein') return e.team === 'Verein';
-        if (filter === 'only_sports') return e.team !== 'Verein';
-        return e.team === filter;
-    });
-
-    // 2. Sortieren: Erst nach Typ (Verein nach unten), dann nach Datum
-    filteredEvents.sort((a, b) => {
-        if (a.team === 'Verein' && b.team !== 'Verein') return 1;
-        if (a.team !== 'Verein' && b.team === 'Verein') return -1;
-        return new Date(a.date) - new Date(b.date);
-    });
-
-    let html = "";
-    let separatorShown = false;
-
-    // 3. Generieren mit Trennzeile
-    filteredEvents.forEach(e => {
-        const isClub = e.team === 'Verein';
+        const filter = document.getElementById('event-view-filter').value;
+        const listBody = document.getElementById('tournament-list-body');
+        const myTeams = userTeam ? userTeam.split(', ') : [];
         
-        // Trennzeile einfügen, wenn wir im Misch-Modus sind und der erste Vereinstermin kommt
-        if (isClub && !separatorShown && (filter === 'all_teams' || filter === 'my_relevant')) {
-            html += `
-                <tr style="background-color: #f0f0f0;">
-                    <td colspan="5" style="text-align: center; font-weight: bold; color: #856404; padding: 10px; border-top: 2px solid #ddd; border-bottom: 2px solid #ddd;">
-                        📅 VEREINSTERMINE & VERANSTALTUNGEN
-                    </td>
-                </tr>`;
-            separatorShown = true;
-        }
+        const filteredEvents = allEvents.filter(e => {
+            if (filter === 'all_teams') return true;
+            if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
+            if (filter === 'Verein') return e.team === 'Verein';
+            if (filter === 'only_sports') return e.team !== 'Verein';
+            return e.team === filter;
+        });
 
-        const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
+        const sortedEvents = filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        html += `<tr>
-            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-            <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
-            <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
-            <td>${e.opponent}</td>
-            <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
-        </tr>`;
-    });
+        listBody.innerHTML = sortedEvents.map(e => {
+            const isClub = e.team === 'Verein';
+            const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
+            
+            return `<tr>
+                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
+                <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
+                <td>${e.opponent}</td>
+                <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
+            </tr>`;
+        }).join('');
+    }
 
-    listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
-}
+    // --- RESTLICHE LOGIK ---
+    function renderTeamCheckboxes(selected) {
+        const selArray = selected ? selected.split(', ') : [];
+        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
+            <div style="font-size:0.85em;"><input type="checkbox" name="prof-teams" value="${t}" style="width:auto;" ${selArray.includes(t)?'checked':''}> ${t}</div>
+        `).join('');
+    }
 
     async function updateProfile() {
         const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c => c.value).join(', ');
