@@ -300,6 +300,7 @@
     const listBody = document.getElementById('tournament-list-body');
     const myTeams = userTeam ? userTeam.split(', ') : [];
     
+    // 1. Filtern der Events
     const filteredEvents = allEvents.filter(e => {
         if (filter === 'all_teams') return true;
         if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
@@ -308,29 +309,57 @@
         return e.team === filter;
     });
 
+    // 2. Sortieren: Zuerst Sport (Wettkämpfe), dann Verein – jeweils chronologisch
     const sortedEvents = filteredEvents.sort((a, b) => {
-        if (a.team === 'Verein' && b.team !== 'Verein') return 1;
-        if (a.team !== 'Verein' && b.team === 'Verein') return -1;
-        return new Date(a.date) - new Date(b.date);
+        const isAClub = a.team === 'Verein';
+        const isBClub = b.team === 'Verein';
+        if (isAClub !== isBClub) return isAClub ? 1 : -1; // Verein nach unten
+        return new Date(a.date) - new Date(b.date);      // Innerhalb der Gruppe nach Datum
     });
 
     let html = "";
-    let competitionSeparatorInserted = false;
-    let clubSeparatorInserted = false;
+    let competitionHeaderSent = false;
+    let clubHeaderSent = false;
 
+    // 3. Mapping mit Header-Logik
     sortedEvents.forEach(e => {
         const isClub = e.team === 'Verein';
 
-        // NEU: Überschrift für Wettkampftermine (wird vor dem ersten sportlichen Termin angezeigt)
-        if (!isClub && !competitionSeparatorInserted) {
+        // Header für Wettkämpfe einfügen (einmalig)
+        if (!isClub && !competitionHeaderSent) {
             html += `
                 <tr style="background-color: #f8f9fa;">
-                    <td colspan="5" style="text-align: center; font-weight: bold; color: #1565c0; padding: 12px; border-top: 2px solid #ddd; border-bottom: 2px solid #ddd;">
-                        --- WETTKAMPFTERMINE ---
+                    <td colspan="5" style="text-align: center; font-weight: bold; color: #1565c0; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">
+                         --- WETTKAMPFTERMINE ---
                     </td>
                 </tr>`;
-            competitionSeparatorInserted = true;
+            competitionHeaderSent = true;
         }
+
+        // Header für Verein/Events einfügen (einmalig)
+        if (isClub && !clubHeaderSent) {
+            html += `
+                <tr style="background-color: #f8f9fa;">
+                    <td colspan="5" style="text-align: center; font-weight: bold; color: #2e7d32; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">
+                         --- VEREINSTERMINE & VERANSTALTUNGEN ---
+                    </td>
+                </tr>`;
+            clubHeaderSent = true;
+        }
+
+        const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
+        
+        html += `<tr>
+            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+            <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
+            <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
+            <td>${e.opponent}</td>
+            <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
+        </tr>`;
+    });
+
+    listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+}
 
         // Bestehende Überschrift für Vereinstermine
         if (isClub && !clubSeparatorInserted && (filter === 'all_teams' || filter === 'my_relevant')) {
