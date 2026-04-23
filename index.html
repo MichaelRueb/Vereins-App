@@ -144,7 +144,8 @@
         <div id="view-mileage" style="display:none;">
             <h3>🚗 Fahrtenbuch</h3>
             <div class="card" style="background: #f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px; padding:15px;">
-                <h4 style="margin-top:0;">Neue Fahrt erfassen</h4>
+                <h4 id="ml-form-title" style="margin-top:0;">Neue Fahrt erfassen</h4>
+                <input type="hidden" id="edit-ml-id">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <input type="date" id="ml-date">
                     <input type="text" id="ml-purpose" placeholder="Zweck">
@@ -163,15 +164,14 @@
                     <input type="number" id="ml-km-single" step="0.1" placeholder="km" oninput="calcTotalKm()" style="width: 100px; margin:0;">
                 </div>
                 <div id="ml-result" style="text-align: center; margin: 12px 0; font-weight: bold; color: #2e7d32; font-size: 1.1em;">Gesamtstrecke: 0,00 km</div>
-                <button onclick="saveMileage()" style="background: #2e7d32; margin-top: 0;">Fahrt speichern</button>
+                <button onclick="saveMileage()" style="background: #2e7d32; margin-top: 0;">Speichern</button>
+                <button id="cancel-ml-edit-btn" onclick="resetMileageForm()" style="background:#757575; display:none; margin-top:5px;">Abbrechen</button>
             </div>
-            <button onclick="exportMileagePDF()" style="background:#0277bd; margin-bottom:20px;">
-            📄 PDF Fahrtenbuch exportieren
-            </button>
+            <button onclick="exportMileagePDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Fahrtenbuch exportieren</button>
             <h4>Deine letzten Fahrten</h4>
             <div id="mileage-sum-display" style="font-size: 0.9em; margin-bottom: 5px; font-weight: bold;">Gesamt diesen Monat: 0,00 km</div>
             <table>
-                <thead><tr><th>Datum</th><th>Route / Zweck</th><th>KM</th><th>Status</th></tr></thead>
+                <thead><tr><th>Datum</th><th>Route / Zweck</th><th>KM</th><th>Aktion</th></tr></thead>
                 <tbody id="mileage-history-body"></tbody>
             </table>
         </div>
@@ -225,7 +225,7 @@
         "2026-12-26": "2. Weihnachtstag"
     };
 
-    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, allEvents = [], currentViewDate = new Date();
+    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, allEvents = [], allMileage = [], currentViewDate = new Date();
     let isRegisterMode = false;
 
     window.onload = async () => {
@@ -255,7 +255,6 @@
     async function setupApp(user) {
         currentUser = user;
         isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
 
         if (p) {
@@ -265,8 +264,7 @@
             document.getElementById('prof-name').value = p.full_name || "";
             renderTeamCheckboxes(userTeam);
 
-            const hasFullAccess = isAdmin || isOfficial;
-            if (hasFullAccess) {
+            if (isAdmin || isOfficial) {
                 document.getElementById('tab-admin').style.display = 'block';
                 document.getElementById('captain-form').style.display = 'block';
                 document.getElementById('ev-team-select').innerHTML = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('') + `<option value="Verein">Verein</option>`;
@@ -275,9 +273,7 @@
                 const myTeams = userTeam.split(', ');
                 document.getElementById('ev-team-select').innerHTML = myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
             }
-        } else {
-            renderTeamCheckboxes("");
-        }
+        } else { renderTeamCheckboxes(""); }
 
         document.getElementById('loading-ui').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
@@ -452,7 +448,7 @@
         });
         if(t==='admin') loadAdmin(); 
         if(t==='events') loadAllEvents();
-        if(t==='mileage') { loadMileageHistory(); loadRouteSuggestions(); document.getElementById('ml-date').valueAsDate = new Date(); }
+        if(t==='mileage') { resetMileageForm(); loadMileageHistory(); loadRouteSuggestions(); document.getElementById('ml-date').valueAsDate = new Date(); }
     }
 
     async function saveEvent() {
@@ -490,7 +486,7 @@
         if (error) alert(error.message); else alert("Passwort geändert!");
     }
 
-    // FAHRTENBUCH
+    // --- FAHRTENBUCH LOGIK ---
     function calcTotalKm() {
         const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
         const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
@@ -515,156 +511,158 @@
         }
     }
 
+    function editMileage(id) {
+        const m = allMileage.find(x => x.id == id);
+        if(!m) return;
+        document.getElementById('edit-ml-id').value = m.id;
+        document.getElementById('ml-date').value = m.date;
+        document.getElementById('ml-purpose').value = m.purpose;
+        document.getElementById('ml-start').value = m.start_location;
+        document.getElementById('ml-end').value = m.end_location;
+        document.getElementById('ml-km-single').value = m.distance_single;
+        document.getElementById('ml-roundtrip').checked = m.is_round_trip;
+        document.getElementById('ml-form-title').innerText = "Fahrt bearbeiten";
+        document.getElementById('cancel-ml-edit-btn').style.display = 'block';
+        calcTotalKm();
+    }
+
+    function resetMileageForm() {
+        document.getElementById('edit-ml-id').value = "";
+        document.getElementById('ml-purpose').value = "";
+        document.getElementById('ml-km-single').value = "";
+        document.getElementById('ml-form-title').innerText = "Neue Fahrt erfassen";
+        document.getElementById('cancel-ml-edit-btn').style.display = 'none';
+        document.getElementById('ml-date').valueAsDate = new Date();
+        calcTotalKm();
+    }
+
     async function saveMileage() {
+        const id = document.getElementById('edit-ml-id').value;
         const d = document.getElementById('ml-date').value, p = document.getElementById('ml-purpose').value;
         const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value, single = parseFloat(document.getElementById('ml-km-single').value);
         if(!d || !p || !start || !end || !single) return alert("Alle Felder füllen!");
         const total = calcTotalKm();
-        await sb.from('mileage_logs').insert([{ user_id: currentUser.id, date: d, purpose: p, start_location: start, end_location: end, distance_single: single, is_round_trip: document.getElementById('ml-roundtrip').checked, distance_total: total }]);
+        
+        const data = { user_id: currentUser.id, date: d, purpose: p, start_location: start, end_location: end, distance_single: single, is_round_trip: document.getElementById('ml-roundtrip').checked, distance_total: total };
+
+        if(id) {
+            await sb.from('mileage_logs').update(data).eq('id', id);
+            alert("Fahrt aktualisiert!");
+        } else {
+            await sb.from('mileage_logs').insert([data]);
+            alert("Fahrt gespeichert!");
+        }
+        
         await sb.from('saved_routes').upsert({ user_id: currentUser.id, start_point: start, end_point: end, distance_single: single }, { onConflict: 'user_id,start_point,end_point' });
-        alert("Gespeichert!"); loadMileageHistory();
+        resetMileageForm(); loadMileageHistory();
     }
 
     async function loadMileageHistory() {
         const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
         if(data) {
+            allMileage = data;
             const now = new Date(), monthSum = data.filter(m => new Date(m.date).getMonth() === now.getMonth()).reduce((s, m) => s + parseFloat(m.distance_total), 0);
-            document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${monthSum.toFixed(2)} km`;
-            document.getElementById('mileage-history-body').innerHTML = data.map(m => `<tr><td>${m.date}</td><td>${m.purpose}<br><small>${m.start_location}➔${m.end_location}</small></td><td>${m.distance_total} km</td><td>${m.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
+            document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${monthSum.toFixed(2).replace('.', ',')} km`;
+            document.getElementById('mileage-history-body').innerHTML = data.map(m => `
+                <tr>
+                    <td>${m.date.split('-').reverse().join('.')}</td>
+                    <td>${m.purpose}<br><small>${m.start_location} ➔ ${m.end_location}</small></td>
+                    <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
+                    <td><span class="edit-btn" onclick="editMileage('${m.id}')">✏️</span></td>
+                </tr>
+            `).join('');
         }
     }
 
     async function exportMileagePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
+        const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+        if (!logs || logs.length === 0) return alert("Keine Fahrten zum Exportieren gefunden!");
 
-    // Nutzerdaten für den Header laden
-    const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
-    // Alle Fahrten dieses Nutzers laden
-    const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+        doc.setFontSize(18);
+        doc.setTextColor(46, 125, 50);
+        doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
+        doc.setFontSize(11);
+        doc.setTextColor(80);
+        doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
+        doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
 
-    if (!logs || logs.length === 0) {
-        return alert("Keine Fahrten zum Exportieren gefunden!");
+        const tableRows = logs.map(l => [
+            new Date(l.date).toLocaleDateString('de-DE'),
+            l.purpose,
+            `${l.start_location} > ${l.end_location}`,
+            l.is_round_trip ? 'Ja' : 'Nein',
+            `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
+        ]);
+
+        const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
+        tableRows.push([
+            { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+            { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+        ]);
+
+        doc.autoTable({
+            head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
+            body: tableRows,
+            startY: 45,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
+            styles: { fontSize: 9 },
+            columnStyles: { 4: { halign: 'right' } }
+        });
+        doc.save(`Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
     }
 
-    // Header Styling
-    doc.setFontSize(18);
-    doc.setTextColor(46, 125, 50); // Hubertus Grün
-    doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
-    
-    doc.setFontSize(11);
-    doc.setTextColor(80);
-    doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
-    doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
+    async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
-    // Daten für Tabelle aufbereiten
-    const tableRows = logs.map(l => [
-        new Date(l.date).toLocaleDateString('de-DE'),
-        l.purpose,
-        `${l.start_location} > ${l.end_location}`,
-        l.is_round_trip ? 'Ja' : 'Nein',
-        `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
-    ]);
+        doc.setFontSize(22);
+        doc.setTextColor(46, 125, 50);
+        doc.setFont("helvetica", "bold");
+        doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        const dateString = new Date().toLocaleDateString('de-DE');
+        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
 
-    // Gesamtsumme berechnen
-    const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
-    
-    // Summenzeile hinzufügen
-    tableRows.push([
-        { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
-        { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
-    ]);
+        doc.setDrawColor(46, 125, 50);
+        doc.setLineWidth(0.5);
+        doc.line(14, 35, 196, 35);
 
-    // Tabelle generieren
-    doc.autoTable({
-        head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
-        body: tableRows,
-        startY: 45,
-        theme: 'grid',
-        headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
-        styles: { fontSize: 9 },
-        columnStyles: {
-            4: { halign: 'right' }
-        }
-    });
+        const tableRows = [];
+        profs.forEach(p => {
+            const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
+            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+            tableRows.push([
+                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
+                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
+            ]);
+            if (memberHours.length > 0) {
+                let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
+                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
+            } else {
+                tableRows.push([{ content: "   Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+            }
+        });
 
-     // PDF Speichern
-    const fileName = `Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`;
-    doc.save(fileName);
-}
-
-    async function exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    // --- Datenabruf (Direkt aus Supabase für aktuelle Daten) ---
-    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-    // 1. Kopfzeile (Zentriert ohne Logo)
-    doc.setFontSize(22);
-    doc.setTextColor(46, 125, 50); // Hubertus Grün
-    doc.setFont("helvetica", "bold");
-    doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    const dateString = new Date().toLocaleDateString('de-DE');
-    doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
-
-    // Grüne Trennlinie unter dem Header
-    doc.setDrawColor(46, 125, 50);
-    doc.setLineWidth(0.5);
-    doc.line(14, 35, 196, 35);
-
-    // 2. Tabellen-Daten aufbereiten
-    const tableRows = [];
-    if (!profs || profs.length === 0) {
-        alert("Keine Mitgliederdaten gefunden!");
-        return;
-    }
-    profs.forEach(p => {
-        const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
-        const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-
-        // Hauptzeile Mitglied
-        tableRows.push([
-            { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
-            { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
-            { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
-        ]);
-
-        // Detailzeile (Arbeitseinsätze)
-        if (memberHours.length > 0) {
-            let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
-            tableRows.push([
-                { content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }
-            ]);
-        } else {
-            tableRows.push([
-                { content: "   Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }
-            ]);
-        }
-    });
-
-    // 3. Tabelle mit autoTable generieren
-    doc.autoTable({
-        startY: 40,
-        head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
-        body: tableRows,
-        theme: 'grid',
-        headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
-        styles: { font: "helvetica", overflow: 'linebreak' },
-        columnStyles: {
-            0: { cellWidth: 'auto' },
-            1: { cellWidth: 40 },
-            2: { cellWidth: 25 }
-        }
-    });
-    // 4. PDF speichern
-    doc.save(`Hubertus_Report_${dateString}.pdf`);
-
-}
+        doc.autoTable({
+            startY: 40,
+            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
+            styles: { font: "helvetica", overflow: 'linebreak' },
+            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
+        });
+        doc.save(`Hubertus_Report_${dateString}.pdf`);
+    }
 </script>
 </body>
 </html>
