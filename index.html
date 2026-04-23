@@ -115,10 +115,7 @@
             <div style="margin-top:30px;">
                 <h3>Wettkampf-Übersicht</h3>
                 <select id="event-view-filter" onchange="renderTournamentList()">
-                    <option value="all_teams">Komplette Ansicht</option>
-                    <option value="Verein">📅 Nur Vereinstermine</option>
-                    <option value="only_sports">Alle Mannschaften</option>
-                </select>
+                    </select>
                 <table>
                     <thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead>
                     <tbody id="tournament-list-body"></tbody>
@@ -142,7 +139,7 @@
         </div>
 
         <div id="view-mileage" style="display:none;">
-            <h3>🚗 Fahrtenbuch (Nur Funktionäre)</h3>
+            <h3>🚗 Fahrtenbuch (Funktionäre)</h3>
             <div class="card" style="background: #f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px; padding:15px;">
                 <h4 id="ml-form-title" style="margin-top:0;">Neue Fahrt erfassen</h4>
                 <input type="hidden" id="edit-ml-id">
@@ -226,7 +223,7 @@
         "2026-12-26": "2. Weihnachtstag"
     };
 
-    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, allEvents = [], allMileage = [], currentViewDate = new Date();
+    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], allMileage = [], currentViewDate = new Date();
     let isRegisterMode = false;
 
     window.onload = async () => {
@@ -261,14 +258,13 @@
         if (p) {
             userTeam = p.team || "";
             isCaptain = p.is_captain;
-            const isOfficial = p.is_official;
+            isOfficial = p.is_official;
             document.getElementById('prof-name').value = p.full_name || "";
             renderTeamCheckboxes(userTeam);
 
-            // ZUGRIFFSPRÜFUNG FÜR ADMIN UND FUNKTIONÄRE
             if (isAdmin || isOfficial) {
                 document.getElementById('tab-admin').style.display = 'block';
-                document.getElementById('tab-mileage').style.display = 'block'; // Fahrtenbuch nur für Funktionäre/Admin
+                document.getElementById('tab-mileage').style.display = 'block';
                 document.getElementById('captain-form').style.display = 'block';
                 document.getElementById('ev-team-select').innerHTML = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('') + `<option value="Verein">Verein</option>`;
             } else if (isCaptain) {
@@ -278,12 +274,57 @@
             }
         } else { renderTeamCheckboxes(""); }
 
+        renderEventFilter(); // Filter initialisieren
         document.getElementById('loading-ui').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
         loadHistory();
         loadAllEvents();
     }
 
+    // --- KALENDER FILTER LOGIK ---
+    function renderEventFilter() {
+        const filterSelect = document.getElementById('event-view-filter');
+        let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
+        options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
+        options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
+        options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
+        options += `<hr>`;
+        options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
+        
+        filterSelect.innerHTML = options;
+        filterSelect.value = "my_relevant"; // Standard-Vorauswahl
+    }
+
+    function renderTournamentList() {
+        const filter = document.getElementById('event-view-filter').value;
+        const listBody = document.getElementById('tournament-list-body');
+        const myTeams = userTeam ? userTeam.split(', ') : [];
+        
+        const filteredEvents = allEvents.filter(e => {
+            if (filter === 'all_teams') return true;
+            if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
+            if (filter === 'Verein') return e.team === 'Verein';
+            if (filter === 'only_sports') return e.team !== 'Verein';
+            return e.team === filter;
+        });
+
+        const sortedEvents = filteredEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        listBody.innerHTML = sortedEvents.map(e => {
+            const isClub = e.team === 'Verein';
+            const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
+            
+            return `<tr>
+                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
+                <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
+                <td>${e.opponent}</td>
+                <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    // --- RESTLICHE LOGIK ---
     function renderTeamCheckboxes(selected) {
         const selArray = selected ? selected.split(', ') : [];
         document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
@@ -367,36 +408,6 @@
     function changeMonth(delta) {
         currentViewDate.setMonth(currentViewDate.getMonth() + delta);
         renderCalendar();
-    }
-
-    function renderTournamentList() {
-        const filter = document.getElementById('event-view-filter').value;
-        const listBody = document.getElementById('tournament-list-body');
-        listBody.innerHTML = ''; 
-        const sortedEvents = [...allEvents].sort((a, b) => new Date(a.date) - new Date(b.date));
-        let separatorAdded = false;
-
-        listBody.innerHTML = sortedEvents.filter(e => {
-            if (filter === 'all_teams') return true;
-            if (filter === 'Verein') return e.team === 'Verein';
-            if (filter === 'only_sports') return e.team !== 'Verein';
-            return e.team === filter;
-        }).map(e => {
-            const isClub = e.team === 'Verein';
-            let separator = '';
-            if (isClub && !separatorAdded && filter === 'all_teams') {
-                separator = `<tr style="background:#f0f0f0;"><td colspan="5" style="text-align:center;font-weight:bold;color:#B8860B;">🏆 VEREINSTERMINE</td></tr>`;
-                separatorAdded = true;
-            }
-            const canEdit = isAdmin || (!isClub && isCaptain && userTeam.includes(e.team));
-            return `${separator}<tr>
-                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
-                <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
-                <td>${e.opponent}</td>
-                <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
-            </tr>`;
-        }).join('');
     }
 
     function renderCalendar() {
