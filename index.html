@@ -148,12 +148,13 @@
                 <input type="hidden" id="edit-ml-id">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <input type="date" id="ml-date">
-                    <input type="text" id="ml-purpose" placeholder="Zweck">
+                    <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck">
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:5px;">
                     <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
                     <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
                 </div>
+                <datalist id="purpose-suggestions"></datalist>
                 <datalist id="start-suggestions"></datalist>
                 <datalist id="end-suggestions"></datalist>
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-top:10px; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
@@ -495,11 +496,18 @@
     }
 
     async function loadRouteSuggestions() {
-        const { data } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
-        if (data) {
-            document.getElementById('start-suggestions').innerHTML = [...new Set(data.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
-            document.getElementById('end-suggestions').innerHTML = [...new Set(data.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
-            window.mySavedRoutes = data;
+        const { data: routeData } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
+        const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+
+        if (routeData) {
+            document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
+            document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
+            window.mySavedRoutes = routeData;
+        }
+
+        if (logData) {
+            const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
+            document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
         }
     }
 
@@ -554,7 +562,7 @@
         }
         
         await sb.from('saved_routes').upsert({ user_id: currentUser.id, start_point: start, end_point: end, distance_single: single }, { onConflict: 'user_id,start_point,end_point' });
-        resetMileageForm(); loadMileageHistory();
+        resetMileageForm(); loadMileageHistory(); loadRouteSuggestions();
     }
 
     async function loadMileageHistory() {
