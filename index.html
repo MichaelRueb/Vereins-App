@@ -593,6 +593,7 @@ async function loadMileageHistory() {
 
     const tbody = document.getElementById('mileage-history-body');
     const sumDisplay = document.getElementById('mileage-sum-display');
+
     if (!tbody) return;
 
     // Falls keine Daten da sind
@@ -618,15 +619,13 @@ async function loadMileageHistory() {
     // Tabelle mit den Einträgen befüllen
     tbody.innerHTML = data.map(m => `
         <tr>
-            <td>${m.date.split('-').reverse().join('.')}</td>
+            <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
             <td>
                 <strong>${m.purpose}</strong><br>
-                <small>${m.start_location} ➔ ${m.end_location}</small>
+                <small>${m.start_location} ➔ ${m.end_location} ${m.is_round_trip ? '(H+R)' : ''}</small>
             </td>
             <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
-            <td>
-                <span class="edit-btn" onclick='editMileage(${JSON.stringify(m)})' style="cursor:pointer; color:#ef6c00;">✏️</span>
-            </td>
+            <td>✅</td>
         </tr>
     `).join('');
 }
