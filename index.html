@@ -67,7 +67,7 @@
         <div class="tabs" id="main-tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
             <div id="tab-events" class="tab" onclick="switchTab('events')">Kalender</div>
-            <div id="tab-mileage" class="tab" onclick="switchTab('mileage')">Fahrtenbuch</div> 
+            <div id="tab-mileage" class="tab" style="display:none;" onclick="switchTab('mileage')">Fahrtenbuch</div> 
             <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
@@ -142,7 +142,7 @@
         </div>
 
         <div id="view-mileage" style="display:none;">
-            <h3>🚗 Fahrtenbuch</h3>
+            <h3>🚗 Fahrtenbuch (Nur Funktionäre)</h3>
             <div class="card" style="background: #f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px; padding:15px;">
                 <h4 id="ml-form-title" style="margin-top:0;">Neue Fahrt erfassen</h4>
                 <input type="hidden" id="edit-ml-id">
@@ -265,8 +265,10 @@
             document.getElementById('prof-name').value = p.full_name || "";
             renderTeamCheckboxes(userTeam);
 
+            // ZUGRIFFSPRÜFUNG FÜR ADMIN UND FUNKTIONÄRE
             if (isAdmin || isOfficial) {
                 document.getElementById('tab-admin').style.display = 'block';
+                document.getElementById('tab-mileage').style.display = 'block'; // Fahrtenbuch nur für Funktionäre/Admin
                 document.getElementById('captain-form').style.display = 'block';
                 document.getElementById('ev-team-select').innerHTML = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('') + `<option value="Verein">Verein</option>`;
             } else if (isCaptain) {
