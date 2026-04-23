@@ -309,7 +309,7 @@
         return e.team === filter;
     });
 
-    // 2. Sortieren: Erst alle sportlichen Wettkämpfe, dann alle Vereinstermine
+    // 2. Sortieren: Erst Sport, dann Verein
     const sortedEvents = filteredEvents.sort((a, b) => {
         const isAClub = a.team === 'Verein';
         const isBClub = b.team === 'Verein';
@@ -325,38 +325,44 @@
     sortedEvents.forEach(e => {
         const isClub = e.team === 'Verein';
 
-        // Header für Wettkämpfe (Blau)
+        // Header Wettkämpfe
         if (!isClub && !competitionHeaderSent) {
-            html += `
-                <tr style="background-color: #f8f9fa;">
-                    <td colspan="5" style="text-align: center; font-weight: bold; color: #1565c0; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">
-                         --- WETTKAMPFTERMINE ---
-                    </td>
-                </tr>`;
+            html += '<tr style="background-color: #f8f9fa;">' +
+                    '<td colspan="5" style="text-align: center; font-weight: bold; color: #1565c0; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
+                    '--- WETTKAMPFTERMINE ---' +
+                    '</td></tr>';
             competitionHeaderSent = true;
         }
 
-        // Header für Verein (Grün)
+        // Header Verein
         if (isClub && !clubHeaderSent) {
-            html += `
-                <tr style="background-color: #f8f9fa;">
-                    <td colspan="5" style="text-align: center; font-weight: bold; color: #2e7d32; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">
-                         --- VEREINSTERMINE & VERANSTALTUNGEN ---
-                    </td>
-                </tr>`;
+            html += '<tr style="background-color: #f8f9fa;">' +
+                    '<td colspan="5" style="text-align: center; font-weight: bold; color: #2e7d32; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
+                    '--- VEREINSTERMINE & VERANSTALTUNGEN ---' +
+                    '</td></tr>';
             clubHeaderSent = true;
         }
 
         const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
+        const dateStr = new Date(e.date).toLocaleDateString('de-DE');
+        const timeStr = e.time ? e.time.substring(0, 5) : '--:--';
+        const teamCls = getTeamClass(e.team);
+
+        // Buttons nur erstellen, wenn canEdit wahr ist
+        let actionCell = '-';
+        if (canEdit) {
+            actionCell = '<span class="edit-btn" onclick="editEvent(\'' + e.id + '\')">✏️</span> ' +
+                         '<span class="delete-btn" onclick="deleteEvent(\'' + e.id + '\')">🗑️</span>';
+        }
         
-        // Die Tabellenzeile - WICHTIG: Kein Backslash vor dem $
-        html += `<tr>
-            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-            <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
-            <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
-            <td>${e.opponent}</td>
-            <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span> <span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
-        </tr>`;
+        // Tabellenzeile zusammenbauen
+        html += '<tr>' +
+                '<td>' + dateStr + '</td>' +
+                '<td>' + timeStr + '</td>' +
+                '<td><span class="event-dot ' + teamCls + '"></span> ' + e.team + '</td>' +
+                '<td>' + e.opponent + '</td>' +
+                '<td>' + actionCell + '</td>' +
+                '</tr>';
     });
 
     listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
