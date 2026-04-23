@@ -295,7 +295,7 @@
         filterSelect.value = "my_relevant"; // Standard-Vorauswahl
     }
 
-  function renderTournamentList() {
+    function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     const listBody = document.getElementById('tournament-list-body');
     const myTeams = userTeam ? userTeam.split(', ') : [];
@@ -367,44 +367,7 @@
 
     listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
 }
-
-        // Bestehende Überschrift für Vereinstermine
-        if (isClub && !clubSeparatorInserted && (filter === 'all_teams' || filter === 'my_relevant')) {
-            html += `
-                <tr style="background-color: #f8f9fa;">
-                    <td colspan="5" style="text-align: center; font-weight: bold; color: #2e7d32; padding: 12px; border-top: 2px solid #ddd; border-bottom: 2px solid #ddd;">
-                        --- VEREINSTERMINE & VERANSTALTUNGEN ---
-                    </td>
-                </tr>`;
-            clubSeparatorInserted = true;
-        }
-
-        const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
-        html += `<tr>
-            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-            <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
-            <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
-            <td>${e.opponent}</td>
-            <td>${canEdit ? \`<span class="edit-btn" onclick="editEvent('\${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('\${e.id}')">🗑️</span>\` : '-'}</td>
-        </tr>`;
-    });
-    listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
-}
-
-        const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
-        
-        html += `<tr>
-            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-            <td>${e.time ? e.time.substring(0, 5) : '--:--'}</td>
-            <td><span class="event-dot ${getTeamClass(e.team)}"></span> ${e.team}</td>
-            <td>${e.opponent}</td>
-            <td>${canEdit ? `<span class="edit-btn" onclick="editEvent('${e.id}')">✏️</span><span class="delete-btn" onclick="deleteEvent('${e.id}')">🗑️</span>` : '-'}</td>
-        </tr>`;
-    });
-
-    listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
-}
-
+  
     // --- RESTLICHE LOGIK ---
     function renderTeamCheckboxes(selected) {
         const selArray = selected ? selected.split(', ') : [];
