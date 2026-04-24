@@ -737,6 +737,12 @@
         });
         doc.save(`Hubertus_Report_${dateString}.pdf`);
     }
+    function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('Index') // Dein Dateiname
+      .setTitle('Wettkämpfe Hubertus')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); // Erlaubt die Erkennung von Meta-Daten
+}
 </script>
 </body>
 </html>
