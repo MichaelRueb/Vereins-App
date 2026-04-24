@@ -734,11 +734,15 @@
         });
         doc.save(`Hubertus_Report_${dateString}.pdf`);
     }
-    function doGet(e) {
-  return HtmlService.createHtmlOutputFromFile('Index') // Dein Dateiname
-      .setTitle('Wettkämpfe Hubertus')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); // Erlaubt die Erkennung von Meta-Daten
+   function doGet(e) {
+  var output = HtmlService.createHtmlOutputFromFile('Index'); // 'Index' ist dein HTML-Dateiname
+  
+  return output
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .addMetaTag('apple-mobile-web-app-capable', 'yes')
+    .addMetaTag('mobile-web-app-capable', 'yes')
+    .setTitle('Hubertus Stunden Pro')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 </script>
 </body>
