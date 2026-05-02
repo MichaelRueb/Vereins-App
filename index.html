@@ -463,232 +463,65 @@
         const allowedTeams = (isAdmin || isOfficial) ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
         sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     }
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hubertus Stunden & Kalender Pro</title>
+       async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
-    <link rel="manifest" href="manifest.json">
+        doc.setFontSize(22);
+        doc.setTextColor(46, 125, 50);
+        doc.setFont("helvetica", "bold");
+        doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        const dateString = new Date().toLocaleDateString('de-DE');
+        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
 
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#2e7d32">
+        doc.setDrawColor(46, 125, 50);
+        doc.setLineWidth(0.5);
+        doc.line(14, 35, 196, 35);
 
-    <link rel="icon" type="image/png" href="icon.png">
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="shortcut icon" href="icon.png">
+        const tableRows = [];
+        profs.forEach(p => {
+            const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
+            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+            tableRows.push([
+                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
+                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
+            ]);
+            if (memberHours.length > 0) {
+                let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
+                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
+            } else {
+                tableRows.push([{ content: "   Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+            }
+        });
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registriert'))
-                    .catch(err => console.log('SW Registrierung fehlgeschlagen', err));
-            });
-        }
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    
-    <style>
-        body { font-family: -apple-system, sans-serif; padding: 20px; background: #f4f7f6; margin: 0; display: flex; flex-direction: column; align-items: center; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 1100px; box-sizing: border-box; }
-        input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-        button { background: #2e7d32; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #1b5e20; }
-        .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; width: 100%; }
-        .tab { flex: 1 1 calc(50% - 8px); padding: 12px 5px; text-align: center; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; box-sizing: border-box; min-width: 120px; }
-        .tab.active { background: #2e7d32; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
-        th { background: #f8f9fa; padding: 12px 10px; text-align: left; border-bottom: 2px solid #dee2e6; }
-        td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: middle; text-align: left; }
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-weight: bold; font-size: 1.2em; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; width: 100%; }
-        .calendar-day-head { background: #e9ecef; text-align: center; padding: 10px; font-weight: bold; font-size: 0.7em; text-transform: uppercase; }
-        .calendar-day { background: white; min-height: 60px; padding: 2px; position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-        .calendar-day:hover { background: #f0f0f0; }
-        .calendar-day.today { background: #fff9c4; }
-        .calendar-holiday { background-color: #fff3f3 !important; color: #d9534f !important; }
-        .event-dot { width: 8px; height: 8px; border-radius: 50%; margin: 2px auto; display: block; flex-shrink: 0; }
-        .team-lg { background-color: #2e7d32 !important; } 
-        .team-lp { background-color: #1565c0 !important; } 
-        .team-spopi { background-color: #673ab7 !important; } 
-        .team-gk { background-color: #c62828 !important; } 
-        .team-auflage { background-color: #ef6c00 !important; } 
-        .team-verein { background-color: #FFD700 !important; border: 1px solid #B8860B; }
-        .team-default { background-color: #9e9e9e !important; }
-        .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; border: 1px solid #ced4da; margin: 10px 0; }
-        .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s ease; }
-        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
-        .clickable-name { color: #1565c0; cursor: pointer; text-decoration: underline; }
-        .delete-btn { cursor: pointer; color: #c62828; margin-left: 10px; }
-        .edit-btn { cursor: pointer; color: #ef6c00; margin-left: 10px; }
-    </style>
-</head>
-<body>
-
-<div class="card">
-    <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro wird geladen...</div>
-
-    <div id="auth-ui" style="display:none;">
-        <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
-        <input type="email" id="email" placeholder="E-Mail">
-        <input type="password" id="password" placeholder="Passwort">
-        <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
-        <button onclick="handleAuth()" id="auth-btn">Einloggen</button>
-        <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">Noch kein Konto? Registrieren</div>
-    </div>
-
-    <div id="main-app" style="display:none;">
-        <div class="tabs" id="main-tabs">
-            <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
-            <div id="tab-events" class="tab" onclick="switchTab('events')">Kalender</div>
-            <div id="tab-mileage" class="tab" style="display:none;" onclick="switchTab('mileage')">Fahrtenbuch</div> 
-            <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
-            <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
-        </div>
-
-        <div id="view-home">
-            <h3>Deine Stunden</h3>
-            <div class="progress-container">
-                <div id="my-progress-bar" class="progress-bar" style="width: 0%;"></div>
-                <div id="my-progress-label" class="progress-text">0 / 10 h</div>
-            </div>
-            <h4>Neue Meldung</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <input type="date" id="date">
-                <input type="number" id="hours" step="0.5" placeholder="Dauer (h)">
-            </div>
-            <select id="work-category">
-                <option value="">-- Tätigkeit wählen --</option>
-                <option value="Standreinigung">Standreinigung</option>
-                <option value="Fahnenabordnung">Fahnenabordnung</option>
-                <option value="Reinigungsdienst">Reinigungsdienst</option>
-                <option value="Helferdienst">Helferdienst</option>
-                <option value="Sonstiges">Sonstiges</option>
-            </select>
-            <textarea id="description" placeholder="Zusätzliche Details..."></textarea>
-            <button onclick="sendHours()">Senden</button>
-            <h4>Historie</h4>
-            <table>
-                <thead><tr><th>Datum</th><th>Was?</th><th>Dauer</th><th>Status</th></tr></thead>
-                <tbody id="history-body"></tbody>
-            </table>
-        </div>
-
-        <div id="view-events" style="display:none;">
-            <h3>Wettkampfkalender</h3>
-            <div class="calendar-header">
-                <button onclick="changeMonth(-1)" style="width:50px;">&lt;</button>
-                <span id="current-month-display"></span>
-                <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
-            </div>
-            <div id="calendar-container" class="calendar-grid"></div>
-            <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
-                <h4 id="selection-date-label">Termine</h4>
-                <div id="selection-content"></div>
-            </div>
-            <div style="margin-top:30px;">
-                <h3>Übersicht aller Termine</h3>
-                <select id="event-view-filter" onchange="renderTournamentList()">
-                    </select>
-                <table>
-                    <thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead>
-                    <tbody id="tournament-list-body"></tbody>
-                </table>
-            </div>
-            <div id="captain-form" style="display:none; border:2px dashed #ef6c00; padding:15px; margin-top:20px; border-radius:12px; background:#fff8e1;">
-                <h4 id="form-event-title" style="color:#e65100;">Wettkampf eintragen</h4>
-                <input type="hidden" id="edit-event-id">
-                <select id="ev-team-select"></select>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="date" id="ev-date">
-                    <input type="time" id="ev-time">
-                </div>
-                <input type="text" id="ev-opp" placeholder="Gegner">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" id="ev-home-check" style="width:auto;"> <label for="ev-home-check">Heimspiel</label>
-                </div>
-                <button onclick="saveEvent()" style="background:#ef6c00;">Speichern</button>
-                <button id="cancel-edit-btn" onclick="resetEventForm()" style="background:#757575; display:none;">Abbrechen</button>
-            </div>
-        </div>
-
-        <div id="view-mileage" style="display:none;">
-            <h3>🚗 Fahrtenbuch (Funktionäre)</h3>
-            <div class="card" style="background: #f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px; padding:15px;">
-                <h4 id="ml-form-title" style="margin-top:0;">Neue Fahrt erfassen</h4>
-                <input type="hidden" id="edit-ml-id">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="date" id="ml-date">
-                    <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:5px;">
-                    <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
-                    <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
-                </div>
-                <datalist id="purpose-suggestions"></datalist>
-                <datalist id="start-suggestions"></datalist>
-                <datalist id="end-suggestions"></datalist>
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-top:10px; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()" style="width:auto; margin:0;">
-                        <label for="ml-roundtrip" style="font-size: 0.9em;">Hin- & Rückfahrt</label>
-                    </div>
-                    <input type="number" id="ml-km-single" step="0.1" placeholder="km" oninput="calcTotalKm()" style="width: 100px; margin:0;">
-                </div>
-                <div id="ml-result" style="text-align: center; margin: 12px 0; font-weight: bold; color: #2e7d32; font-size: 1.1em;">Gesamtstrecke: 0,00 km</div>
-                <button onclick="saveMileage()" style="background: #2e7d32; margin-top: 0;">Speichern</button>
-                <button id="cancel-ml-edit-btn" onclick="resetMileageForm()" style="background:#757575; display:none; margin-top:5px;">Abbrechen</button>
-            </div>
-            <button onclick="exportMileagePDF()" style="background:#0277bd; margin-bottom:20px;">📄 PDF Fahrtenbuch exportieren</button>
-            <h4>Deine letzten Fahrten</h4>
-            <div id="mileage-sum-display" style="font-size: 0.9em; margin-bottom: 5px; font-weight: bold;">Gesamt diesen Monat: 0,00 km</div>
-            <table>
-                <thead><tr><th>Datum</th><th>Route / Zweck</th><th>KM</th><th>Aktion</th></tr></thead>
-                <tbody id="mileage-history-body"></tbody>
-            </table>
-        </div>
-
-        <div id="view-profile" style="display:none;">
-            <h3>Dein Profil</h3>
-            <input type="text" id="prof-name" placeholder="Voller Name">
-            <label style="font-weight:bold; display:block; margin-top:10px;">Meine Mannschaften:</label>
-            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd;"></div>
-            <button onclick="updateProfile()" style="margin-top:15px;">Profil Speichern</button>
-            <hr style="margin: 25px 0; border: 0; border-top: 1px dashed #ccc;">
-            <h4>Passwort ändern</h4>
-            <input type="password" id="new-password" placeholder="Neues Passwort">
-            <input type="password" id="new-password-confirm" placeholder="Passwort bestätigen">
-            <button onclick="changePassword()" style="background:#555;">Passwort aktualisieren</button>
-            <hr style="margin: 25px 0; border: 0; border-top: 1px dashed #ccc;">
-            <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c;">Abmelden</button>
-        </div>
-
-        <div id="view-admin" style="display:none;">
-            <button onclick="exportToPDF()" style="background:#0277bd;">📄 PDF Report generieren</button>
-            <div id="admin-pending-section" style="display:none; margin-top:20px;">
-                <h4 style="color:#c62828;">⏳ Offene Anträge</h4>
-                <table><thead><tr><th>Name</th><th>Was</th><th>h</th><th>Aktion</th></tr></thead><tbody id="admin-pending-body-real"></tbody></table>
-            </div>
-            <div id="admin-detail-view" style="display:none; background:#fff; border:1px solid #2e7d32; padding:15px; border-radius:8px; margin-top:20px;">
-                <h4>Details für: <span id="admin-detail-name"></span></h4>
-                <table><thead><tr><th>Datum</th><th>Was</th><th>h</th><th>Status</th><th>Löschen</th></tr></thead><tbody id="admin-detail-body"></tbody></table>
-                <button onclick="document.getElementById('admin-detail-view').style.display='none'" style="background:#757575;">Schließen</button>
-            </div>
-            <h4 style="margin-top:25px;">Mitglieder-Übersicht</h4>
-            <table>
-                <thead><tr><th>Name</th><th>Mannschaft</th><th>h</th><th>Kap.</th><th>Funkt.</th></tr></thead>
-                <tbody id="admin-member-table-list"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-    
+        doc.autoTable({
+            startY: 40,
+            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
+            styles: { font: "helvetica", overflow: 'linebreak' },
+            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
+        });
+        doc.save(`Hubertus_Report_${dateString}.pdf`);
+    }
+ function doGet(e) {
+  var output = HtmlService.createHtmlOutputFromFile('Index'); // Name deiner HTML-Datei
+  
+  return output
+    .setTitle('Hubertus Stunden Pro')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no')
+    .addMetaTag('mobile-web-app-capable', 'yes')
+    .addMetaTag('apple-mobile-web-app-capable', 'yes')
+    .addMetaTag('apple-mobile-web-app-status-bar-style', 'black-translucent')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
 </script>
 </body>
 </html>
