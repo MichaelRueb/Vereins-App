@@ -283,80 +283,44 @@
     filterSelect.value = "my_relevant"; // Standard-Vorauswahl
 }
 
-  function renderTournamentList() {
+ function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     
-    // Wir holen die Teams aus dem Profil und entfernen alle unnötigen Leerzeichen
-    // So wird aus "LG 1, LG 2" -> ["LG 1", "LG 2"]
+    // Erstellt eine saubere Liste deiner Teams ohne Leerzeichen
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()).filter(t => t !== "") : [];
 
-    // 1. Filtern der Events basierend auf der Auswahl
     const filtered = allEvents.filter(e => {
-        const teamName = e.team ? e.team.trim() : "";
+        const eventTeam = e.team ? e.team.trim() : "";
         
         if (filter === 'all_teams') return true;
-        if (filter === 'Verein') return teamName === 'Verein';
-        if (filter === 'only_sports') return teamName !== 'Verein';
+        if (filter === 'Verein') return eventTeam === 'Verein';
+        if (filter === 'only_sports') return eventTeam !== 'Verein';
+        
         if (filter === 'my_relevant') {
-            // Zeige Vereinstermine ODER wenn das Team des Events in meinen Profil-Teams ist
-            return teamName === 'Verein' || myTeams.includes(teamName);
+            // Der entscheidende Check:
+            return eventTeam === 'Verein' || myTeams.includes(eventTeam);
         }
-        // Einzelfilter (z.B. "Nur Luftgewehr 1")
-        return teamName === filter;
+        
+        return eventTeam === filter;
     }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // 2. Aufteilen in Gruppen für die optische Trennung
+    // ... Rest der Funktion (das Zeichnen der Tabelle) bleibt gleich ...
     const sportsEvents = filtered.filter(e => e.team !== 'Verein');
     const clubEvents = filtered.filter(e => e.team === 'Verein');
-
     let html = '';
-
-    // SEKTION: WETTKÄMPFE (nur wenn welche da sind)
     if (sportsEvents.length > 0) {
-        html += `
-            <tr style="background-color: #f8f9fa; border-left: 4px solid #2e7d32;">
-                <td colspan="5" style="padding: 12px; font-weight: bold; color: #1b5e20;">
-                    🎯 Wettkampftermine
-                </td>
-            </tr>`;
+        html += `<tr style="background-color:#f8f9fa; border-left:4px solid #2e7d32;"><td colspan="5" style="padding:12px; font-weight:bold; color:#1b5e20;">🎯 Wettkampftermine</td></tr>`;
         sportsEvents.forEach(e => {
-            html += `
-                <tr>
-                    <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                    <td>${e.time?.substring(0, 5) || '--:--'}</td>
-                    <td><span style="color: #1565c0; font-weight: 500;">${e.team}</span></td>
-                    <td>${e.opponent || '-'}</td>
-                    <td>-</td>
-                </tr>`;
+            html += `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0,5)||'--:--'}</td><td><span style="color:#1565c0; font-weight:500;">${e.team}</span></td><td>${e.opponent||'-'}</td><td>-</td></tr>`;
         });
     }
-
-    // SEKTION: VEREIN (nur wenn welche da sind)
     if (clubEvents.length > 0) {
-        html += `
-            <tr style="background-color: #f8f9fa; border-left: 4px solid #ef6c00; margin-top: 10px;">
-                <td colspan="5" style="padding: 12px; font-weight: bold; color: #e65100;">
-                    📅 Vereinstermine
-                </td>
-            </tr>`;
+        html += `<tr style="background-color:#f8f9fa; border-left:4px solid #ef6c00;"><td colspan="5" style="padding:12px; font-weight:bold; color:#e65100;">📅 Vereinstermine</td></tr>`;
         clubEvents.forEach(e => {
-            html += `
-                <tr>
-                    <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-                    <td>${e.time?.substring(0, 5) || '--:--'}</td>
-                    <td><span style="color: #666;">${e.team}</span></td>
-                    <td>${e.opponent || '-'}</td>
-                    <td>-</td>
-                </tr>`;
+            html += `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0,5)||'--:--'}</td><td><span style="color:#666;">${e.team}</span></td><td>${e.opponent||'-'}</td><td>-</td></tr>`;
         });
     }
-
-    // Falls gar nichts gefunden wurde
-    if (filtered.length === 0) {
-        html = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #999;">Keine Termine für diese Auswahl vorhanden.</td></tr>';
-    }
-
-    document.getElementById('tournament-list-body').innerHTML = html;
+    document.getElementById('tournament-list-body').innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:20px;">Keine Termine gefunden.</td></tr>';
 }
 
 function renderEventRow(e) {
@@ -394,8 +358,26 @@ function renderEventRow(e) {
 
     function switchTab(t) { ['home','events','profile','admin'].forEach(v => { document.getElementById('view-'+v).style.display = (v===t)?'block':'none'; document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab'; }); if(t==='admin') loadAdmin(); }
     function getTeamClass(t) { if(t==='Verein') return 'team-verein'; if(t?.includes('gewehr')) return 'team-lg'; if(t?.includes('pistole')) return 'team-lp'; return ''; }
-    function renderTeamCheckboxes(sel) { const arr = sel ? sel.split(', ') : []; document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>`).join(''); }
-    async function updateProfile() { const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', '); await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams }); alert("Gespeichert!"); }
+function renderTeamCheckboxes(sel) { 
+    // Akzeptiert jetzt Komma mit und ohne Leerzeichen beim Laden
+    const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
+    document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
+        <label class="checkbox-wrapper">
+            <input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}>
+            <span>${t}</span>
+        </label>`).join(''); 
+}
+    async function updateProfile() { 
+    // Geändert: join(',') statt join(', ')
+    const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(','); 
+    await sb.from('profiles').upsert({ 
+        id: currentUser.id, 
+        full_name: document.getElementById('prof-name').value, 
+        team: teams 
+    }); 
+    userTeam = teams; // WICHTIG: Die globale Variable sofort aktualisieren!
+    alert("Gespeichert!"); 
+}
     async function sendHours() { await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: document.getElementById('hours').value, description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, status: 'pending' }]); alert("Gesendet!"); loadHistory(); }
     async function loadHistory() { const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {descending:true}); const approved = data?.filter(x=>x.status==='approved').reduce((s,x)=> s + parseFloat(x.duration), 0) || 0; document.getElementById('my-progress-bar').style.width = (approved*10) + "%"; document.getElementById('my-progress-label').innerText = approved + " / 10 h"; document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${x.date}</td><td>${x.description}</td><td>${x.duration}</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join(''); }
     function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
