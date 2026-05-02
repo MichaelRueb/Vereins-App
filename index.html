@@ -674,6 +674,48 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
 
         doc.save(`Hubertus_Report_${dateString}.pdf`);
     }
+
+async function exportMileagePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
+        const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+        if (!logs || logs.length === 0) return alert("Keine Fahrten zum Exportieren gefunden!");
+
+        doc.setFontSize(18);
+        doc.setTextColor(46, 125, 50);
+        doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
+        doc.setFontSize(11);
+        doc.setTextColor(80);
+        doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
+        doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
+
+        const tableRows = logs.map(l => [
+            new Date(l.date).toLocaleDateString('de-DE'),
+            l.purpose,
+            `${l.start_location} > ${l.end_location}`,
+            l.is_round_trip ? 'Ja' : 'Nein',
+            `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
+        ]);
+
+        const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
+        tableRows.push([
+            { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+            { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+        ]);
+
+        doc.autoTable({
+            head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
+            body: tableRows,
+            startY: 45,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
+            styles: { fontSize: 9 },
+            columnStyles: { 4: { halign: 'right' } }
+        });
+        doc.save(`Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
+    }
+
     
 </script>
     
