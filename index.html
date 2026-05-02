@@ -104,32 +104,59 @@
             <table><thead><tr><th>Datum</th><th>Tätigkeit</th><th>h</th><th>Status</th></tr></thead><tbody id="history-body"></tbody></table>
         </div>
 
-        <!-- KALENDER VIEW -->
-        <div id="view-events" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
-                <h3 id="current-month-display"></h3>
-                <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
-            </div>
-            <div id="calendar-container" class="calendar-grid"></div>
-            <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
-                <h4 id="selection-date-label" style="margin:0"></h4><div id="selection-content"></div>
-            </div>
-           
-            <h4 style="margin-top:25px;">Terminliste</h4>
-            <select id="event-view-filter" onchange="renderTournamentList()"></select>
-            <table><thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead><tbody id="tournament-list-body"></tbody></table>
-             <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
-        <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
-        <input type="date" id="event-date">
-        <input type="time" id="event-time">
-        <select id="event-team-select">
-            <!-- Wird dynamisch gefüllt -->
-        </select>
-        <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
-        <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
-    </div>
+       <!-- KALENDER VIEW -->
+<div id="view-events" style="display:none;">
+    <!-- EINGABEFENSTER (Jetzt oben platziert für bessere Usability beim Editieren) -->
+    <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
+        <h4 id="event-form-title" style="margin-top:0;">Neuen Wettkampf anlegen</h4>
+        <input type="hidden" id="edit-event-id"> <!-- Wichtig für die Bearbeitung -->
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <input type="date" id="event-date">
+            <input type="time" id="event-time">
         </div>
+        
+        <select id="event-team-select" style="width: 100%; margin-bottom: 10px;"></select>
+        <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name" style="width: 100%; margin-bottom: 10px;">
+        
+        <div style="display: flex; gap: 10px;">
+            <button id="btn-save-event" onclick="saveNewEvent()" style="background:var(--primary-dark); flex: 2;">Termin speichern</button>
+            <button id="btn-cancel-event" onclick="resetEventForm()" style="background:#777; flex: 1; display: none;">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- KALENDER NAVIGATION -->
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
+        <h3 id="current-month-display"></h3>
+        <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
+    </div>
+    
+    <div id="calendar-container" class="calendar-grid"></div>
+    
+    <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
+        <h4 id="selection-date-label" style="margin:0"></h4>
+        <div id="selection-content"></div>
+    </div>
+    
+    <h4 style="margin-top:25px;">Terminliste</h4>
+    <select id="event-view-filter" onchange="renderTournamentList()" style="margin-bottom: 10px;"></select>
+    
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Zeit</th>
+                    <th>Team</th>
+                    <th>Gegner</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody id="tournament-list-body"></tbody>
+        </table>
+    </div>
+</div>
         
 
         <!-- FAHRTENBUCH VIEW -->
