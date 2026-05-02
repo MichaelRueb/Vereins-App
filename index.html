@@ -255,16 +255,48 @@
     }
 
     async function handleAuth() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        if(isRegisterMode) {
-            const { error } = await sb.auth.signUp({ email, password });
-            if(error) alert(error.message); else alert("Check deine E-Mails zur Bestätigung!");
-        } else {
-            const { error } = await sb.auth.signInWithPassword({ email, password });
-            if(error) alert(error.message); else location.reload();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    if (isRegisterMode) {
+        // --- START PASSWORT-CHECK ---
+        const criteria = [
+            password.length >= 8,                       // 1. Länge mind. 8
+            /[a-z]/.test(password),                    // 2. Kleinbuchstabe
+            /[A-Z]/.test(password),                    // 3. Großbuchstabe
+            /[0-9]/.test(password),                    // 4. Zahl
+            /[!@#$%^&*(),.?":{}|<>]/.test(password)    // 5. Sonderzeichen
+        ];
+
+        // Die erste Bedingung (Länge) muss immer wahr sein
+        const isLongEnough = criteria[0];
+        // Von den restlichen 4 müssen 3 erfüllt sein
+        const otherCriteriaMet = criteria.slice(1).filter(Boolean).length;
+
+        if (!isLongEnough || otherCriteriaMet < 3) {
+            alert("Das Passwort ist nicht sicher genug!\n\n" +
+                  "Anforderungen:\n" +
+                  "- Mindestens 8 Zeichen (Pflicht)\n" +
+                  "- Erfüllung von 3 der 4 folgenden Merkmale:\n" +
+                  "  • Kleinbuchstaben\n" +
+                  "  • Großbuchstaben\n" +
+                  "  • Zahlen\n" +
+                  "  • Sonderzeichen");
+            return; // Funktion abbrechen, kein SignUp bei Supabase
         }
+        // --- ENDE PASSWORT-CHECK ---
+
+        const { error } = await sb.auth.signUp({ email, password });
+        if (error) alert(error.message); 
+        else alert("Check deine E-Mails zur Bestätigung!");
+        
+    } else {
+        // Login-Modus (hier keine Prüfung nötig)
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) alert(error.message); 
+        else location.reload();
     }
+}
 
     async function setupApp(user) {
         currentUser = user;
@@ -754,6 +786,25 @@
     .addMetaTag('apple-mobile-web-app-capable', 'yes')
     .addMetaTag('apple-mobile-web-app-status-bar-style', 'black-translucent')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+    function checkPasswordStrength(password) {
+    // 1. Mindestlänge 8 Zeichen
+    if (password.length < 8) return false;
+
+    // 2. Die vier Kriterien definieren
+    const criteria = [
+        /[a-z]/.test(password), // Kleinbuchstaben
+        /[A-Z]/.test(password), // Großbuchstaben
+        /[0-9]/.test(password), // Zahlen
+        /[!@#$%^&*(),.?":{}|<>]/.test(password) // Sonderzeichen
+    ];
+
+    // 3. Zählen, wie viele Kriterien erfüllt sind
+    const metCriteria = criteria.filter(Boolean).length;
+
+    // 4. Mindestens 3 von 4 müssen wahr sein
+    return metCriteria >= 3;
 }
 </script>
 </body>
