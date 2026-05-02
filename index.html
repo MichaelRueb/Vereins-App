@@ -283,13 +283,14 @@
     filterSelect.value = "my_relevant"; // Standard-Vorauswahl
 }
 
- function renderTournamentList() {
+function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     
-    // Erstellt eine saubere Liste deiner Teams ohne Leerzeichen
+    // Wir holen die Teams und säubern sie extrem gründlich
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()).filter(t => t !== "") : [];
 
     const filtered = allEvents.filter(e => {
+        // Das Team des aktuellen Events in der Liste
         const eventTeam = e.team ? e.team.trim() : "";
         
         if (filter === 'all_teams') return true;
@@ -297,30 +298,54 @@
         if (filter === 'only_sports') return eventTeam !== 'Verein';
         
         if (filter === 'my_relevant') {
-            // Der entscheidende Check:
-            return eventTeam === 'Verein' || myTeams.includes(eventTeam);
+            // WICHTIG: Wir prüfen, ob das Event-Team exakt in deiner Liste ist
+            // ODER ob es ein allgemeiner Vereinstermin ist
+            const isMyTeam = myTeams.some(t => t === eventTeam);
+            return eventTeam === 'Verein' || isMyTeam;
         }
         
         return eventTeam === filter;
     }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // ... Rest der Funktion (das Zeichnen der Tabelle) bleibt gleich ...
+    // Aufteilung in Gruppen
     const sportsEvents = filtered.filter(e => e.team !== 'Verein');
     const clubEvents = filtered.filter(e => e.team === 'Verein');
+
     let html = '';
+
+    // WETTKÄMPFE (🎯 Luftpistole 1, etc.)
     if (sportsEvents.length > 0) {
-        html += `<tr style="background-color:#f8f9fa; border-left:4px solid #2e7d32;"><td colspan="5" style="padding:12px; font-weight:bold; color:#1b5e20;">🎯 Wettkampftermine</td></tr>`;
+        html += `<tr style="background:#f8f9fa; border-left:4px solid #2e7d32;"><td colspan="5" style="padding:12px;"><b>🎯 Wettkampftermine</b></td></tr>`;
         sportsEvents.forEach(e => {
-            html += `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0,5)||'--:--'}</td><td><span style="color:#1565c0; font-weight:500;">${e.team}</span></td><td>${e.opponent||'-'}</td><td>-</td></tr>`;
+            html += `<tr>
+                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                <td>${e.time?.substring(0, 5) || '--:--'}</td>
+                <td style="color:#1565c0; font-weight:bold;">${e.team}</td>
+                <td>${e.opponent || '-'}</td>
+                <td>-</td>
+            </tr>`;
         });
     }
+
+    // VEREIN (📅 Feste, Dienste, etc.)
     if (clubEvents.length > 0) {
-        html += `<tr style="background-color:#f8f9fa; border-left:4px solid #ef6c00;"><td colspan="5" style="padding:12px; font-weight:bold; color:#e65100;">📅 Vereinstermine</td></tr>`;
+        html += `<tr style="background:#f8f9fa; border-left:4px solid #ef6c00;"><td colspan="5" style="padding:12px;"><b>📅 Vereinstermine</b></td></tr>`;
         clubEvents.forEach(e => {
-            html += `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0,5)||'--:--'}</td><td><span style="color:#666;">${e.team}</span></td><td>${e.opponent||'-'}</td><td>-</td></tr>`;
+            html += `<tr>
+                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                <td>${e.time?.substring(0, 5) || '--:--'}</td>
+                <td style="color:#666;">${e.team}</td>
+                <td>${e.opponent || '-'}</td>
+                <td>-</td>
+            </tr>`;
         });
     }
-    document.getElementById('tournament-list-body').innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:20px;">Keine Termine gefunden.</td></tr>';
+
+    if (filtered.length === 0) {
+        html = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">Keine Termine gefunden.</td></tr>';
+    }
+
+    document.getElementById('tournament-list-body').innerHTML = html;
 }
 
 function renderEventRow(e) {
