@@ -167,6 +167,16 @@
         <!-- ADMIN VIEW -->
         <div id="view-admin" style="display:none;">
             <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; display:none;">📄 Stunden Report (PDF)</button>
+            <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
+        <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
+        <input type="date" id="event-date">
+        <input type="time" id="event-time">
+        <select id="event-team-select">
+            <!-- Wird dynamisch gefüllt -->
+        </select>
+        <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
+        <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
+    </div>
             <h4>⏳ Offene Stunden-Anträge</h4>
             <table><tbody id="admin-pending-body-real"></tbody></table>
             <h4>👥 Mitglieder-Verwaltung</h4>
@@ -196,31 +206,79 @@
         if(error) alert(error.message); else location.reload();
     }
 
-    async function setupApp(user) {
-        currentUser = user; 
-        isAdmin = user.email === ADMIN_EMAIL;
-        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+   async function setupApp(user) {
+    currentUser = user; 
+    isAdmin = user.email === ADMIN_EMAIL;
+    
+    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    
+    if (p) {
+        userTeam = p.team || ""; 
+        isCaptain = p.is_captain || false; 
+        isOfficial = p.is_official || false;
         
-        if (p) {
-            userTeam = p.team || ""; 
-            isCaptain = p.is_captain || false; 
-            isOfficial = p.is_official || false;
-            document.getElementById('prof-name').value = p.full_name || "";
+        document.getElementById('prof-name').value = p.full_name || "";
+        
+        // Tab-Sichtbarkeit
+        if (isAdmin || isOfficial || isCaptain) {
+            document.getElementById('tab-admin').style.display = 'block';
             
-            if (isAdmin || isOfficial || isCaptain) {
-                document.getElementById('tab-admin').style.display = 'block';
-                if (isAdmin) document.getElementById('admin-pdf-btn').style.display = 'block';
-            }
-            if (isAdmin || isOfficial) {
-                document.getElementById('tab-mileage').style.display = 'block';
+            // PDF Button nur für Admin
+            if (isAdmin) document.getElementById('admin-pdf-btn').style.display = 'block';
+            
+            // Wettkampf-Formular für Kapitäne & Admin
+            if (isAdmin || isCaptain) {
+                document.getElementById('captain-event-form').style.display = 'block';
+                fillTeamSelect();
             }
         }
-        renderTeamCheckboxes(userTeam);
-        document.getElementById('loading-ui').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        loadHistory(); 
-        await loadAllEvents(); 
     }
+    
+    renderTeamCheckboxes(userTeam);
+    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    loadHistory(); 
+    loadAllEvents();
+}
+
+// Füllt das Dropdown für Wettkämpfe basierend auf den Rechten
+function fillTeamSelect() {
+    const sel = document.getElementById('event-team-select');
+    const myTeams = userTeam ? userTeam.split(', ').map(t => t.trim()) : [];
+    
+    // Admin darf alle Teams wählen, Kapitän nur seine eigenen
+    const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
+    
+    sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+
+// Speichert den neuen Wettkampf in die Datenbank
+async function saveNewEvent() {
+    const date = document.getElementById('event-date').value;
+    const time = document.getElementById('event-time').value;
+    const team = document.getElementById('event-team-select').value;
+    const opponent = document.getElementById('event-opponent').value;
+
+    if (!date || !opponent || !team) {
+        return alert("Bitte Datum, Team und Gegner angeben!");
+    }
+
+    const { error } = await sb.from('tournaments').insert([{
+        date: date,
+        time: time,
+        team: team,
+        opponent: opponent
+    }]);
+
+    if (error) {
+        alert("Fehler beim Speichern: " + error.message);
+    } else {
+        alert("Wettkampf erfolgreich gespeichert!");
+        document.getElementById('event-opponent').value = '';
+        document.getElementById('event-time').value = '';
+        loadAllEvents(); // Aktualisiert Kalender und Liste sofort
+    }
+}
 
     function switchTab(t) { 
         ['home','events','profile','admin','mileage'].forEach(v => { 
