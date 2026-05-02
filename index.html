@@ -204,14 +204,27 @@
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
-        <!-- ADMIN VIEW -->
-        <div id="view-admin" style="display:none;">
-            <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; display:none;">📄 Stunden Report (PDF)</button>
-            <h4>⏳ Offene Stunden-Anträge</h4>
-            <table><tbody id="admin-pending-body-real"></tbody></table>
-            <h4>👥 Mitglieder-Verwaltung</h4>
-            <table><thead><tr><th>Name</th><th>h</th><th style="width:140px;">Rollen</th></tr></thead><tbody id="admin-member-table-list"></tbody></table>
-        </div>
+       <!-- ADMIN VIEW -->
+<div id="view-admin" style="display:none;">
+    <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px;">
+        📄 Stunden Report (PDF)
+    </button>
+    
+    <h4>⏳ Offene Stunden-Anträge</h4>
+    <table><tbody id="admin-pending-body-real"></tbody></table>
+    
+    <h4>👥 Mitglieder-Verwaltung</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>h</th>
+                <th style="width:140px;">Rollen</th>
+            </tr>
+        </thead>
+        <tbody id="admin-member-table-list"></tbody>
+    </table>
+</div>
     </div>
 </div>
 
