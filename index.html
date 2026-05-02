@@ -153,199 +153,229 @@
 </div>
 
 <script>
-    const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
-    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m'; // Dein Key
-    const sb = supabase.createClient(S_URL, S_KEY);
-    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
-    const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
+  // --- KONFIGURATION ---
+const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
+const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
+const sb = supabase.createClient(S_URL, S_KEY);
+const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
+const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
 
-    let currentUser, userTeam = "", isAdmin = false, isRegisterMode = false, allEvents = [], currentViewDate = new Date();
+let currentUser, userTeam = "", isAdmin = false, isRegisterMode = false, allEvents = [], currentViewDate = new Date();
 
-    window.onload = async () => {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) setupApp(session.user);
-        else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
-    };
+window.onload = async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) setupApp(session.user);
+    else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
+};
 
-    // --- AUTH LOGIK ---
-    function toggleAuthMode() {
-        isRegisterMode = !isRegisterMode;
-        document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Anmelden";
-        document.getElementById('auth-btn').innerText = isRegisterMode ? "Konto erstellen" : "Einloggen";
-        document.getElementById('auth-name').style.display = isRegisterMode ? "block" : "none";
-        document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
-        document.getElementById('auth-toggle').innerText = isRegisterMode ? "Bereits ein Konto? Anmelden" : "Noch kein Konto? Registrieren";
-    }
+// --- AUTHENTIFIZIERUNG ---
+function toggleAuthMode() {
+    isRegisterMode = !isRegisterMode;
+    document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Anmelden";
+    document.getElementById('auth-btn').innerText = isRegisterMode ? "Konto erstellen" : "Einloggen";
+    document.getElementById('auth-name').style.display = isRegisterMode ? "block" : "none";
+    document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
+}
 
-    async function handleAuth() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
-        const confirmPass = document.getElementById('password-confirm').value;
-        const fullName = document.getElementById('auth-name').value;
+async function handleAuth() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+    const fullName = document.getElementById('auth-name').value;
 
-        if (isRegisterMode) {
-            if (!fullName || fullName.length < 3) return alert("Bitte gib deinen Namen an!");
-            if (pass !== confirmPass) return alert("Passwörter nicht identisch!");
-            if (pass.length < 8) return alert("Passwort zu kurz (min. 8 Zeichen)!");
-
-            const { error } = await sb.auth.signUp({
-                email, password: pass,
-                options: { data: { full_name: fullName } }
-            });
-            if (error) alert(error.message); 
-            else alert("Registrierung erfolgreich! Check deine Mails.");
-        } else {
-            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-            if (error) alert(error.message); else location.reload();
-        }
-    }
-
-    // --- APP SETUP ---
-    async function setupApp(user) {
-        currentUser = user;
-        isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        
-        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        if (p) {
-            userTeam = p.team || "";
-            document.getElementById('prof-name').value = p.full_name || "";
-            if (isAdmin || p.is_official) {
-                document.getElementById('tab-admin').style.display = 'block';
-                document.getElementById('tab-mileage').style.display = 'block';
-            }
-        }
-        
-        renderTeamCheckboxes(userTeam);
-        renderEventFilter();
-        document.getElementById('loading-ui').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        loadHistory(); loadAllEvents();
-    }
-
-    // --- FEIERTAGS-LOGIK (Bayern) ---
-    function getBavarianHolidays(year) {
-        const holidays = {};
-        const fixed = {"01-01":"Neujahr","01-06":"Hl. Drei Könige","05-01":"Tag der Arbeit","08-15":"Mariä Himmelfahrt","10-03":"Tag der Dt. Einheit","11-01":"Allerheiligen","12-25":"1. Weihnachtstag","12-26":"2. Weihnachtstag"};
-        for(let d in fixed) holidays[`${year}-${d}`] = fixed[d];
-
-        const a=year%19, b=Math.floor(year/100), c=year%100, d=Math.floor(b/4), e=b%4, f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30, i=Math.floor(c/4), k=c%4, l=(32+2*e+2*i-h-k)%7, m=Math.floor((a+11*h+22*l)/451), month=Math.floor((h+l-7*m+114)/31), day=((h+l-7*m+114)%31)+1;
-        const o = new Date(year, month-1, day);
-        const add = (n) => { let x=new Date(o); x.setDate(x.getDate()+n); return x.toISOString().split('T')[0]; };
-
-        holidays[add(-2)] = "Karfreitag";
-        holidays[add(1)] = "Ostermontag";
-        holidays[add(39)] = "Christi Himmelfahrt";
-        holidays[add(50)] = "Pfingstmontag";
-        holidays[add(60)] = "Fronleichnam";
-        return holidays;
-    }
-
-    // --- KALENDER RENDERING ---
-    function renderCalendar() {
-        const container = document.getElementById('calendar-container');
-        container.innerHTML = '';
-        const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
-        const holidays = getBavarianHolidays(y);
-        
-        document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
-        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
-            let h = document.createElement('div'); h.style="background:#eee; text-align:center; padding:5px; font-size:0.7em; font-weight:bold;";
-            h.innerText=d; container.appendChild(h);
+    if (isRegisterMode) {
+        if (!fullName) return alert("Name fehlt!");
+        const { error } = await sb.auth.signUp({
+            email, password: pass,
+            options: { data: { full_name: fullName } }
         });
+        if (error) alert(error.message); else alert("Registrierung erfolgreich! Bitte Admin um Freigabe bitten.");
+    } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) alert(error.message); else location.reload();
+    }
+}
 
-        const start = (new Date(y, m, 1).getDay() + 6) % 7;
-        const days = new Date(y, m + 1, 0).getDate();
+// --- INITIALISIERUNG & ZUGRIFFSKONTROLLE ---
+async function setupApp(user) {
+    currentUser = user;
+    isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    
+    // Profil laden & Freigabe prüfen
+    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    
+    // Sperre für nicht freigegebene Nutzer (Admin ist immer frei)
+    if (!isAdmin && (!p || p.is_approved === false)) {
+        document.getElementById('loading-ui').innerHTML = `
+            <div style="padding:20px; text-align:center;">
+                <h2 style="color:var(--accent);">Warteschlange</h2>
+                <p>Hallo <b>${p?.full_name || 'Mitglied'}</b>,<br>dein Account muss erst vom Admin freigeschaltet werden.</p>
+                <button onclick="sb.auth.signOut().then(()=>location.reload())">Abmelden</button>
+            </div>`;
+        return;
+    }
 
-        for(let i=0; i<start; i++) container.appendChild(document.createElement('div')).className='calendar-day';
-
-        for(let d=1; d<=days; d++) {
-            const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const el = document.createElement('div'); el.className = 'calendar-day';
-            if (holidays[ds]) el.classList.add('calendar-holiday');
-            if (new Date().toISOString().split('T')[0] === ds) el.classList.add('today');
-            
-            el.innerHTML = `<small>${d}</small>`;
-            allEvents.filter(e => e.date === ds).forEach(e => {
-                let dot = document.createElement('div'); dot.className = `event-dot ${getTeamClass(e.team)}`;
-                el.appendChild(dot);
-            });
-
-            el.onclick = () => {
-                const evs = allEvents.filter(e => e.date === ds);
-                let html = holidays[ds] ? `<div style="color:#d9534f; font-weight:bold;">🚩 ${holidays[ds]}</div>` : '';
-                html += evs.length ? evs.map(e => `<div><b>${e.team}:</b> ${e.opponent}</div>`).join('') : 'Keine Termine';
-                document.getElementById('selection-content').innerHTML = html;
-                document.getElementById('calendar-selection-details').style.display='block';
-            };
-            container.appendChild(el);
+    if (p) {
+        userTeam = p.team || "";
+        document.getElementById('prof-name').value = p.full_name || "";
+        if (isAdmin || p.is_official) {
+            document.getElementById('tab-admin').style.display = 'block';
         }
     }
+    
+    renderTeamCheckboxes(userTeam);
+    renderEventFilter();
+    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    loadHistory(); loadAllEvents();
+}
 
-    // --- RESTLICHE LOGIK (STUNDEN, ADMIN, PDF) BLEIBT ERHALTEN ---
-    function getTeamClass(t) {
-        if(!t) return 'team-default'; t = t.toLowerCase();
-        if(t.includes('verein')) return 'team-verein';
-        if(t.includes('auflage')) return 'team-auflage';
-        if(t.includes('gewehr')) return 'team-lg';
-        if(t.includes('pistole')) return 'team-lp';
-        return 'team-default';
-    }
+// --- ADMIN BEREICH ---
+async function loadAdmin() {
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*');
 
-    async function loadAllEvents() {
-        const { data: t } = await sb.from('tournaments').select('*');
-        const { data: c } = await sb.from('club_events').select('*');
-        allEvents = [...(t||[]), ...(c||[]).map(e=>({...e, team:'Verein', opponent: e.title}))];
-        renderCalendar(); renderTournamentList();
-    }
+    // 1. Neue Freigaben
+    const pendingMembers = profs.filter(p => !p.is_approved && p.id !== currentUser.id);
+    let memberHtml = pendingMembers.length > 0 ? "<h4>🆕 Neue Anfragen</h4>" : "";
+    pendingMembers.forEach(m => {
+        memberHtml += `<div style="background:#fff3e0; padding:10px; margin-bottom:5px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>${m.full_name}</span>
+            <button onclick="approveMember('${m.id}')" style="width:auto; padding:5px 10px;">Freigeben</button>
+        </div>`;
+    });
+    document.getElementById('admin-pending-section').innerHTML = memberHtml;
 
-    function renderTournamentList() {
-        const filter = document.getElementById('event-view-filter').value;
-        const filtered = allEvents.filter(e => filter === 'all' || e.team === filter);
-        document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `
-            <tr><td>${e.date}</td><td>${e.time?.substring(0,5)}</td><td>${e.team}</td><td>${e.opponent}</td></tr>
-        `).join('');
-    }
+    // 2. Offene Stunden
+    const pendingHours = hours?.filter(h => h.status === 'pending') || [];
+    document.getElementById('admin-pending-body-real').innerHTML = pendingHours.map(h => {
+        const u = profs.find(p => p.id === h.user_id);
+        return `<tr><td>${u?.full_name || 'Gast'}</td><td>${h.description}</td><td>${h.duration}h</td>
+                <td><button onclick="approveHours('${h.id}')" style="padding:4px; width:auto;">OK</button></td></tr>`;
+    }).join('');
 
-    async function sendHours() {
-        const h = document.getElementById('hours').value, d = document.getElementById('date').value, cat = document.getElementById('work-category').value;
-        if(!h || !d || !cat) return alert("Felder füllen!");
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: d, duration: h, description: cat + ": " + document.getElementById('description').value, status: 'pending' }]);
-        alert("Gesendet!"); loadHistory();
-    }
+    // 3. Gesamtliste
+    document.getElementById('admin-member-table-list').innerHTML = profs.filter(p => p.is_approved).map(p => {
+        const sum = hours?.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) || 0;
+        return `<tr><td>${p.full_name}</td><td>${sum} h</td><td>${p.is_official ? 'Vorstand' : 'Mitglied'}</td></tr>`;
+    }).join('');
+}
 
-    async function loadHistory() {
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {ascending:false});
-        const approved = data?.filter(x=>x.status==='approved').reduce((s,x)=> s + parseFloat(x.duration), 0) || 0;
-        document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
-        document.getElementById('my-progress-label').innerText = approved + " / 10 h";
-        document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${x.date}</td><td>${x.description}</td><td>${x.duration}</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
-    }
+async function approveMember(id) {
+    await sb.from('profiles').update({ is_approved: true }).eq('id', id);
+    alert("Mitglied freigeschaltet!"); loadAdmin();
+}
 
-    function switchTab(t) {
-        ['home','events','profile','admin'].forEach(v => {
-            document.getElementById('view-'+v).style.display = (v===t)?'block':'none';
-            document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab';
+async function approveHours(id) { 
+    await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); 
+    loadAdmin(); 
+}
+
+// --- KALENDER & FEIERTAGE (BAYERN) ---
+function getBavarianHolidays(year) {
+    const holidays = {};
+    const fixed = {"01-01":"Neujahr","01-06":"Hl. Drei Könige","05-01":"Tag der Arbeit","08-15":"Mariä Himmelfahrt","10-03":"Tag der Dt. Einheit","11-01":"Allerheiligen","12-25":"1. Weihnachtstag","12-26":"2. Weihnachtstag"};
+    for(let d in fixed) holidays[`${year}-${d}`] = fixed[d];
+    const a=year%19, b=Math.floor(year/100), c=year%100, d=Math.floor(b/4), e=b%4, f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30, i=Math.floor(c/4), k=c%4, l=(32+2*e+2*i-h-k)%7, m=Math.floor((a+11*h+22*l)/451), month=Math.floor((h+l-7*m+114)/31), day=((h+l-7*m+114)%31)+1;
+    const o = new Date(year, month-1, day);
+    const add = (n) => { let x=new Date(o); x.setDate(x.getDate()+n); return x.toISOString().split('T')[0]; };
+    holidays[add(-2)] = "Karfreitag"; holidays[add(1)] = "Ostermontag"; holidays[add(39)] = "Christi Himmelfahrt"; holidays[add(50)] = "Pfingstmontag"; holidays[add(60)] = "Fronleichnam";
+    return holidays;
+}
+
+function renderCalendar() {
+    const container = document.getElementById('calendar-container');
+    container.innerHTML = '';
+    const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
+    const holidays = getBavarianHolidays(y);
+    document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
+    ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
+        let h = document.createElement('div'); h.style="background:#eee; text-align:center; padding:5px; font-size:0.7em; font-weight:bold;";
+        h.innerText=d; container.appendChild(h);
+    });
+    const start = (new Date(y, m, 1).getDay() + 6) % 7;
+    const days = new Date(y, m + 1, 0).getDate();
+    for(let i=0; i<start; i++) container.appendChild(document.createElement('div')).className='calendar-day';
+    for(let d=1; d<=days; d++) {
+        const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const el = document.createElement('div'); el.className = 'calendar-day';
+        if (holidays[ds]) el.classList.add('calendar-holiday');
+        if (new Date().toISOString().split('T')[0] === ds) el.classList.add('today');
+        el.innerHTML = `<small>${d}</small>`;
+        allEvents.filter(e => e.date === ds).forEach(e => {
+            let dot = document.createElement('div'); dot.className = `event-dot ${getTeamClass(e.team)}`;
+            el.appendChild(dot);
         });
-        if(t==='admin') loadAdmin();
+        el.onclick = () => {
+            const evs = allEvents.filter(e => e.date === ds);
+            let html = holidays[ds] ? `<div style="color:#d9534f; font-weight:bold;">🚩 ${holidays[ds]}</div>` : '';
+            html += evs.length ? evs.map(e => `<div><b>${e.team}:</b> ${e.opponent}</div>`).join('') : 'Keine Termine';
+            document.getElementById('selection-content').innerHTML = html;
+            document.getElementById('calendar-selection-details').style.display='block';
+        };
+        container.appendChild(el);
     }
+}
 
-    function renderTeamCheckboxes(sel) {
-        const arr = sel ? sel.split(', ') : [];
-        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
-            <label style="font-size:0.8em;"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t)?'checked':''}> ${t}</label>
-        `).join('');
-    }
+// --- HELPER FUNKTIONEN ---
+function getTeamClass(t) {
+    if(!t) return 'team-default'; t = t.toLowerCase();
+    if(t.includes('verein')) return 'team-verein';
+    if(t.includes('auflage')) return 'team-auflage';
+    if(t.includes('gewehr')) return 'team-lg';
+    if(t.includes('pistole')) return 'team-lp';
+    return 'team-default';
+}
 
-    async function updateProfile() {
-        const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', ');
-        await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams });
-        alert("Gespeichert!");
-    }
+async function loadAllEvents() {
+    const { data: t } = await sb.from('tournaments').select('*');
+    const { data: c } = await sb.from('club_events').select('*');
+    allEvents = [...(t||[]), ...(c||[]).map(e=>({...e, team:'Verein', opponent: e.title}))];
+    renderCalendar();
+}
 
-    function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
-    function renderEventFilter() {
-        document.getElementById('event-view-filter').innerHTML = `<option value="all">Alle Termine</option>` + ALL_TEAMS.map(t=>`<option value="${t}">${t}</option>`).join('');
-    }
+async function sendHours() {
+    const h = document.getElementById('hours').value, d = document.getElementById('date').value, cat = document.getElementById('work-category').value;
+    if(!h || !d || !cat) return alert("Felder füllen!");
+    await sb.from('work_hours').insert([{ user_id: currentUser.id, date: d, duration: h, description: cat + ": " + document.getElementById('description').value, status: 'pending' }]);
+    alert("Gesendet!"); loadHistory();
+}
+
+async function loadHistory() {
+    const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {ascending:false});
+    const approved = data?.filter(x=>x.status==='approved').reduce((s,x)=> s + parseFloat(x.duration), 0) || 0;
+    document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
+    document.getElementById('my-progress-label').innerText = approved + " / 10 h";
+    document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${x.date}</td><td>${x.description}</td><td>${x.duration}</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
+}
+
+function switchTab(t) {
+    ['home','events','profile','admin'].forEach(v => {
+        const view = document.getElementById('view-'+v);
+        if(view) view.style.display = (v===t)?'block':'none';
+        const tab = document.getElementById('tab-'+v);
+        if(tab) tab.className = (v===t)?'tab active':'tab';
+    });
+    if(t==='admin') loadAdmin();
+}
+
+function renderTeamCheckboxes(sel) {
+    const arr = sel ? sel.split(', ') : [];
+    document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
+        <label style="font-size:0.8em;"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t)?'checked':''}> ${t}</label>
+    `).join('');
+}
+
+async function updateProfile() {
+    const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', ');
+    await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams });
+    alert("Gespeichert!");
+}
+
+function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
+function renderEventFilter() {
+    const el = document.getElementById('event-view-filter');
+    if(el) el.innerHTML = `<option value="all">Alle Termine</option>` + ALL_TEAMS.map(t=>`<option value="${t}">${t}</option>`).join('');
+}
 </script>
 </body>
 </html>
