@@ -216,6 +216,7 @@
 </div>
 
 <script>
+
 const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
@@ -261,7 +262,7 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
             
             // Wettkampf-Formular Anzeige
             if (isAdmin || isCaptain) {
-                document.getElementById('captain-event-form').style.display = 'block';
+                if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'block';
                 fillTeamSelect();
             }
         }
@@ -313,24 +314,19 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     function editEvent(id) {
         const ev = allEvents.find(x => x.id === id);
         if (!ev) return;
-
-        // Zum Formular scrollen
         document.getElementById('view-events').scrollIntoView({ behavior: 'smooth' });
-
         document.getElementById('edit-event-id').value = id;
         document.getElementById('event-date').value = ev.date;
         document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
         document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
         document.getElementById('event-team-select').value = ev.team;
-
         document.getElementById('event-form-title').innerText = "Wettkampf bearbeiten";
         document.getElementById('btn-save-event').innerText = "Änderungen speichern";
         document.getElementById('btn-cancel-event').style.display = "block";
     }
 
     function resetEventForm() {
-        const editId = document.getElementById('edit-event-id');
-        if (editId) editId.value = "";
+        if(document.getElementById('edit-event-id')) document.getElementById('edit-event-id').value = "";
         document.getElementById('event-date').value = "";
         document.getElementById('event-time').value = "";
         document.getElementById('event-opponent').value = "";
@@ -351,7 +347,6 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     function renderTournamentList() {
         const filter = document.getElementById('event-view-filter').value;
         const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
-
         const filtered = allEvents.filter(e => {
             if (filter === 'all_teams') return true;
             if (filter === 'Verein') return e.team === 'Verein';
@@ -379,19 +374,8 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
         const isMyTeam = myTeams.includes(e.team);
         const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
-        
-        // Vereinstermine (club_events) haben oft andere Strukturen, daher Edit nur für tournaments via Formular
-        const editBtn = (canEdit && e.team !== 'Verein') 
-            ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}')">✏️</button>` 
-            : '-';
-        
-        return `<tr>
-            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-            <td>${e.time?.substring(0, 5) || '--:--'}</td>
-            <td>${e.team}</td>
-            <td>${e.opponent || e.title || '-'}</td>
-            <td>${editBtn}</td>
-        </tr>`;
+        const editBtn = (canEdit && e.team !== 'Verein') ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}')">✏️</button>` : '-';
+        return `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0, 5) || '--:--'}</td><td>${e.team}</td><td>${e.opponent || e.title || '-'}</td><td>${editBtn}</td></tr>`;
     }
 
     // --- TABS & NAVIGATION ---
@@ -404,7 +388,12 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
             if(tab) tab.className = (v===t)?'tab active':'tab'; 
         }); 
         if(t==='admin') loadAdmin(); 
-        if(t==='mileage') loadMileageHistory();
+        if(t==='mileage') {
+            resetMileageForm();
+            loadMileageHistory();
+            loadRouteSuggestions(); // Fehlerbehebung: Lädt Vorschläge beim Tab-Wechsel
+            if(document.getElementById('ml-date')) document.getElementById('ml-date').valueAsDate = new Date();
+        }
     }
 
     // --- FAHRTENBUCH LOGIK ---
@@ -412,8 +401,37 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     function calcTotalKm() {
         const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
         const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
-        document.getElementById('ml-result').innerText = `Gesamtstrecke: ${total.toFixed(2)} km`;
+        const resElem = document.getElementById('ml-result');
+        if(resElem) resElem.innerText = `Gesamtstrecke: ${total.toFixed(2)} km`;
         return total;
+    }
+
+    async function loadRouteSuggestions() {
+        const { data: routeData } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
+        const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+
+        if (routeData) {
+            document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
+            document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
+            window.mySavedRoutes = routeData;
+        }
+
+        if (logData) {
+            const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
+            document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
+        }
+    }
+
+    function checkFavRoute() {
+        const start = document.getElementById('ml-start').value;
+        const end = document.getElementById('ml-end').value;
+        if(window.mySavedRoutes) {
+            const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
+            if(found) { 
+                document.getElementById('ml-km-single').value = found.distance_single; 
+                calcTotalKm(); 
+            }
+        }
     }
 
     async function loadMileageHistory() {
@@ -443,14 +461,25 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         const payload = { user_id: currentUser.id, date, purpose, start_location: start, end_location: end, distance_single: single, is_round_trip: document.getElementById('ml-roundtrip').checked, distance_total: total };
         
         const res = id ? await sb.from('mileage_logs').update(payload).eq('id', id) : await sb.from('mileage_logs').insert([payload]);
-        if(res.error) alert(res.error.message); else { resetMileageForm(); loadMileageHistory(); }
+        
+        if(res.error) alert(res.error.message); 
+        else { 
+            // Automatisch als Vorschlag für später speichern
+            await sb.from('saved_routes').upsert({ 
+                user_id: currentUser.id, start_point: start, end_point: end, distance_single: single 
+            }, { onConflict: 'user_id,start_point,end_point' });
+            
+            resetMileageForm(); 
+            loadMileageHistory(); 
+            loadRouteSuggestions();
+        }
     }
 
     function resetMileageForm() {
         document.getElementById('edit-ml-id').value = "";
         document.getElementById('ml-purpose').value = "";
         document.getElementById('ml-form-title').innerText = "Fahrt erfassen";
-        document.getElementById('ml-cancel-btn').style.display = "none";
+        if(document.getElementById('ml-cancel-btn')) document.getElementById('ml-cancel-btn').style.display = "none";
     }
 
     // --- STUNDEN LOGIK ---
@@ -512,12 +541,19 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         }).join('');
     }
 
-    // Hilfsfunktionen
-    function getTeamClass(t) { if(t==='Verein') return 'team-verein'; if(t?.toLowerCase().includes('gewehr')) return 'team-lg'; if(t?.toLowerCase().includes('pistole')) return 'team-lp'; return ''; }
-    function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
-    async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
-    async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
-    
+    async function viewUserDetail(uid) {
+        const row = document.getElementById(`details-${uid}`);
+        const content = document.getElementById(`content-${uid}`);
+        if (row.style.display === 'table-row') row.style.display = 'none';
+        else {
+            const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { descending: true });
+            let html = '<strong>Letzte Tätigkeiten:</strong><br><ul>';
+            html += (hours && hours.length > 0) ? hours.map(h => `<li>${h.date}: ${h.duration}h - ${h.description} (${h.status})</li>`).join('') : '<li>Keine Einträge gefunden</li>';
+            content.innerHTML = html + '</ul>';
+            row.style.display = 'table-row';
+        }
+    }
+
     function renderCalendar() {
         const container = document.getElementById('calendar-container'); container.innerHTML = '';
         const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
@@ -552,69 +588,12 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         filterSelect.innerHTML = options;
         if(!filterSelect.value) filterSelect.value = "my_relevant";
     }
-    async function viewUserDetail(uid) {
-    const row = document.getElementById(`details-${uid}`);
-    const content = document.getElementById(`content-${uid}`);
-    
-    if (row.style.display === 'table-row') {
-        row.style.display = 'none';
-    } else {
-        // Lade die Stunden-Details für diesen Nutzer
-        const { data: hours } = await sb.from('work_hours')
-            .select('*')
-            .eq('user_id', uid)
-            .order('date', { descending: true });
-            
-        let html = '<strong>Letzte Tätigkeiten:</strong><br><ul>';
-        if (hours && hours.length > 0) {
-            html += hours.map(h => `<li>${h.date}: ${h.duration}h - ${h.description} (${h.status})</li>`).join('');
-        } else {
-            html += '<li>Keine Einträge gefunden</li>';
-        }
-        html += '</ul>';
-        
-        content.innerHTML = html;
-        row.style.display = 'table-row';
-    }
-}
-function checkFavRoute() {
-    const start = document.getElementById('ml-start').value;
-    const end = document.getElementById('ml-end').value;
-    
-    if(window.mySavedRoutes) {
-        // Sucht in den geladenen Favoriten nach der Kombination
-        const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
-        if(found) { 
-            document.getElementById('ml-km-single').value = found.distance_single; 
-            calcTotalKm(); // Berechnet sofort die Gesamtstrecke (H+R)
-        }
-    }
-}
-    async function loadRouteSuggestions() {
-    const { data: routeData } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
-    const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
 
-    if (routeData) {
-        // Füllt die Datalists im HTML für Start und Ziel
-        document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
-        document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
-        // Speichert die Routen global für checkFavRoute()
-        window.mySavedRoutes = routeData;
-    }
-
-    if (logData) {
-        // Füllt die Vorschläge für den Zweck
-        const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
-        document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
-    }
-    // Speichert die neue Route automatisch als Favorit/Vorschlag ab
-await sb.from('saved_routes').upsert({ 
-    user_id: currentUser.id, 
-    start_point: start, 
-    end_point: end, 
-    distance_single: single 
-}, { onConflict: 'user_id,start_point,end_point' });
-    }  
+    function getTeamClass(t) { if(t==='Verein') return 'team-verein'; if(t?.toLowerCase().includes('gewehr')) return 'team-lg'; if(t?.toLowerCase().includes('pistole')) return 'team-lp'; return ''; }
+    function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
+    async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
+    async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
+    
 </script>
     
 </body>
