@@ -68,30 +68,16 @@
 <body>
 
 <div class="card">
-    <!-- Lade-Anzeige -->
     <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro wird geladen...</div>
 
-    <!-- Login/Registrierung -->
     <div id="auth-ui" style="display:none;">
         <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
-        <input type="text" id="full-name" placeholder="Vollständiger Name" style="display:none;">
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort">
         <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
         <button onclick="handleAuth()" id="auth-btn">Einloggen</button>
-        <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">
-            Noch kein Konto? Registrieren
-        </div>
+        <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">Noch kein Konto? Registrieren</div>
     </div>
-
-    <!-- DER HAUPTINHALT (Alles was bisher im Hintergrund zu sehen war) -->
-    <div id="main-app" style="display:none;">
-        <!-- Hier deine Tabs (Stunden, Kalender, Profil) reinschieben -->
-        <div class="tabs"> ... </div>
-        <div id="stunden-bereich"> ... </div>
-        <!-- ... alle weiteren App-Elemente ... -->
-    </div>
-</div>
 
     <div id="main-app" style="display:none;">
         <div class="tabs" id="main-tabs">
@@ -240,101 +226,280 @@
 </div>
 
 <script>
-    // --- INITIALISIERUNG & DEINE REFERENZEN ---
-    const S_URL = "DEINE_SUPABASE_URL"; 
-    const S_KEY = "DEIN_SUPABASE_ANON_KEY"; 
-    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com"; 
-    const supabase = supabase.createClient(S_URL, S_KEY);
-    const sb = supabase; 
+    const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
+    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
+    const sb = supabase.createClient(S_URL, S_KEY);
+    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
+    const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
+    const HOLIDAYS_BY = {
+        "2026-01-01": "Neujahr","2026-01-06": "Hl. Drei Könige","2026-04-03": "Karfreitag",
+        "2026-04-06": "Ostermontag","2026-05-01": "Tag der Arbeit","2026-05-14": "Christi Himmelfahrt",
+        "2026-05-25": "Pfingstmontag","2026-06-04": "Fronleichnam","2026-08-15": "Mariä Himmelfahrt",
+        "2026-10-03": "Tag der Dt. Einheit","2026-11-01": "Allerheiligen","2026-12-25": "1. Weihnachtstag",
+        "2026-12-26": "2. Weihnachtstag"
+    };
 
-    let currentUser = null;
-    let allEvents = [];
-    let allMileage = [];
-    let currentViewDate = new Date();
+    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], allMileage = [], currentViewDate = new Date();
+    let isRegisterMode = false;
 
-    const HOLIDAYS_BY = { "2024-12-25": "1. Weihnachtstag", "2024-12-26": "2. Weihnachtstag", "2025-01-01": "Neujahr" };
+    window.onload = async () => {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) setupApp(session.user);
+        else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
+    };
 
-    // --- DER TÜRSTEHER (Prüft die Freigabe) ---
-    supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session) {
-            const user = session.user;
-            // Check 1: Bist du es (über die E-Mail)? Dann immer rein.
-            // Check 2: Ist der User über die Metadaten freigeschaltet?
-            const isApproved = user.user_metadata && user.user_metadata.is_approved === true;
-            const isOwner = user.email === ADMIN_EMAIL;
+    function toggleAuthMode() {
+        isRegisterMode = !isRegisterMode;
+        document.getElementById('auth-title').innerText = isRegisterMode ? "Registrieren" : "Anmelden";
+        document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
+    }
 
-            if (isApproved || isOwner) {
-                currentUser = user;
-                setupApp();
-            } else {
-                alert("Dein Account ist noch nicht freigeschaltet. Bitte warte auf die Freigabe durch den Admin.");
-                await supabase.auth.signOut();
-                showLogin();
-            }
-        } else {
-            currentUser = null;
-            showLogin();
+    async function handleAuth() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    if (isRegisterMode) {
+        // --- START PASSWORT-CHECK ---
+        const criteria = [
+            password.length >= 8,                       // 1. Länge mind. 8
+            /[a-z]/.test(password),                    // 2. Kleinbuchstabe
+            /[A-Z]/.test(password),                    // 3. Großbuchstabe
+            /[0-9]/.test(password),                    // 4. Zahl
+            /[!@#$%^&*(),.?":{}|<>]/.test(password)    // 5. Sonderzeichen
+        ];
+
+        // Die erste Bedingung (Länge) muss immer wahr sein
+        const isLongEnough = criteria[0];
+        // Von den restlichen 4 müssen 3 erfüllt sein
+        const otherCriteriaMet = criteria.slice(1).filter(Boolean).length;
+
+        if (!isLongEnough || otherCriteriaMet < 3) {
+            alert("Das Passwort ist nicht sicher genug!\n\n" +
+                  "Anforderungen:\n" +
+                  "- Mindestens 8 Zeichen (Pflicht)\n" +
+                  "- Erfüllung von 3 der 4 folgenden Merkmale:\n" +
+                  "  • Kleinbuchstaben\n" +
+                  "  • Großbuchstaben\n" +
+                  "  • Zahlen\n" +
+                  "  • Sonderzeichen");
+            return; // Funktion abbrechen, kein SignUp bei Supabase
         }
+        // --- ENDE PASSWORT-CHECK ---
+
+        const { error } = await sb.auth.signUp({ email, password });
+        if (error) alert(error.message); 
+        else alert("Check deine E-Mails zur Bestätigung!");
+        
+    } else {
+        // Login-Modus (hier keine Prüfung nötig)
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) alert(error.message); 
+        else location.reload();
+    }
+}
+
+    async function setupApp(user) {
+        currentUser = user;
+        isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+
+        if (p) {
+            userTeam = p.team || "";
+            isCaptain = p.is_captain;
+            isOfficial = p.is_official;
+            document.getElementById('prof-name').value = p.full_name || "";
+            renderTeamCheckboxes(userTeam);
+
+            if (isAdmin || isOfficial) {
+                document.getElementById('tab-admin').style.display = 'block';
+                document.getElementById('tab-mileage').style.display = 'block';
+                document.getElementById('captain-form').style.display = 'block';
+                document.getElementById('ev-team-select').innerHTML = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('') + `<option value="Verein">Verein</option>`;
+            } else if (isCaptain) {
+                document.getElementById('captain-form').style.display = 'block';
+                const myTeams = userTeam.split(', ');
+                document.getElementById('ev-team-select').innerHTML = myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+            }
+        } else { renderTeamCheckboxes(""); }
+
+        renderEventFilter(); // Filter initialisieren
+        document.getElementById('loading-ui').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        loadHistory();
+        loadAllEvents();
+    }
+
+    // --- KALENDER FILTER LOGIK ---
+    function renderEventFilter() {
+        const filterSelect = document.getElementById('event-view-filter');
+        let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
+        options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
+        options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
+        options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
+        options += `<hr>`;
+        options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
+        
+        filterSelect.innerHTML = options;
+        filterSelect.value = "my_relevant"; // Standard-Vorauswahl
+    }
+
+    function renderTournamentList() {
+    const filter = document.getElementById('event-view-filter').value;
+    const listBody = document.getElementById('tournament-list-body');
+    const myTeams = userTeam ? userTeam.split(', ') : [];
+    
+    // 1. Filtern
+    const filteredEvents = allEvents.filter(e => {
+        if (filter === 'all_teams') return true;
+        if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
+        if (filter === 'Verein') return e.team === 'Verein';
+        if (filter === 'only_sports') return e.team !== 'Verein';
+        return e.team === filter;
     });
 
-    function showLogin() {
-        document.getElementById('auth-container').style.display = 'flex';
-        document.getElementById('app-container').style.display = 'none';
-    }
+    // 2. Sortieren: Erst Sport (Wettkämpfe), dann Verein
+    const sortedEvents = filteredEvents.sort((a, b) => {
+        const isAClub = a.team === 'Verein';
+        const isBClub = b.team === 'Verein';
+        if (isAClub !== isBClub) return isAClub ? 1 : -1;
+        return new Date(a.date) - new Date(b.date);
+    });
 
-    async function setupApp() {
-        document.getElementById('auth-container').style.display = 'none';
-        document.getElementById('app-container').style.display = 'block';
-        
-        const { data: prof } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-        if (prof) {
-            document.getElementById('user-display-name').innerText = prof.full_name || currentUser.email;
-            if (prof.is_admin) document.getElementById('tab-admin').style.display = 'inline-block';
+    let html = "";
+    let competitionHeaderSent = false;
+    let clubHeaderSent = false;
+
+    // 3. HTML generieren
+    sortedEvents.forEach(e => {
+        const isClub = e.team === 'Verein';
+
+        // NEU: Header für Wettkämpfe (Blau)
+        if (!isClub && !competitionHeaderSent) {
+            html += '<tr style="background-color: #f8f9fa;">' +
+                    '<td colspan="5" style="text-align: center; font-weight: bold; color: #2e7d32; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
+                    '--- WETTKAMPFTERMINE ---' +
+                    '</td></tr>';
+            competitionHeaderSent = true;
+        }
+
+        // Header für Verein (Grün)
+        if (isClub && !clubHeaderSent) {
+            html += '<tr style="background-color: #f8f9fa;">' +
+                    '<td colspan="5" style="text-align: center; font-weight: bold; color: #2e7d32; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
+                    '--- VEREINSTERMINE & VERANSTALTUNGEN ---' +
+                    '</td></tr>';
+            clubHeaderSent = true;
+        }
+
+        const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
+        const dateStr = new Date(e.date).toLocaleDateString('de-DE');
+        const timeStr = e.time ? e.time.substring(0, 5) : '--:--';
+        const teamCls = getTeamClass(e.team);
+
+        // Buttons nur erstellen, wenn canEdit wahr ist
+        let actionCell = '-';
+        if (canEdit) {
+            actionCell = '<span class="edit-btn" onclick="editEvent(\'' + e.id + '\')">✏️</span> ' +
+                         '<span class="delete-btn" onclick="deleteEvent(\'' + e.id + '\')">🗑️</span>';
         }
         
-        loadAllEvents();
-        switchTab('home');
+        // Tabellenzeile zusammenbauen
+        html += '<tr>' +
+                '<td>' + dateStr + '</td>' +
+                '<td>' + timeStr + '</td>' +
+                '<td><span class="event-dot ' + teamCls + '"></span> ' + e.team + '</td>' +
+                '<td>' + e.opponent + '</td>' +
+                '<td>' + actionCell + '</td>' +
+                '</tr>';
+    });
+
+    listBody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+}
+  
+    // --- RESTLICHE LOGIK ---
+    function renderTeamCheckboxes(selected) {
+        const selArray = selected ? selected.split(', ') : [];
+        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
+            <div style="font-size:0.85em;"><input type="checkbox" name="prof-teams" value="${t}" style="width:auto;" ${selArray.includes(t)?'checked':''}> ${t}</div>
+        `).join('');
     }
 
-    // --- ANMELDUNG/REGISTRIERUNG MIT FREIGABE-LOGIK ---
-    async function handleAuth(mode) {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
-        const name = document.getElementById('reg-name').value;
+    async function updateProfile() {
+        const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c => c.value).join(', ');
+        await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams });
+        alert("Gespeichert!"); location.reload();
+    }
 
-        if (mode === 'signup') {
-            if (!name) return alert("Name wird benötigt!");
-            if (!checkPasswordStrength(pass)) return alert("Passwort zu schwach!");
-            
-            const { error } = await sb.auth.signUp({
-                email, 
-                password: pass,
-                options: { 
-                    data: { 
-                        full_name: name, 
-                        is_approved: false // Standardmäßig gesperrt
-                    } 
-                }
-            });
-            if (error) alert("Fehler: " + error.message);
-            else alert("Registriert! Der Admin muss dich nun freischalten, bevor du dich einloggen kannst.");
-        } else {
-            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-            if (error) alert("Login fehlgeschlagen: " + error.message);
+    async function loadHistory() {
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {ascending:false});
+        const approved = data ? data.filter(h => h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+        document.getElementById('my-progress-bar').style.width = Math.min((approved/10)*100, 100) + "%";
+        document.getElementById('my-progress-label').innerText = `${approved} / 10 h`;
+        document.getElementById('history-body').innerHTML = data ? data.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':(h.status==='rejected'?'❌':'⏳')}</td></tr>`).join('') : "";
+    }
+
+    async function loadAdmin() {
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*');
+        const pending = hours ? hours.filter(h => h.status === 'pending') : [];
+        document.getElementById('admin-pending-section').style.display = pending.length ? 'block' : 'none';
+        document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
+            const u = profs.find(p => p.id === h.user_id);
+            return `<tr><td>${u?.full_name||'Gast'}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approve('${h.id}')" style="padding:4px; width:auto;">OK</button> <button onclick="reject('${h.id}')" style="width:auto; background:#c62828;">X</button></td></tr>`;
+        }).join('');
+
+        document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
+            const genSum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+            return `<tr>
+                <td><span class="clickable-name" onclick="showAdminMemberDetails('${p.id}', '${p.full_name}')">${p.full_name || 'Gast'}</span></td>
+                <td><small>${p.team || '-'}</small></td>
+                <td><b>${genSum}</b></td>
+                <td><input type="checkbox" onchange="setCap('${p.id}', this.checked)" ${p.is_captain?'checked':''} style="width:auto; margin:0;"></td>
+                <td><input type="checkbox" onchange="setOfficial('${p.id}', this.checked)" ${p.is_official?'checked':''} style="width:auto; margin:0;"></td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function setCap(id, val) { await sb.from('profiles').update({ is_captain: val }).eq('id', id); }
+    async function setOfficial(id, val) { await sb.from('profiles').update({ is_official: val }).eq('id', id); }
+    async function approve(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
+    async function reject(id) {
+        const reason = prompt("Grund für Ablehnung:");
+        if (reason !== null) {
+            const { data: cur } = await sb.from('work_hours').select('description').eq('id', id).single();
+            await sb.from('work_hours').update({ status: 'rejected', description: cur.description + " | ABGELEHNT: " + reason }).eq('id', id);
+            loadAdmin();
         }
     }
 
-    async function logout() {
-        await sb.auth.signOut();
+    async function showAdminMemberDetails(uid, name) {
+        const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', {ascending:false});
+        document.getElementById('admin-detail-name').innerText = name;
+        document.getElementById('admin-detail-body').innerHTML = hours.map(h => `<tr><td>${h.date}</td><td>${h.description}</td><td>${h.duration}h</td><td>${h.status==='approved'?'✅':(h.status==='rejected'?'❌':'⏳')}</td><td><span class="delete-btn" onclick="deleteHoursAdmin('${h.id}', '${uid}', '${name}')">🗑️</span></td></tr>`).join('');
+        document.getElementById('admin-detail-view').style.display = 'block';
     }
 
-    // --- KALENDER-LOGIK (ORIGINAL) ---
+    async function deleteHoursAdmin(id, uid, name) { if(confirm("Eintrag wirklich löschen?")) { await sb.from('work_hours').delete().eq('id', id); showAdminMemberDetails(uid, name); loadAdmin(); } }
+
+    async function sendHours() {
+        const cat = document.getElementById('work-category').value, h = document.getElementById('hours').value, d = document.getElementById('date').value;
+        if(!cat || !h || !d) return alert("Fehlende Daten!");
+        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: d, duration: h, description: cat + ": " + document.getElementById('description').value, status: 'pending' }]);
+        document.getElementById('hours').value = ""; document.getElementById('description').value = ""; alert("Meldung gesendet!"); loadHistory();
+    }
+
     async function loadAllEvents() {
-        const { data } = await sb.from('tournaments').select('*').order('date');
-        if (data) {
-            allEvents = data;
-            renderCalendar();
-        }
+        const { data: tourneys } = await sb.from('tournaments').select('*').order('date', {ascending: true});
+        const { data: clubEvents } = await sb.from('club_events').select('*').order('date', {ascending: true});
+        const formattedClubEvents = (clubEvents || []).map(e => ({ ...e, team: 'Verein', isClubEvent: true, opponent: e.title }));
+        allEvents = [...(tourneys || []), ...formattedClubEvents];
+        renderCalendar(); 
+        renderTournamentList();
+    }
+
+    function changeMonth(delta) {
+        currentViewDate.setMonth(currentViewDate.getMonth() + delta);
+        renderCalendar();
     }
 
     function renderCalendar() {
@@ -398,9 +563,11 @@
         const evDate = document.getElementById('ev-date').value, evTime = document.getElementById('ev-time').value, evTeam = document.getElementById('ev-team-select').value;
         if (!opp || !evDate || !evTime) return alert("Bitte alle Felder ausfüllen!");
         if (document.getElementById('ev-home-check').checked && !opp.includes("(Heim)")) opp += " (Heim)";
+
         const eventData = { date: evDate, time: evTime, opponent: opp, team: evTeam };
         if (id) await sb.from('tournaments').update(eventData).eq('id', id);
         else await sb.from('tournaments').insert([eventData]);
+
         resetEventForm(); loadAllEvents();
     }
 
@@ -418,16 +585,47 @@
     function resetEventForm() { document.getElementById('edit-event-id').value=""; document.getElementById('ev-opp').value=""; document.getElementById('cancel-edit-btn').style.display='none'; }
     async function deleteEvent(id) { if(confirm("Wettkampf löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
 
-    async function changePassword() {
-        const newPass = document.getElementById('new-password').value;
-        const criteria = [newPass.length >= 8, /[a-z]/.test(newPass), /[A-Z]/.test(newPass), /[0-9]/.test(newPass), /[!@#$%^&*(),.?":{}|<>]/.test(newPass)];
-        if (!criteria[0] || criteria.slice(1).filter(Boolean).length < 3) return alert("Das Passwort ist nicht sicher genug!");
-        const { error } = await sb.auth.updateUser({ password: newPass });
-        if (error) alert(error.message);
-        else { alert("Passwort erfolgreich geändert!"); document.getElementById('new-password').value = ""; }
-    }
+    async function changePassword() 
+{
+    const newPass = document.getElementById('new-password').value;
 
-    // --- FAHRTENBUCH-LOGIK (ORIGINAL) ---
+    // --- START SICHERHEITS-CHECK ---
+    const criteria = [
+        newPass.length >= 8,                       // 1. Länge mind. 8 (Pflicht)
+        /[a-z]/.test(newPass),                    // 2. Kleinbuchstabe
+        /[A-Z]/.test(newPass),                    // 3. Großbuchstabe
+        /[0-9]/.test(newPass),                    // 4. Zahl
+        /[!@#$%^&*(),.?":{}|<>]/.test(newPass)    // 5. Sonderzeichen
+    ];
+
+    const isLongEnough = criteria[0];
+    // Zähle erfüllte Merkmale aus den restlichen 4 Kriterien
+    const metCriteriaCount = criteria.slice(1).filter(Boolean).length;
+
+    if (!isLongEnough || metCriteriaCount < 3) {
+        return alert(
+            "Das neue Passwort ist nicht sicher genug!\n\n" +
+            "Anforderungen:\n" +
+            "- Mindestens 8 Zeichen (Pflicht)\n" +
+            "- Sowie 3 der folgenden 4 Merkmale:\n" +
+            "  • Kleinbuchstaben\n" +
+            "  • Großbuchstaben\n" +
+            "  • Zahlen\n" +
+            "  • Sonderzeichen"
+        );
+    }
+    // --- ENDE SICHERHEITS-CHECK ---
+
+    const { error } = await sb.auth.updateUser({ password: newPass });
+    
+    if (error) {
+        alert(error.message);
+    } else {
+        alert("Passwort erfolgreich geändert!");
+        document.getElementById('new-password').value = ""; // Feld leeren
+    }
+}
+    // --- FAHRTENBUCH LOGIK ---
     function calcTotalKm() {
         const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
         const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
@@ -438,11 +636,13 @@
     async function loadRouteSuggestions() {
         const { data: routeData } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
         const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+
         if (routeData) {
             document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
             document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
             window.mySavedRoutes = routeData;
         }
+
         if (logData) {
             const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
             document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
@@ -488,9 +688,17 @@
         const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value, single = parseFloat(document.getElementById('ml-km-single').value);
         if(!d || !p || !start || !end || !single) return alert("Alle Felder füllen!");
         const total = calcTotalKm();
+        
         const data = { user_id: currentUser.id, date: d, purpose: p, start_location: start, end_location: end, distance_single: single, is_round_trip: document.getElementById('ml-roundtrip').checked, distance_total: total };
-        if(id) await sb.from('mileage_logs').update(data).eq('id', id);
-        else await sb.from('mileage_logs').insert([data]);
+
+        if(id) {
+            await sb.from('mileage_logs').update(data).eq('id', id);
+            alert("Fahrt aktualisiert!");
+        } else {
+            await sb.from('mileage_logs').insert([data]);
+            alert("Fahrt gespeichert!");
+        }
+        
         await sb.from('saved_routes').upsert({ user_id: currentUser.id, start_point: start, end_point: end, distance_single: single }, { onConflict: 'user_id,start_point,end_point' });
         resetMileageForm(); loadMileageHistory(); loadRouteSuggestions();
     }
@@ -517,12 +725,39 @@
         const doc = new jsPDF();
         const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
         const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
-        if (!logs || logs.length === 0) return alert("Keine Fahrten gefunden!");
+        if (!logs || logs.length === 0) return alert("Keine Fahrten zum Exportieren gefunden!");
+
         doc.setFontSize(18);
         doc.setTextColor(46, 125, 50);
         doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
-        const tableRows = logs.map(l => [new Date(l.date).toLocaleDateString('de-DE'), l.purpose, `${l.start_location} > ${l.end_location}`, l.is_round_trip ? 'Ja' : 'Nein', `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`]);
-        doc.autoTable({ head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']], body: tableRows, startY: 45, theme: 'grid' });
+        doc.setFontSize(11);
+        doc.setTextColor(80);
+        doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
+        doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
+
+        const tableRows = logs.map(l => [
+            new Date(l.date).toLocaleDateString('de-DE'),
+            l.purpose,
+            `${l.start_location} > ${l.end_location}`,
+            l.is_round_trip ? 'Ja' : 'Nein',
+            `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
+        ]);
+
+        const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
+        tableRows.push([
+            { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+            { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+        ]);
+
+        doc.autoTable({
+            head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
+            body: tableRows,
+            startY: 45,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
+            styles: { fontSize: 9 },
+            columnStyles: { 4: { halign: 'right' } }
+        });
         doc.save(`Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
     }
 
@@ -531,25 +766,79 @@
         const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+
         doc.setFontSize(22);
         doc.setTextColor(46, 125, 50);
+        doc.setFont("helvetica", "bold");
         doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-        doc.save(`Hubertus_Report.pdf`);
-    }
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        const dateString = new Date().toLocaleDateString('de-DE');
+        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
 
-    // --- SYSTEM ---
-    function doGet(e) {
-        var output = HtmlService.createHtmlOutputFromFile('Index');
-        return output.setTitle('Hubertus Stunden Pro')
-            .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no')
-            .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        doc.setDrawColor(46, 125, 50);
+        doc.setLineWidth(0.5);
+        doc.line(14, 35, 196, 35);
+
+        const tableRows = [];
+        profs.forEach(p => {
+            const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
+            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+            tableRows.push([
+                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
+                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
+            ]);
+            if (memberHours.length > 0) {
+                let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
+                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
+            } else {
+                tableRows.push([{ content: "   Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+            }
+        });
+
+        doc.autoTable({
+            startY: 40,
+            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
+            styles: { font: "helvetica", overflow: 'linebreak' },
+            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
+        });
+        doc.save(`Hubertus_Report_${dateString}.pdf`);
     }
+ function doGet(e) {
+  var output = HtmlService.createHtmlOutputFromFile('Index'); // Name deiner HTML-Datei
+  
+  return output
+    .setTitle('Hubertus Stunden Pro')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no')
+    .addMetaTag('mobile-web-app-capable', 'yes')
+    .addMetaTag('apple-mobile-web-app-capable', 'yes')
+    .addMetaTag('apple-mobile-web-app-status-bar-style', 'black-translucent')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
 
     function checkPasswordStrength(password) {
-        if (password.length < 8) return false;
-        const criteria = [/[a-z]/.test(password), /[A-Z]/.test(password), /[0-9]/.test(password), /[!@#$%^&*(),.?":{}|<>]/.test(password)];
-        return criteria.filter(Boolean).length >= 3;
-    }
+    // 1. Mindestlänge 8 Zeichen
+    if (password.length < 8) return false;
+
+    // 2. Die vier Kriterien definieren
+    const criteria = [
+        /[a-z]/.test(password), // Kleinbuchstaben
+        /[A-Z]/.test(password), // Großbuchstaben
+        /[0-9]/.test(password), // Zahlen
+        /[!@#$%^&*(),.?":{}|<>]/.test(password) // Sonderzeichen
+    ];
+
+    // 3. Zählen, wie viele Kriterien erfüllt sind
+    const metCriteria = criteria.filter(Boolean).length;
+
+    // 4. Mindestens 3 von 4 müssen wahr sein
+    return metCriteria >= 3;
+}
 </script>
 </body>
 </html>
