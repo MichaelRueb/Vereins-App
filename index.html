@@ -240,10 +240,10 @@
 </div>
 
 <script>
-    // --- INITIALISIERUNG (Teil 1 Start) ---
+    // --- INITIALISIERUNG & DEINE REFERENZEN ---
     const S_URL = "DEINE_SUPABASE_URL"; 
     const S_KEY = "DEIN_SUPABASE_ANON_KEY"; 
-    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com"; // Deine Admin-Referenz bleibt drin
+    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com"; 
     const supabase = supabase.createClient(S_URL, S_KEY);
     const sb = supabase; 
 
@@ -258,7 +258,6 @@
     supabase.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             const user = session.user;
-            
             // Check 1: Bist du es (über die E-Mail)? Dann immer rein.
             // Check 2: Ist der User über die Metadaten freigeschaltet?
             const isApproved = user.user_metadata && user.user_metadata.is_approved === true;
@@ -329,8 +328,7 @@
         await sb.auth.signOut();
     }
 
-    // --- AB HIER DEIN ORIGINALER CODE (TEIL 1 & 2) UNVERÄNDERT ---
-
+    // --- KALENDER-LOGIK (ORIGINAL) ---
     async function loadAllEvents() {
         const { data } = await sb.from('tournaments').select('*').order('date');
         if (data) {
@@ -423,16 +421,13 @@
     async function changePassword() {
         const newPass = document.getElementById('new-password').value;
         const criteria = [newPass.length >= 8, /[a-z]/.test(newPass), /[A-Z]/.test(newPass), /[0-9]/.test(newPass), /[!@#$%^&*(),.?":{}|<>]/.test(newPass)];
-        const isLongEnough = criteria[0];
-        const metCriteriaCount = criteria.slice(1).filter(Boolean).length;
-        if (!isLongEnough || metCriteriaCount < 3) {
-            return alert("Das neue Passwort ist nicht sicher genug!");
-        }
+        if (!criteria[0] || criteria.slice(1).filter(Boolean).length < 3) return alert("Das Passwort ist nicht sicher genug!");
         const { error } = await sb.auth.updateUser({ password: newPass });
         if (error) alert(error.message);
         else { alert("Passwort erfolgreich geändert!"); document.getElementById('new-password').value = ""; }
     }
 
+    // --- FAHRTENBUCH-LOGIK (ORIGINAL) ---
     function calcTotalKm() {
         const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
         const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
@@ -522,7 +517,7 @@
         const doc = new jsPDF();
         const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
         const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
-        if (!logs || logs.length === 0) return alert("Keine Fahrten zum Exportieren gefunden!");
+        if (!logs || logs.length === 0) return alert("Keine Fahrten gefunden!");
         doc.setFontSize(18);
         doc.setTextColor(46, 125, 50);
         doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
@@ -539,10 +534,10 @@
         doc.setFontSize(22);
         doc.setTextColor(46, 125, 50);
         doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-        // ... (Dein restlicher PDF Code)
         doc.save(`Hubertus_Report.pdf`);
     }
 
+    // --- SYSTEM ---
     function doGet(e) {
         var output = HtmlService.createHtmlOutputFromFile('Index');
         return output.setTitle('Hubertus Stunden Pro')
