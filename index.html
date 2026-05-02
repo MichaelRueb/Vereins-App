@@ -31,6 +31,31 @@
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; position: relative; overflow: hidden; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
+        /* Richtet Checkbox und Text sauber in einer Zeile aus */
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* Verhindert, dass die Checkbox schrumpft oder wegspringt */
+.checkbox-wrapper input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+/* Speziell für die Admin-Tabelle */
+.admin-role-unit {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
     </style>
 </head>
 <body>
