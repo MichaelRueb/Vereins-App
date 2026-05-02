@@ -247,6 +247,32 @@
         doc.save(`Hubertus_Report_${dateString}.pdf`);
     }
 
+async function viewUserDetail(uid, name) {
+    // Holt alle genehmigten Stunden für das spezifische Mitglied
+    const { data, error } = await sb.from('work_hours')
+        .select('*')
+        .eq('user_id', uid)
+        .order('date', { ascending: false });
+
+    if (error) {
+        alert("Fehler beim Laden der Details: " + error.message);
+        return;
+    }
+
+    let txt = `Detaillierte Übersicht für ${name}:\n\n`;
+    
+    if (data.length === 0) {
+        txt += "Keine Einträge vorhanden.";
+    } else {
+        data.forEach(h => {
+            const statusIcon = h.status === 'approved' ? '✅' : '⏳';
+            txt += `${h.date} | ${h.duration}h | ${h.description} (${statusIcon})\n`;
+        });
+    }
+    
+    alert(txt);
+}
+    
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').order('date', {ascending: false});
