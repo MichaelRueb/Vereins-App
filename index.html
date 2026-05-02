@@ -15,38 +15,25 @@
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 1100px; box-sizing: border-box; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-        
-        /* Tabs */
         .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
         .tab { flex: 1; padding: 12px 5px; text-align: center; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .tab.active { background: var(--primary); color: white; }
-        
-        /* Tabellen & Progress */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px 10px; border-bottom: 1px solid #eee; text-align: left; }
-        .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; position: relative; overflow: hidden; margin: 10px 0; }
-        .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s; }
-        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
-
-        /* Checkboxen Design */
-        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; margin: 4px 0; cursor: pointer; font-size: 14px; }
-        .checkbox-wrapper input[type="checkbox"] { width: 18px; height: 18px; margin: 0; flex-shrink: 0; cursor: pointer; }
-        .admin-role-unit { display: flex; flex-direction: column; gap: 4px; }
-
-        /* Kalender Design */
-        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #e0e0e0; border: 1px solid #ddd; border-radius: 12px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
-        .calendar-day { background: white; min-height: 85px; padding: 5px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: background 0.2s; }
-        .calendar-day:hover { background: #f1f8e9; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+        .calendar-day { background: white; min-height: 80px; padding: 5px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: background 0.2s; }
+        .calendar-day:hover { background: #f0f4f1; }
         .calendar-day.today { background: #fff9c4; font-weight: bold; }
-        .calendar-day small { margin-bottom: 5px; color: #666; font-size: 0.8em; }
         .event-dot-container { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; width: 100%; }
         .event-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
         .team-lg { background-color: #2e7d32 !important; } 
         .team-lp { background-color: #1565c0 !important; } 
         .team-verein { background-color: #FFD700 !important; }
-        .calendar-legend { display: flex; justify-content: center; gap: 15px; margin: 15px 0; font-size: 0.85em; flex-wrap: wrap; }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; position: relative; overflow: hidden; margin: 10px 0; }
+        .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s; }
+        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
+        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; margin: 4px 0; cursor: pointer; font-size: 14px; }
+        .checkbox-wrapper input[type="checkbox"] { width: 18px; height: 18px; margin: 0; flex-shrink: 0; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -74,7 +61,7 @@
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
 
-        <!-- STUNDEN -->
+        <!-- HOME -->
         <div id="view-home">
             <h3>Deine Stunden</h3>
             <div class="progress-container">
@@ -97,62 +84,33 @@
             </table>
         </div>
 
-        <!-- KALENDER -->
+        <!-- EVENTS -->
         <div id="view-events" style="display:none;">
-            <h3>Wettkampfkalender</h3>
-            <div class="calendar-header">
-                <button onclick="changeMonth(-1)" style="width:50px;">&lt;</button>
-                <h3 id="current-month-display" style="margin:0;"></h3>
-                <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
+                <h3 id="current-month-display"></h3>
+                <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
             </div>
-            
             <div id="calendar-container" class="calendar-grid"></div>
             
-            <div class="calendar-legend">
-                <div class="legend-item"><div class="event-dot team-lg"></div> Luftgewehr</div>
-                <div class="legend-item"><div class="event-dot team-lp"></div> Luftpistole</div>
-                <div class="legend-item"><div class="event-dot team-verein"></div> Verein</div>
-            </div>
-
-            <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px; border-left:5px solid #1976d2;">
-                <h4 id="selection-date-label" style="margin:0 0 10px 0;">Termine</h4>
+            <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
+                <h4 id="selection-date-label">Termine</h4>
                 <div id="selection-content"></div>
             </div>
 
-            <div style="margin-top:30px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3>Termin-Übersicht</h3>
-                    <select id="event-view-filter" onchange="renderTournamentList()" style="width:auto;"></select>
-                </div>
-                <table>
-                    <thead><tr><th>Datum</th><th>Wettkampf</th><th id="admin-action-head">Aktion</th></tr></thead>
-                    <tbody id="tournament-list-body"></tbody>
-                </table>
-            </div>
-
-            <!-- Captain Form -->
-            <div id="captain-form" style="display:none; background:#fff8e1; padding:20px; border-radius:12px; margin-top:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                <h4 id="form-event-title" style="color:#e65100; margin-top:0;">Wettkampf eintragen</h4>
-                <input type="hidden" id="edit-event-id">
-                <select id="ev-team-select"></select>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="date" id="ev-date">
-                    <input type="time" id="ev-time">
-                </div>
-                <input type="text" id="ev-opp" placeholder="Gegner">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" id="ev-home-check"> <label for="ev-home-check">Heimspiel</label>
-                </div>
-                <button onclick="saveEvent()" style="background:#ef6c00;">Speichern</button>
-                <button onclick="resetEventForm()" style="background:#757575;">Abbrechen</button>
-            </div>
+            <h4 style="margin-top:25px;">Terminliste</h4>
+            <select id="event-view-filter" onchange="renderTournamentList()"></select>
+            <table>
+                <thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th id="admin-action-head">Aktion</th></tr></thead>
+                <tbody id="tournament-list-body"></tbody>
+            </table>
         </div>
 
-        <!-- PROFIL -->
+        <!-- PROFILE -->
         <div id="view-profile" style="display:none;">
             <h3>Dein Profil</h3>
             <input type="text" id="prof-name" placeholder="Name">
-            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding:10px; border:1px solid #ddd; border-radius:8px; margin-bottom:10px;"></div>
+            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding:10px; border:1px solid #ddd; border-radius:8px;"></div>
             <button onclick="updateProfile()">Speichern</button>
             <hr>
             <h4>Passwort ändern</h4>
@@ -165,7 +123,6 @@
         <!-- ADMIN -->
         <div id="view-admin" style="display:none;">
             <button id="admin-pdf-btn" onclick="exportToPDF()" style="display:none; background:#0277bd; margin-bottom:20px;">📄 SV Hubertus Report (PDF)</button>
-            <div id="admin-pending-section"></div>
             <h4>⏳ Offene Stunden-Anträge</h4>
             <table><tbody id="admin-pending-body-real"></tbody></table>
             <h4>👥 Mitglieder-Verwaltung</h4>
@@ -184,20 +141,9 @@
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
 
-    let currentUser, userTeam = "", isAdmin = false, isOfficial = false, isCaptain = false, allEvents = [], currentViewDate = new Date(), isRegisterMode = false;
+    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
 
-    // Passwort-Stärke Check
-    function checkPasswordStrength(password) {
-        if (password.length < 8) return false;
-        const criteria = [
-            /[a-z]/.test(password),
-            /[A-Z]/.test(password),
-            /[0-9]/.test(password),
-            /[!@#$%^&*(),.?":{}|<>]/.test(password)
-        ];
-        return criteria.filter(Boolean).length >= 3;
-    }
-
+    // --- Auth & Start ---
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
         if (session) setupApp(session.user);
@@ -206,204 +152,151 @@
 
     async function setupApp(user) {
         currentUser = user;
-        isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        isAdmin = user.email === ADMIN_EMAIL;
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (p) {
+            userTeam = p.team || "";
+            isCaptain = p.is_captain || false;
+            isOfficial = p.is_official || false;
+            document.getElementById('prof-name').value = p.full_name || "";
+            if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
+        }
+        renderTeamCheckboxes(userTeam);
+        document.getElementById('loading-ui').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        loadHistory();
+        loadAllEvents();
+    }
+
+    // --- Kalender & Events ---
+    async function loadAllEvents() {
+        const { data: t } = await sb.from('tournaments').select('*');
+        const { data: c } = await sb.from('club_events').select('*');
+        const clubMapped = (c || []).map(e => ({ ...e, team: 'Verein', opponent: e.title }));
+        allEvents = [...(t || []), ...clubMapped];
         
-        if (!isAdmin && (!p || p.is_approved === false)) {
-            document.getElementById('loading-ui').innerHTML = `<h3>Warten auf Freigabe</h3><p>Bitte Admin kontaktieren.</p><button onclick="sb.auth.signOut().then(()=>location.reload())">Zurück</button>`;
+        renderEventFilter();
+        renderCalendar();
+        renderTournamentList();
+    }
+
+    function renderEventFilter() {
+        const filterSelect = document.getElementById('event-view-filter');
+        if (!filterSelect) return;
+        const activeTeams = ALL_TEAMS.filter(t => t !== "Passiv / Sonstige");
+
+        let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
+        options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
+        options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
+        options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
+        options += `<option disabled>──────────</option>`;
+        options += activeTeams.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
+        
+        filterSelect.innerHTML = options;
+        filterSelect.value = "my_relevant"; 
+    }
+
+    function renderTournamentList() {
+        const filterSelect = document.getElementById('event-view-filter');
+        const filter = filterSelect ? filterSelect.value : "my_relevant";
+        const listBody = document.getElementById('tournament-list-body');
+        const myTeams = userTeam ? userTeam.split(', ').map(t => t.trim()) : [];
+
+        if (!allEvents || allEvents.length === 0) {
+            listBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Keine Termine vorhanden.</td></tr>';
             return;
         }
 
-        if (p) {
-            userTeam = p.team || "";
-            isOfficial = p.is_official || false;
-            isCaptain = p.is_captain || false;
-            document.getElementById('prof-name').value = p.full_name || "";
-            if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
-            if (isAdmin || isOfficial) document.getElementById('admin-pdf-btn').style.display = 'block';
-        }
-        
-        renderTeamCheckboxes(userTeam);
-        renderEventFilter();
-        document.getElementById('loading-ui').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        loadHistory(); loadAllEvents();
+        const filteredEvents = allEvents.filter(e => {
+            const teamName = e.team ? e.team.trim() : "";
+            const isClubEvent = teamName.toLowerCase() === 'verein';
+            if (filter === 'all_teams') return true; 
+            if (filter === 'my_relevant') return isClubEvent || myTeams.includes(teamName);
+            if (filter === 'Verein') return isClubEvent;
+            if (filter === 'only_sports') return !isClubEvent;
+            return teamName === filter;
+        });
+
+        const sortedEvents = filteredEvents.sort((a, b) => {
+            const isAClub = (a.team || "").toLowerCase() === 'verein';
+            const isBClub = (b.team || "").toLowerCase() === 'verein';
+            if (isAClub !== isBClub) return isAClub ? 1 : -1;
+            return new Date(a.date) - new Date(b.date);
+        });
+
+        renderHtmlRows(sortedEvents, listBody, myTeams);
     }
 
-    async function handleAuth() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
-        const name = document.getElementById('auth-name').value;
-        if (isRegisterMode) {
-            if(!name) return alert("Name fehlt!");
-            if(!checkPasswordStrength(pass)) return alert("Passwort zu schwach! (min. 8 Zeichen, 3 von 4 Kriterien)");
-            const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-            if (error) alert(error.message); else alert("Registriert! Warte auf Admin-Freigabe.");
-        } else {
-            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-            if (error) alert(error.message); else location.reload();
-        }
-    }
-
-    async function exportToPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-        doc.setFontSize(22);
-        doc.setTextColor(46, 125, 50);
-        doc.setFont("helvetica", "bold");
-        doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100);
-        const dateString = new Date().toLocaleDateString('de-DE');
-        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
-
-        doc.setDrawColor(46, 125, 50);
-        doc.setLineWidth(0.5);
-        doc.line(14, 35, 196, 35);
-
-        const tableRows = [];
-        profs.forEach(p => {
-            const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
-            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-            tableRows.push([
-                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
-                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
-                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
-            ]);
-            if (memberHours.length > 0) {
-                let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
-                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
-            } else {
-                tableRows.push([{ content: "    Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+    function renderHtmlRows(events, container, myTeams) {
+        let html = "";
+        let compHeader = false, clubHeader = false;
+        events.forEach(e => {
+            const isClub = (e.team || "").toLowerCase() === 'verein';
+            if (!isClub && !compHeader) {
+                html += `<tr style="background:#f1f8e9;"><td colspan="5" style="text-align:center; font-weight:bold; color:#1b5e20; padding:12px;">🎯 WETTKAMPFTERMINE</td></tr>`;
+                compHeader = true;
             }
-        });
-
-        doc.autoTable({
-            startY: 40,
-            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
-            body: tableRows,
-            theme: 'grid',
-            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
-            styles: { font: "helvetica", overflow: 'linebreak' },
-            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
-        });
-        doc.save(`Hubertus_Report_${dateString}.pdf`);
-    }
-
-async function viewUserDetail(uid, name) {
-    const detailRow = document.getElementById(`details-${uid}`);
-    const detailContent = document.getElementById(`content-${uid}`);
-
-    // Wenn es schon offen ist -> Schließen (Toggle)
-    if (detailRow.style.display === 'table-row') {
-        detailRow.style.display = 'none';
-        return;
-    }
-
-    // Lade-Anzeige im Explorer-Stil
-    detailContent.innerHTML = "<i>Lade Details...</i>";
-    detailRow.style.display = 'table-row';
-
-    const { data, error } = await sb.from('work_hours')
-        .select('*')
-        .eq('user_id', uid)
-        .order('date', { ascending: false });
-
-    if (error) {
-        detailContent.innerHTML = "<span style='color:red;'>Fehler beim Laden.</span>";
-        return;
-    }
-
-    if (data.length === 0) {
-        detailContent.innerHTML = "Keine Einträge vorhanden.";
-    } else {
-        // Tabellarische Auflistung im "Explorer"
-        let html = `<table style="width:100%; background:#f9f9f9; font-size:0.85em; border:1px solid #eee;">
-            <tr style="background:#eee;"><th>Datum</th><th>Tätigkeit</th><th>h</th><th>Status</th></tr>`;
-        
-        data.forEach(h => {
-            const icon = h.status === 'approved' ? '✅' : '⏳';
+            if (isClub && !clubHeader) {
+                html += `<tr style="background:#e3f2fd;"><td colspan="5" style="text-align:center; font-weight:bold; color:#1565c0; padding:12px;">📅 VEREINSTERMINE</td></tr>`;
+                clubHeader = true;
+            }
+            const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
             html += `<tr>
-                <td>${h.date}</td>
-                <td>${h.description}</td>
-                <td>${h.duration}</td>
-                <td>${icon}</td>
+                <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+                <td>${e.time ? e.time.substring(0,5) : '--:--'}</td>
+                <td><div style="display:flex; align-items:center; gap:5px;"><div class="event-dot ${getTeamClass(e.team)}"></div> ${e.team}</div></td>
+                <td>${e.opponent || '-'}</td>
+                <td style="text-align:right;">${canEdit ? `<button onclick="editEvent('${e.id}')" style="width:auto; padding:4px 8px; background:#ef6c00;">✏️</button>` : (isClub ? '🔒' : '-')}</td>
             </tr>`;
         });
-        html += `</table>`;
-        detailContent.innerHTML = html;
+        container.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
     }
-}
+
+    // --- Hilfsfunktionen ---
+    function getTeamClass(t) { if(!t) return ''; t=t.toLowerCase(); if(t.includes('verein')) return 'team-verein'; if(t.includes('gewehr')) return 'team-lg'; if(t.includes('pistole')) return 'team-lp'; return ''; }
+    function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
     
-  async function loadAdmin() {
-    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours } = await sb.from('work_hours').select('*').order('date', {ascending: false});
-
-    // 1. NEUE ANFRAGEN
-    const pendingM = profs.filter(p => !p.is_approved && p.id !== currentUser.id);
-    let mHtml = (isAdmin || isOfficial) && pendingM.length ? "<h4>🆕 Neue Anfragen</h4>" : "";
-    if (isAdmin || isOfficial) {
-        pendingM.forEach(m => {
-            mHtml += `<div style="display:flex; justify-content:space-between; background:#fff3e0; padding:10px; margin-bottom:5px;">
-                <span>${m.full_name}</span><button onclick="approveMember('${m.id}')" style="width:auto;">Freigeben</button></div>`;
-        });
+    function renderCalendar() {
+        const container = document.getElementById('calendar-container'); container.innerHTML = '';
+        const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
+        document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
+        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => container.innerHTML += `<div style="background:#f8f9fa; text-align:center; padding:8px; font-size:0.75em; font-weight:bold; border-bottom:1px solid #ddd;">${d}</div>`);
+        const start = (new Date(y, m, 1).getDay() + 6) % 7;
+        const days = new Date(y, m + 1, 0).getDate();
+        for(let i=0; i<start; i++) container.innerHTML += `<div></div>`;
+        for(let d=1; d<=days; d++) {
+            const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dayEvents = allEvents.filter(e => e.date === ds);
+            const dayEl = document.createElement('div');
+            dayEl.className = `calendar-day ${new Date().toISOString().split('T')[0] === ds ? 'today' : ''}`;
+            dayEl.innerHTML = `<small>${d}</small><div class="event-dot-container">${dayEvents.map(e => `<div class="event-dot ${getTeamClass(e.team)}"></div>`).join('')}</div>`;
+            dayEl.onclick = () => {
+                document.getElementById('selection-content').innerHTML = dayEvents.length ? dayEvents.map(e => `<div><strong>${e.time?.substring(0,5)} - ${e.team}</strong>: ${e.opponent}</div>`).join('') : 'Keine Termine';
+                document.getElementById('calendar-selection-details').style.display='block';
+                document.getElementById('selection-date-label').innerText = `Termine am ${d}.${m+1}.${y}`;
+            };
+            container.appendChild(dayEl);
+        }
     }
-    document.getElementById('admin-pending-section').innerHTML = mHtml;
 
-    // 2. STUNDEN-FREIGABE
-    const pendingH = hours?.filter(h => h.status === 'pending') || [];
-    document.getElementById('admin-pending-body-real').innerHTML = pendingH.map(h => {
-        const u = profs.find(p => p.id === h.user_id);
-        return `<tr><td>${u?.full_name}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')" style="width:auto;">OK</button></td></tr>`;
-    }).join('');
+    function renderTeamCheckboxes(sel) {
+        const arr = sel ? sel.split(', ') : [];
+        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `
+            <label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>
+        `).join('');
+    }
 
-    // 3. MITGLIEDERLISTE (JETZT MIT FIXIERTEN CHECKBOXEN)
-    document.getElementById('admin-member-table-list').innerHTML = profs.filter(p => p.is_approved).map(p => {
-        const sum = hours?.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) || 0;
-        const canEdit = isAdmin || isOfficial;
-        
-        return `
-            <!-- Hauptzeile -->
-            <tr style="border-top: 2px solid #eee;">
-                <td onclick="viewUserDetail('${p.id}', '${p.full_name}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">
-                    ▶ ${p.full_name}
-                </td>
-                <td>${sum} h</td>
-                <td>
-                    <!-- Hier greift das neue CSS -->
-                    <div class="admin-role-unit">
-                        <label class="checkbox-wrapper">
-                            <input type="checkbox" ${p.is_captain?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_captain',this.checked)">
-                            <span>Kapt.</span>
-                        </label>
-                        <label class="checkbox-wrapper">
-                            <input type="checkbox" ${p.is_official?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_official',this.checked)">
-                            <span>Funkt.</span>
-                        </label>
-                    </div>
-                </td>
-            </tr>
-            <!-- Versteckte Detailzeile (Explorer) -->
-            <tr id="details-${p.id}" style="display:none; background:#f0f0f0;">
-                <td colspan="3" id="content-${p.id}" style="padding:10px 20px;"></td>
-            </tr>
-        `;
-    }).join('');
-}
+    async function updateProfile() {
+        const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', ');
+        await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams });
+        alert("Profil gespeichert!"); location.reload();
+    }
 
-    // Helper & Standard-Funktionen
-    async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
-    async function approveMember(id) { await sb.from('profiles').update({ is_approved: true }).eq('id', id); loadAdmin(); }
-    async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
-    function toggleAuthMode() { isRegisterMode = !isRegisterMode; document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Anmelden"; document.getElementById('auth-name').style.display = isRegisterMode ? "block" : "none"; document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none"; }
-    function switchTab(t) { ['home','events','profile','admin'].forEach(v => { document.getElementById('view-'+v).style.display = (v===t)?'block':'none'; document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab'; }); if(t==='admin') loadAdmin(); }
-    async function updateProfile() { const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', '); await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams }); alert("Gespeichert!"); }
-    async function updatePassword() { const p1 = document.getElementById('new-pass').value; if(!checkPasswordStrength(p1)) return alert("Passwort zu schwach!"); await sb.auth.updateUser({ password: p1 }); alert("Geändert!"); }
-    async function sendHours() { await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: document.getElementById('hours').value, description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, status: 'pending' }]); alert("Gesendet!"); loadHistory(); }
+    async function sendHours() {
+        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: document.getElementById('hours').value, description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, status: 'pending' }]);
+        alert("Stunden gesendet!"); loadHistory();
+    }
+
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {ascending:false});
         const approved = data?.filter(x=>x.status==='approved').reduce((s,x)=> s + parseFloat(x.duration), 0) || 0;
@@ -411,194 +304,13 @@ async function viewUserDetail(uid, name) {
         document.getElementById('my-progress-label').innerText = approved + " / 10 h";
         document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${x.date}</td><td>${x.description}</td><td>${x.duration}</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
     }
-
-function renderTeamCheckboxes(sel) {
-    const arr = sel ? sel.split(', ') : [];
-    const container = document.getElementById('team-checkboxes');
     
-    container.innerHTML = ALL_TEAMS.map(t => `
-        <label class="checkbox-wrapper">
-            <input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}>
-            <span>${t}</span>
-        </label>
-    `).join('');
-}
-    
-function renderEventFilter() {
-    const filterSelect = document.getElementById('event-view-filter');
-    if (!filterSelect) return;
-
-    // Filtert "Passiv / Sonstige" aus der Anzeige der Einzelfilter heraus
-    const activeTeams = ALL_TEAMS.filter(t => t !== "Passiv / Sonstige");
-
-    let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
-    options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
-    options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
-    options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
-    options += `<option disabled>──────────</option>`;
-    
-    // Nur die aktiven Sport-Teams auflisten
-    options += activeTeams.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
-    
-    filterSelect.innerHTML = options;
-    filterSelect.value = "my_relevant"; 
-}
-
-function renderTournamentList() {
-    const filter = document.getElementById('event-view-filter').value;
-    const listBody = document.getElementById('tournament-list-body');
-    const myTeams = userTeam ? userTeam.split(', ') : [];
-    
-    // 1. Filtern der Termine
-    const filteredEvents = allEvents.filter(e => {
-        if (filter === 'all_teams') return true; // Zeigt absolut alles
-        if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
-        if (filter === 'Verein') return e.team === 'Verein';
-        if (filter === 'only_sports') return e.team !== 'Verein';
-        return e.team === filter; // Einzelfilter für ein Team
-    });
-
-    // 2. Sortieren: Erst Sport (Wettkämpfe), dann Verein
-    const sortedEvents = filteredEvents.sort((a, b) => {
-        const isAClub = a.team === 'Verein';
-        const isBClub = b.team === 'Verein';
-        if (isAClub !== isBClub) return isAClub ? 1 : -1;
-        return new Date(a.date) - new Date(b.date);
-    });
-
-    let html = "";
-    let competitionHeaderSent = false;
-    let clubHeaderSent = false;
-
-    if (sortedEvents.length === 0) {
-        listBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Keine Termine für diese Auswahl gefunden</td></tr>';
-        return;
-    }
-
-    // 3. HTML generieren
-    sortedEvents.forEach(e => {
-        const isClub = e.team === 'Verein';
-
-        if (!isClub && !competitionHeaderSent) {
-            html += '<tr style="background-color: #f1f8e9;">' +
-                    '<td colspan="5" style="text-align: center; font-weight: bold; color: #1b5e20; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
-                    '🎯 WETTKAMPFTERMINE' +
-                    '</td></tr>';
-            competitionHeaderSent = true;
-        }
-
-        if (isClub && !clubHeaderSent) {
-            html += '<tr style="background-color: #e3f2fd;">' +
-                    '<td colspan="5" style="text-align: center; font-weight: bold; color: #1565c0; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
-                    '📅 VEREINSTERMINE & VERANSTALTUNGEN' +
-                    '</td></tr>';
-            clubHeaderSent = true;
-        }
-
-        const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
-        const dateStr = new Date(e.date).toLocaleDateString('de-DE');
-        const timeStr = e.time ? e.time.substring(0, 5) : '--:--';
-        const teamCls = getTeamClass(e.team);
-
-        let actionCell = isClub ? '<span title="Vereinstermine sind schreibgeschützt">🔒</span>' : '-';
-        if (canEdit) {
-            actionCell = `<button onclick="editEvent('${e.id}')" style="width:auto; padding:4px 8px; margin-right:4px; background:#ef6c00; border:none; border-radius:4px; color:white;">✏️</button>` +
-                         `<button onclick="deleteEvent('${e.id}')" style="width:auto; padding:4px 8px; background:#c62828; border:none; border-radius:4px; color:white;">🗑️</button>`;
-        }
-        
-        html += `<tr>
-                <td><b>${dateStr}</b></td>
-                <td>${timeStr}</td>
-                <td><div style="display:flex; align-items:center; gap:5px;"><div class="event-dot ${teamCls}"></div> ${e.team}</div></td>
-                <td>${e.opponent || '-'}</td>
-                <td style="text-align:right;">${actionCell}</td>
-                </tr>`;
-    });
-
-    listBody.innerHTML = html;
-}
-    
-    async function loadAllEvents() {
-        const { data: t } = await sb.from('tournaments').select('*');
-        const { data: c } = await sb.from('club_events').select('*');
-        allEvents = [...(t||[]), ...(c||[]).map(e=>({...e, team:'Verein', opponent: e.title}))];
-        renderCalendar(); renderTournamentList();
-    }
-   function renderTournamentList() {
-    const f = document.getElementById('event-view-filter').value;
-    const canEdit = isAdmin || isCaptain || isOfficial;
-    
-    // Header-Zelle für Aktionen ein/ausblenden
-    document.getElementById('admin-action-head').style.display = canEdit ? 'table-cell' : 'none';
-
-    const filtered = allEvents.filter(e => f === 'all' || e.team === f);
-    
-    document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `
-        <tr>
-            <td>${e.date}<br><small>${e.time?.substring(0,5)} Uhr</small></td>
-            <td>
-                <span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block; width:8px; height:8px; border-radius:50%;"></span>
-                <strong>${e.team}</strong><br>
-                ${e.home ? '🏠' : '🚗'} ${e.opponent}
-            </td>
-            ${canEdit ? `
-                <td>
-                    <div style="display:flex; gap:5px;">
-                        <button onclick="editEvent('${e.id}')" style="padding:5px; background:#fb8c00; font-size:12px;">✎</button>
-                        <button onclick="deleteEvent('${e.id}')" style="padding:5px; background:#e53935; font-size:12px;">🗑</button>
-                    </div>
-                </td>` : ''}
-        </tr>
-    `).join('');
-}
-    function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
-    function getTeamClass(t) { if(!t) return ''; t=t.toLowerCase(); if(t.includes('verein')) return 'team-verein'; if(t.includes('gewehr')) return 'team-lg'; if(t.includes('pistole')) return 'team-lp'; return ''; }
-
-    function renderCalendar() {
-    const container = document.getElementById('calendar-container'); 
-    container.innerHTML = '';
-    const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
-    
-    document.getElementById('current-month-display').innerText = 
-        new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
-    
-    ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => 
-        container.innerHTML += `<div style="background:#f8f9fa; text-align:center; padding:8px; font-size:0.75em; font-weight:bold; color:#555; border-bottom:1px solid #ddd;">${d}</div>`
-    );
-    
-    const start = (new Date(y, m, 1).getDay() + 6) % 7;
-    const days = new Date(y, m + 1, 0).getDate();
-    
-    for(let i=0; i<start; i++) container.innerHTML += `<div style="background:#fdfdfd;"></div>`;
-    
-    for(let d=1; d<=days; d++) {
-        const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const dayEvents = allEvents.filter(e => e.date === ds);
-        
-        let dotsHtml = '<div class="event-dot-container">';
-        dayEvents.forEach(e => { 
-            dotsHtml += `<div class="event-dot ${getTeamClass(e.team)}" title="${e.team}"></div>`; 
+    function switchTab(t) {
+        ['home','events','profile','admin'].forEach(v => {
+            document.getElementById('view-'+v).style.display = (v===t)?'block':'none';
+            document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab';
         });
-        dotsHtml += '</div>';
-        
-        const dayEl = document.createElement('div');
-        dayEl.className = `calendar-day ${new Date().toISOString().split('T')[0] === ds ? 'today' : ''}`;
-        dayEl.innerHTML = `<small>${d}</small>${dotsHtml}`;
-        
-        dayEl.onclick = () => {
-            document.getElementById('selection-content').innerHTML = dayEvents.length 
-                ? dayEvents.map(e => `
-                    <div style="margin-bottom:8px; padding-left:10px; border-left:4px solid ${e.team.includes('Gewehr')?'#2e7d32':e.team.includes('Pistole')?'#1565c0':'#FFD700'}">
-                        <strong>${e.time ? e.time.substring(0,5) : ''} Uhr - ${e.team}</strong><br>${e.opponent}
-                    </div>`).join('') 
-                : 'Keine Termine an diesem Tag';
-            document.getElementById('calendar-selection-details').style.display='block';
-            document.getElementById('selection-date-label').innerText = `Termine am ${d}.${m+1}.${y}`;
-        };
-        container.appendChild(dayEl);
     }
-}
-    
 </script>
 </body>
 </html>
