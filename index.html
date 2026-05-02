@@ -582,6 +582,63 @@ async function editEvent(id, table) {
         await loadAllEvents(); // Liste und Kalender aktualisieren
     }
 }
+    function editEvent(id, table) {
+    const ev = allEvents.find(x => x.id === id);
+    if (!ev) return;
+
+    // Scroll zum Formular
+    document.getElementById('captain-event-form').scrollIntoView({ behavior: 'smooth' });
+
+    // Felder füllen
+    document.getElementById('edit-event-id').value = id;
+    document.getElementById('event-date').value = ev.date;
+    document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
+    document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
+    document.getElementById('event-team-select').value = ev.team;
+
+    // UI anpassen
+    document.getElementById('event-form-title').innerText = "Wettkampf bearbeiten";
+    document.getElementById('btn-save-event').innerText = "Änderungen speichern";
+    document.getElementById('btn-cancel-event').style.display = "block";
+}
+    async function saveNewEvent() {
+    const id = document.getElementById('edit-event-id').value;
+    const date = document.getElementById('event-date').value;
+    const time = document.getElementById('event-time').value;
+    const team = document.getElementById('event-team-select').value;
+    const opponent = document.getElementById('event-opponent').value;
+
+    if (!date || !opponent || !team) return alert("Bitte alle Felder ausfüllen!");
+
+    const payload = { date, time, team, opponent };
+    
+    let res;
+    if (id) {
+        // Bestehenden Termin aktualisieren
+        res = await sb.from('tournaments').update(payload).eq('id', id);
+    } else {
+        // Neuen Termin anlegen
+        res = await sb.from('tournaments').insert([payload]);
+    }
+
+    if (res.error) {
+        alert("Fehler: " + res.error.message);
+    } else {
+        alert(id ? "Termin aktualisiert!" : "Termin gespeichert!");
+        resetEventForm();
+        loadAllEvents();
+    }
+}
+
+function resetEventForm() {
+    document.getElementById('edit-event-id').value = "";
+    document.getElementById('event-date').value = "";
+    document.getElementById('event-time').value = "";
+    document.getElementById('event-opponent').value = "";
+    document.getElementById('event-form-title').innerText = "Neuen Wettkampf anlegen";
+    document.getElementById('btn-save-event').innerText = "Termin speichern";
+    document.getElementById('btn-cancel-event').style.display = "none";
+}
 </script>
     
 </body>
