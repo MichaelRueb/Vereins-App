@@ -90,6 +90,16 @@
             <h4 style="margin-top:25px;">Terminliste</h4>
             <select id="event-view-filter" onchange="renderTournamentList()"></select>
             <table><thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead><tbody id="tournament-list-body"></tbody></table>
+            
+            <!-- NEU: Wettkampf-Formular im Kalender-Tab -->
+            <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-top:30px;">
+                <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
+                <input type="date" id="event-date">
+                <input type="time" id="event-time">
+                <select id="event-team-select"></select>
+                <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
+                <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
+            </div>
         </div>
 
         <div id="view-profile" style="display:none;">
@@ -107,16 +117,6 @@
 
         <div id="view-admin" style="display:none;">
             <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px; display:none;">📄 Stunden Report (PDF)</button>
-            
-            <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
-                <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
-                <input type="date" id="event-date">
-                <input type="time" id="event-time">
-                <select id="event-team-select"></select>
-                <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
-                <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
-            </div>
-
             <h4>⏳ Offene Stunden-Anträge</h4>
             <table><tbody id="admin-pending-body-real"></tbody></table>
             <h4>👥 Mitglieder-Verwaltung</h4>
@@ -151,13 +151,17 @@
         if (p) {
             userTeam = p.team || ""; isCaptain = p.is_captain || false; isOfficial = p.is_official || false;
             document.getElementById('prof-name').value = p.full_name || "";
+            
+            // Admin Tab Logik
             if (isAdmin || isOfficial || isCaptain) {
                 document.getElementById('tab-admin').style.display = 'block';
                 if (isAdmin) document.getElementById('admin-pdf-btn').style.display = 'block';
-                if (isAdmin || isCaptain) {
-                    document.getElementById('captain-event-form').style.display = 'block';
-                    fillTeamSelect();
-                }
+            }
+
+            // NEU: Formular im Kalender-Tab für Kapitäne und Funktionäre
+            if (isAdmin || isCaptain || isOfficial) {
+                document.getElementById('captain-event-form').style.display = 'block';
+                fillTeamSelect();
             }
         }
         renderTeamCheckboxes(userTeam);
@@ -169,7 +173,10 @@
     function fillTeamSelect() {
         const sel = document.getElementById('event-team-select');
         const myTeams = userTeam ? userTeam.split(', ').map(t => t.trim()) : [];
-        const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
+        
+        // Admin und Funktionäre dürfen alle Teams wählen, Kapitäne nur ihre eigenen
+        const allowedTeams = (isAdmin || isOfficial) ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
+        
         sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     }
 
