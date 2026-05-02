@@ -607,7 +607,6 @@ function checkFavRoute() {
         const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
         document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
     }
-}
     // Speichert die neue Route automatisch als Favorit/Vorschlag ab
 await sb.from('saved_routes').upsert({ 
     user_id: currentUser.id, 
