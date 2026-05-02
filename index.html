@@ -271,29 +271,58 @@
     filterSelect.value = "my_relevant"; // Standard-Vorauswahl
 }
 
-   function renderTournamentList() {
+  function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
-    const myTeams = userTeam ? userTeam.split(', ').map(t => t.trim()) : [];
+    // WICHTIG: Erstellt ein sauberes Array deiner Teams aus dem Profil
+    const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
 
+    // 1. Alle Events filtern
     const filtered = allEvents.filter(e => {
         if (filter === 'all_teams') return true;
-        if (filter === 'my_relevant') return (e.team === 'Verein' || myTeams.includes(e.team));
         if (filter === 'Verein') return e.team === 'Verein';
         if (filter === 'only_sports') return e.team !== 'Verein';
-        return e.team === filter; // Einzelne Mannschaft
+        if (filter === 'my_relevant') {
+            return e.team === 'Verein' || myTeams.includes(e.team);
+        }
+        return e.team === filter;
     }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `
-        <tr>
-            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-            <td>${e.time?.substring(0, 5) || ''}</td>
-            <td>${e.team}</td>
-            <td>${e.opponent}</td>
-            <td>-</td>
-        </tr>
-    `).join('');
+    // 2. In zwei Gruppen aufteilen
+    const sportsEvents = filtered.filter(e => e.team !== 'Verein');
+    const clubEvents = filtered.filter(e => e.team === 'Verein');
+
+    let html = '';
+
+    // Sektion: Wettkämpfe
+    if (sportsEvents.length > 0) {
+        html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>🎯 Wettkampftermine</b></td></tr>`;
+        sportsEvents.forEach(e => html += renderEventRow(e));
+    }
+
+    // Sektion: Verein
+    if (clubEvents.length > 0) {
+        html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>📅 Vereinstermine</b></td></tr>`;
+        clubEvents.forEach(e => html += renderEventRow(e));
+    }
+
+    if (filtered.length === 0) {
+        html = '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+    }
+
+    document.getElementById('tournament-list-body').innerHTML = html;
 }
 
+function renderEventRow(e) {
+    return `
+        <tr>
+            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+            <td>${e.time?.substring(0, 5) || '--:--'}</td>
+            <td>${e.team}</td>
+            <td>${e.opponent || '-'}</td>
+            <td>-</td>
+        </tr>`;
+}
+    
     function renderCalendar() {
         const container = document.getElementById('calendar-container'); container.innerHTML = '';
         const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
