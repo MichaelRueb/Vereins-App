@@ -15,33 +15,38 @@
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 1100px; box-sizing: border-box; }
         input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        
+        /* Tabs */
         .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
         .tab { flex: 1; padding: 12px 5px; text-align: center; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .tab.active { background: var(--primary); color: white; }
+        
+        /* Tabellen & Progress */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px 10px; border-bottom: 1px solid #eee; text-align: left; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border-radius: 8px; overflow: hidden; }
-        .calendar-day { background: white; min-height: 60px; padding: 5px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-        .calendar-day.today { background: #fff9c4; }
-        .calendar-holiday { background-color: #fff3f3 !important; color: #d9534f !important; font-weight: bold; }
-        .event-dot { width: 8px; height: 8px; border-radius: 50%; margin: 2px auto; }
-        .team-lg { background-color: #2e7d32 !important; } 
-        .team-lp { background-color: #1565c0 !important; } 
-        .team-verein { background-color: #FFD700 !important; }
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; position: relative; overflow: hidden; margin: 10px 0; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
-        .checkbox-wrapper {display: flex;align-items: center;gap: 8px;margin: 4px 0;cursor: pointer;font-size: 14px;}
-        .checkbox-wrapper input[type="checkbox"] {width: 18px;height: 18px;margin: 0;flex-shrink: 0;cursor: pointer;}
-        .admin-role-unit {display: flex;flex-direction: column;gap: 4px;}
-        .calendar-grid {border: 1px solid #ddd;background: #eee;border-radius: 12px;box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);}
-        .calendar-day {min-height: 80px; /* Etwas höher für bessere Lesbarkeit */font-weight: 500;transition: background 0.2s;border: 0.5px solid #fafafa;}
-        .calendar-day:hover {background: #f0f4f1;}
-        .calendar-day small {margin-bottom: 5px;color: #666;}
-        .event-dot-container {display: flex;flex-wrap: wrap;gap: 3px;justify-content: center;width: 100%;}
-        .event-dot {width: 10px;height: 10px;border-radius: 50%;border: 1px solid rgba(0,0,0,0.1);}
-        .calendar-legend {display: flex;justify-content: center;gap: 15px;margin-top: 15px;font-size: 0.85em;flex-wrap: wrap;}
-        .legend-item {display: flex;align-items: center;gap: 5px;}
+
+        /* Checkboxen Design */
+        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; margin: 4px 0; cursor: pointer; font-size: 14px; }
+        .checkbox-wrapper input[type="checkbox"] { width: 18px; height: 18px; margin: 0; flex-shrink: 0; cursor: pointer; }
+        .admin-role-unit { display: flex; flex-direction: column; gap: 4px; }
+
+        /* Kalender Design */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #e0e0e0; border: 1px solid #ddd; border-radius: 12px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .calendar-day { background: white; min-height: 85px; padding: 5px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: background 0.2s; }
+        .calendar-day:hover { background: #f1f8e9; }
+        .calendar-day.today { background: #fff9c4; font-weight: bold; }
+        .calendar-day small { margin-bottom: 5px; color: #666; font-size: 0.8em; }
+        .event-dot-container { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; width: 100%; }
+        .event-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+        .team-lg { background-color: #2e7d32 !important; } 
+        .team-lp { background-color: #1565c0 !important; } 
+        .team-verein { background-color: #FFD700 !important; }
+        .calendar-legend { display: flex; justify-content: center; gap: 15px; margin: 15px 0; font-size: 0.85em; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
     </style>
 </head>
 <body>
@@ -69,7 +74,7 @@
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
 
-        <!-- HOME -->
+        <!-- STUNDEN -->
         <div id="view-home">
             <h3>Deine Stunden</h3>
             <div class="progress-container">
@@ -92,36 +97,62 @@
             </table>
         </div>
 
-        <!-- EVENTS -->
+        <!-- KALENDER -->
         <div id="view-events" style="display:none;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
-                <h3 id="current-month-display"></h3>
-                <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
+            <h3>Wettkampfkalender</h3>
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)" style="width:50px;">&lt;</button>
+                <h3 id="current-month-display" style="margin:0;"></h3>
+                <button onclick="changeMonth(1)" style="width:50px;">&gt;</button>
             </div>
+            
             <div id="calendar-container" class="calendar-grid"></div>
+            
             <div class="calendar-legend">
-    <div class="legend-item"><div class="event-dot team-lg"></div> Luftgewehr</div>
-    <div class="legend-item"><div class="event-dot team-lp"></div> Luftpistole</div>
-    <div class="legend-item"><div class="event-dot team-verein"></div> Verein/Sonstiges</div>
-</div>
-            <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
-                <h4 id="selection-date-label">Termine</h4>
+                <div class="legend-item"><div class="event-dot team-lg"></div> Luftgewehr</div>
+                <div class="legend-item"><div class="event-dot team-lp"></div> Luftpistole</div>
+                <div class="legend-item"><div class="event-dot team-verein"></div> Verein</div>
+            </div>
+
+            <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px; border-left:5px solid #1976d2;">
+                <h4 id="selection-date-label" style="margin:0 0 10px 0;">Termine</h4>
                 <div id="selection-content"></div>
             </div>
-            <h4>Terminliste</h4>
-            <select id="event-view-filter" onchange="TournamentList()"></select>
-            <table>
-                <thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th></tr></thead>
-                <tbody id="tournament-list-body"></tbody>
-            </table>
+
+            <div style="margin-top:30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Termin-Übersicht</h3>
+                    <select id="event-view-filter" onchange="renderTournamentList()" style="width:auto;"></select>
+                </div>
+                <table>
+                    <thead><tr><th>Datum</th><th>Wettkampf</th><th id="admin-action-head">Aktion</th></tr></thead>
+                    <tbody id="tournament-list-body"></tbody>
+                </table>
+            </div>
+
+            <!-- Captain Form -->
+            <div id="captain-form" style="display:none; background:#fff8e1; padding:20px; border-radius:12px; margin-top:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <h4 id="form-event-title" style="color:#e65100; margin-top:0;">Wettkampf eintragen</h4>
+                <input type="hidden" id="edit-event-id">
+                <select id="ev-team-select"></select>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="ev-date">
+                    <input type="time" id="ev-time">
+                </div>
+                <input type="text" id="ev-opp" placeholder="Gegner">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="ev-home-check"> <label for="ev-home-check">Heimspiel</label>
+                </div>
+                <button onclick="saveEvent()" style="background:#ef6c00;">Speichern</button>
+                <button onclick="resetEventForm()" style="background:#757575;">Abbrechen</button>
+            </div>
         </div>
 
-        <!-- PROFILE -->
+        <!-- PROFIL -->
         <div id="view-profile" style="display:none;">
             <h3>Dein Profil</h3>
             <input type="text" id="prof-name" placeholder="Name">
-            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding:10px; border:1px solid #ddd;"></div>
+            <div id="team-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding:10px; border:1px solid #ddd; border-radius:8px; margin-bottom:10px;"></div>
             <button onclick="updateProfile()">Speichern</button>
             <hr>
             <h4>Passwort ändern</h4>
@@ -400,11 +431,33 @@ function renderTeamCheckboxes(sel) {
         allEvents = [...(t||[]), ...(c||[]).map(e=>({...e, team:'Verein', opponent: e.title}))];
         renderCalendar(); renderTournamentList();
     }
-    function renderTournamentList() {
-        const f = document.getElementById('event-view-filter').value;
-        const filtered = allEvents.filter(e => f === 'all' || e.team === f);
-        document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `<tr><td>${e.date}</td><td>${e.time?.substring(0,5)}</td><td>${e.team}</td><td>${e.opponent}</td></tr>`).join('');
-    }
+   function renderTournamentList() {
+    const f = document.getElementById('event-view-filter').value;
+    const canEdit = isAdmin || isCaptain || isOfficial;
+    
+    // Header-Zelle für Aktionen ein/ausblenden
+    document.getElementById('admin-action-head').style.display = canEdit ? 'table-cell' : 'none';
+
+    const filtered = allEvents.filter(e => f === 'all' || e.team === f);
+    
+    document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `
+        <tr>
+            <td>${e.date}<br><small>${e.time?.substring(0,5)} Uhr</small></td>
+            <td>
+                <span class="event-dot ${getTeamClass(e.team)}" style="display:inline-block; width:8px; height:8px; border-radius:50%;"></span>
+                <strong>${e.team}</strong><br>
+                ${e.home ? '🏠' : '🚗'} ${e.opponent}
+            </td>
+            ${canEdit ? `
+                <td>
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="editEvent('${e.id}')" style="padding:5px; background:#fb8c00; font-size:12px;">✎</button>
+                        <button onclick="deleteEvent('${e.id}')" style="padding:5px; background:#e53935; font-size:12px;">🗑</button>
+                    </div>
+                </td>` : ''}
+        </tr>
+    `).join('');
+}
     function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
     function getTeamClass(t) { if(!t) return ''; t=t.toLowerCase(); if(t.includes('verein')) return 'team-verein'; if(t.includes('gewehr')) return 'team-lg'; if(t.includes('pistole')) return 'team-lp'; return ''; }
 
