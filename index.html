@@ -37,8 +37,6 @@
 
         .admin-role-group { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
         .admin-role-group label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; white-space: nowrap; }
-        .admin-role-group input[type="checkbox"] { width: 18px; height: 18px; margin: 0; cursor: pointer; }
-        
         .checkbox-wrapper { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 14px; }
         .checkbox-wrapper input[type="checkbox"] { width: 18px; height: 18px; margin: 0; }
     </style>
@@ -108,17 +106,17 @@
         </div>
 
         <div id="view-admin" style="display:none;">
-            <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px;">📄 Stunden Report (PDF)</button>
+            <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:#0277bd; margin-bottom:20px; display:none;">📄 Stunden Report (PDF)</button>
+            
             <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
-        <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
-        <input type="date" id="event-date">
-        <input type="time" id="event-time">
-        <select id="event-team-select">
-            <!-- Wird dynamisch gefüllt -->
-        </select>
-        <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
-        <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
-    </div>
+                <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
+                <input type="date" id="event-date">
+                <input type="time" id="event-time">
+                <select id="event-team-select"></select>
+                <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
+                <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
+            </div>
+
             <h4>⏳ Offene Stunden-Anträge</h4>
             <table><tbody id="admin-pending-body-real"></tbody></table>
             <h4>👥 Mitglieder-Verwaltung</h4>
@@ -138,80 +136,52 @@
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
-        if (session) (session.user);
+        if (session) setupApp(session.user);
         else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
     };
 
+    async function handleAuth() {
+        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
+        if(error) alert(error.message); else location.reload();
+    }
+
     async function setupApp(user) {
-    currentUser = user; 
-    isAdmin = user.email === ADMIN_EMAIL;
-    
-    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-    
-    if (p) {
-        userTeam = p.team || ""; 
-        isCaptain = p.is_captain || false; 
-        isOfficial = p.is_official || false;
-        
-        document.getElementById('prof-name').value = p.full_name || "";
-        
-        // Tab-Sichtbarkeit
-        if (isAdmin || isOfficial || isCaptain) {
-            document.getElementById('tab-admin').style.display = 'block';
-            
-            // PDF Button nur für Admin
-            if (isAdmin) document.getElementById('admin-pdf-btn').style.display = 'block';
-            
-            // Wettkampf-Formular für Kapitäne & Admin
-            if (isAdmin || isCaptain) {
-                document.getElementById('captain-event-form').style.display = 'block';
-                fillTeamSelect();
+        currentUser = user; isAdmin = user.email === ADMIN_EMAIL;
+        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (p) {
+            userTeam = p.team || ""; isCaptain = p.is_captain || false; isOfficial = p.is_official || false;
+            document.getElementById('prof-name').value = p.full_name || "";
+            if (isAdmin || isOfficial || isCaptain) {
+                document.getElementById('tab-admin').style.display = 'block';
+                if (isAdmin) document.getElementById('admin-pdf-btn').style.display = 'block';
+                if (isAdmin || isCaptain) {
+                    document.getElementById('captain-event-form').style.display = 'block';
+                    fillTeamSelect();
+                }
             }
         }
+        renderTeamCheckboxes(userTeam);
+        document.getElementById('loading-ui').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        loadHistory(); loadAllEvents();
     }
-    
-    renderTeamCheckboxes(userTeam);
-    document.getElementById('loading-ui').style.display = 'none';
-    document.getElementById('main-app').style.display = 'block';
-    loadHistory(); 
-    loadAllEvents();
-}
 
     function fillTeamSelect() {
-    const sel = document.getElementById('event-team-select');
-    const myTeams = userTeam ? userTeam.split(', ') : [];
-    
-    // Admin darf alles, Kapitän nur seine Teams
-    const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
-    
-    sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
-}
-
-// Speicher-Funktion für neue Events
-async function saveNewEvent() {
-    const date = document.getElementById('event-date').value;
-    const time = document.getElementById('event-time').value;
-    const team = document.getElementById('event-team-select').value;
-    const opponent = document.getElementById('event-opponent').value;
-
-    if(!date || !opponent) return alert("Bitte Datum und Gegner angeben!");
-
-    const { error } = await sb.from('tournaments').insert([{
-        date: date,
-        time: time,
-        team: team,
-        opponent: opponent,
-        created_by: currentUser.id
-    }]);
-
-    if(error) {
-        alert("Fehler beim Speichern!");
-    } else {
-        alert("Wettkampf erfolgreich gespeichert!");
-        document.getElementById('event-opponent').value = '';
-        loadAllEvents(); // Kalender und Liste aktualisieren
+        const sel = document.getElementById('event-team-select');
+        const myTeams = userTeam ? userTeam.split(', ').map(t => t.trim()) : [];
+        const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
+        sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     }
-}
+
+    async function saveNewEvent() {
+        const date = document.getElementById('event-date').value;
+        const time = document.getElementById('event-time').value;
+        const team = document.getElementById('event-team-select').value;
+        const opponent = document.getElementById('event-opponent').value;
+        if (!date || !opponent || !team) return alert("Bitte Datum, Team und Gegner angeben!");
+        const { error } = await sb.from('tournaments').insert([{ date, time, team, opponent }]);
+        if (error) alert("Fehler: " + error.message); else { alert("Wettkampf gespeichert!"); document.getElementById('event-opponent').value = ''; loadAllEvents(); }
+    }
 
     async function updatePassword() {
         const p1 = document.getElementById('new-pass').value;
@@ -225,62 +195,24 @@ async function saveNewEvent() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date');
 
-        doc.setFontSize(22);
-        doc.setTextColor(46, 125, 50);
-        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22); doc.setTextColor(46, 125, 50);
         doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100);
-        const dateString = new Date().toLocaleDateString('de-DE');
-        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
-
-        doc.setDrawColor(46, 125, 50);
-        doc.setLineWidth(0.5);
-        doc.line(14, 35, 196, 35);
-
+        
         const tableRows = [];
         profs.forEach(p => {
             const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
             const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-            tableRows.push([
-                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
-                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
-                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
-            ]);
+            tableRows.push([{ content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } }, p.team || '-', { content: `${total} h`, styles: { halign: 'right' } }]);
             if (memberHours.length > 0) {
                 let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
-                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
-            } else {
-                tableRows.push([{ content: "   Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80 } }]);
             }
         });
-
-        doc.autoTable({
-            startY: 40,
-            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
-            body: tableRows,
-            theme: 'grid',
-            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
-            styles: { font: "helvetica", overflow: 'linebreak' },
-            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
-        });
-        doc.save(`Hubertus_Report_${dateString}.pdf`);
+        doc.autoTable({ startY: 40, head: [['Mitglied', 'Mannschaft', 'Summe']], body: tableRows, theme: 'grid' });
+        doc.save("Hubertus_Report.pdf");
     }
- function doGet(e) {
-  var output = HtmlService.createHtmlOutputFromFile('Index'); // Name deiner HTML-Datei
-  
-  return output
-    .setTitle('Hubertus Stunden Pro')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no')
-    .addMetaTag('mobile-web-app-capable', 'yes')
-    .addMetaTag('apple-mobile-web-app-capable', 'yes')
-    .addMetaTag('apple-mobile-web-app-status-bar-style', 'black-translucent')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
 
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
@@ -293,7 +225,7 @@ async function saveNewEvent() {
 
         document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
             const sum = hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
-            return `<tr><td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">${p.full_name}</td><td>${sum}h</td><td><div class="admin-role-group"><label><input type="checkbox" ${p.is_captain?'checked':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapitän</label><label><input type="checkbox" ${p.is_official?'checked':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funktionär</label></div></td></tr><tr id="details-${p.id}" style="display:none; background:#f9f9f9;"><td colspan="3" id="content-${p.id}" style="font-size:0.9em; padding:15px;"></td></tr>`;
+            return `<tr><td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer;">${p.full_name}</td><td>${sum}h</td><td><div class="admin-role-group"><label><input type="checkbox" ${p.is_captain?'checked':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label><label><input type="checkbox" ${p.is_official?'checked':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funk.</label></div></td></tr><tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}"></td></tr>`;
         }).join('');
     }
 
@@ -301,44 +233,55 @@ async function saveNewEvent() {
         const el = document.getElementById(`details-${uid}`);
         if(el.style.display === 'table-row') { el.style.display = 'none'; return; }
         const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', {descending:true});
-        document.getElementById(`content-${uid}`).innerHTML = "<strong>Verlauf:</strong><br>" + (data.map(h => `${h.date} - ${h.duration}h - ${h.description} (${h.status === 'approved' ? '✅' : '⏳'})`).join('<br>') || 'Keine Einträge');
+        document.getElementById(`content-${uid}`).innerHTML = data.map(h => `${h.date} - ${h.duration}h - ${h.description}`).join('<br>') || 'Keine Einträge';
         el.style.display = 'table-row';
     }
 
     async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
     async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
+    
     async function loadAllEvents() {
         const { data: t } = await sb.from('tournaments').select('*');
         const { data: c } = await sb.from('club_events').select('*');
         allEvents = [...(t || []), ...(c || []).map(e => ({ ...e, team: 'Verein', opponent: e.title }))];
         renderEventFilter(); renderCalendar(); renderTournamentList();
     }
-    function renderEventFilter() { const f = document.getElementById('event-view-filter'); const active = ALL_TEAMS.filter(t => t !== "Passiv / Sonstige"); f.innerHTML = `<option value="my_relevant">⭐ Meine & Verein</option><option value="all_teams">🌐 Alle</option><option value="Verein">📅 Nur Verein</option>` + active.map(t => `<option value="${t}">${t}</option>`).join(''); f.value = "my_relevant"; }
+
+    function renderEventFilter() { 
+        const f = document.getElementById('event-view-filter'); 
+        f.innerHTML = `<option value="my_relevant">⭐ Meine & Verein</option><option value="all_teams">🌐 Alle</option>` + ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('');
+        f.value = "my_relevant"; 
+    }
+
     function renderTournamentList() {
         const filter = document.getElementById('event-view-filter').value;
-        const listBody = document.getElementById('tournament-list-body');
         const myTeams = userTeam ? userTeam.split(', ').map(t => t.trim()) : [];
-        const filtered = allEvents.filter(e => {
-            if (filter === 'all_teams') return true;
-            if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
-            return e.team === filter;
-        }).sort((a,b) => new Date(a.date) - new Date(b.date));
-        listBody.innerHTML = filtered.map(e => `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0,5)}</td><td>${e.team}</td><td>${e.opponent}</td><td>-</td></tr>`).join('');
+        const filtered = allEvents.filter(e => filter === 'all_teams' || (filter === 'my_relevant' ? (e.team === 'Verein' || myTeams.includes(e.team)) : e.team === filter)).sort((a,b) => new Date(a.date) - new Date(b.date));
+        document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0,5) || ''}</td><td>${e.team}</td><td>${e.opponent}</td><td>-</td></tr>`).join('');
     }
+
     function renderCalendar() {
         const container = document.getElementById('calendar-container'); container.innerHTML = '';
         const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
         document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
         ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => container.innerHTML += `<div style="background:#eee; text-align:center; padding:5px; font-size:0.8em;">${d}</div>`);
-        const start = (new Date(y, m, 1).getDay() + 6) % 7; const days = new Date(y, m + 1, 0).getDate();
+        const start = (new Date(y, m, 1).getDay() + 6) % 7;
         for(let i=0; i<start; i++) container.innerHTML += `<div></div>`;
-        for(let d=1; d<=days; d++) {
+        for(let d=1; d<=new Date(y, m + 1, 0).getDate(); d++) {
             const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const dayEvents = allEvents.filter(e => e.date === ds);
             container.innerHTML += `<div class="calendar-day ${new Date().toISOString().split('T')[0] === ds ? 'today' : ''}" onclick="showDay('${ds}')"><small>${d}</small><div class="event-dot-container">${dayEvents.map(e => `<div class="event-dot ${getTeamClass(e.team)}"></div>`).join('')}</div></div>`;
         }
     }
-    function showDay(ds) { const evs = allEvents.filter(e => e.date === ds); if(!evs.length) return; document.getElementById('selection-content').innerHTML = evs.map(e => `<strong>${e.team}</strong>: ${e.opponent}`).join('<br>'); document.getElementById('selection-date-label').innerText = "Termine am " + new Date(ds).toLocaleDateString('de-DE'); document.getElementById('calendar-selection-details').style.display = 'block'; }
+
+    function showDay(ds) { 
+        const evs = allEvents.filter(e => e.date === ds); 
+        if(!evs.length) return; 
+        document.getElementById('selection-content').innerHTML = evs.map(e => `<strong>${e.team}</strong>: ${e.opponent}`).join('<br>');
+        document.getElementById('selection-date-label').innerText = "Termine am " + new Date(ds).toLocaleDateString('de-DE');
+        document.getElementById('calendar-selection-details').style.display = 'block'; 
+    }
+
     function switchTab(t) { ['home','events','profile','admin'].forEach(v => { document.getElementById('view-'+v).style.display = (v===t)?'block':'none'; document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab'; }); if(t==='admin') loadAdmin(); }
     function getTeamClass(t) { if(t==='Verein') return 'team-verein'; if(t?.includes('gewehr')) return 'team-lg'; if(t?.includes('pistole')) return 'team-lp'; return ''; }
     function renderTeamCheckboxes(sel) { const arr = sel ? sel.split(', ') : []; document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>`).join(''); }
