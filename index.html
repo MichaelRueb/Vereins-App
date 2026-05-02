@@ -145,30 +145,42 @@
         if(error) alert(error.message); else location.reload();
     }
 
-    async function setupApp(user) {
-        currentUser = user; isAdmin = user.email === ADMIN_EMAIL;
-        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        if (p) {
-            userTeam = p.team || ""; isCaptain = p.is_captain || false; isOfficial = p.is_official || false;
-            document.getElementById('prof-name').value = p.full_name || "";
+   async function setupApp(user) {
+    currentUser = user; 
+    isAdmin = user.email === ADMIN_EMAIL;
+    
+    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    
+    if (p) {
+        // WICHTIG: Hier werden die Daten aus der DB in die globalen Variablen geladen
+        userTeam = p.team || ""; 
+        isCaptain = p.is_captain || false; 
+        isOfficial = p.is_official || false;
+        
+        console.log("Eingeloggter Nutzer Teams:", userTeam); // Zum Debuggen in der F12 Konsole
+        
+        document.getElementById('prof-name').value = p.full_name || "";
+        
+        // Admin & Kapitän Logik
+        if (isAdmin || isOfficial || isCaptain) {
+            document.getElementById('tab-admin').style.display = 'block';
+            if (isAdmin) document.getElementById('admin-pdf-btn').style.display = 'block';
             
-            // Admin Tab Logik
-            if (isAdmin || isOfficial || isCaptain) {
-                document.getElementById('tab-admin').style.display = 'block';
-                if (isAdmin) document.getElementById('admin-pdf-btn').style.display = 'block';
-            }
-
-            // NEU: Formular im Kalender-Tab für Kapitäne und Funktionäre
-            if (isAdmin || isCaptain || isOfficial) {
-                document.getElementById('captain-event-form').style.display = 'block';
-                fillTeamSelect();
-            }
+            // Das Formular unten im Kalender einblenden
+            document.getElementById('captain-event-form').style.display = 'block';
+            fillTeamSelect();
         }
-        renderTeamCheckboxes(userTeam);
-        document.getElementById('loading-ui').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        loadHistory(); loadAllEvents();
     }
+
+    // UI vorbereiten
+    renderTeamCheckboxes(userTeam);
+    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    
+    // WICHTIG: Diese beiden müssen HIER stehen, damit userTeam bekannt ist!
+    loadHistory(); 
+    loadAllEvents(); 
+}
 
     function fillTeamSelect() {
         const sel = document.getElementById('event-team-select');
