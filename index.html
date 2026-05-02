@@ -264,39 +264,49 @@
         filterSelect.value = "my_relevant";
     }
 
-    function renderTournamentList() {
-        const filter = document.getElementById('event-view-filter').value;
-        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()).filter(t => t !== "") : [];
+   function renderTournamentList() {
+    const filter = document.getElementById('event-view-filter').value;
+    
+    // Wir holen deine Teams aus der globalen Variable 'userTeam'
+    // Wir erstellen ein Array und säubern jedes Element (Trim)
+    const myTeams = userTeam ? userTeam.split(',').map(t => t.trim().toLowerCase()) : [];
 
-        const filtered = allEvents.filter(e => {
-            const eventTeam = e.team ? e.team.trim() : "";
-            if (filter === 'all_teams') return true;
-            if (filter === 'Verein') return eventTeam === 'Verein';
-            if (filter === 'only_sports') return eventTeam !== 'Verein';
-            if (filter === 'my_relevant') {
-                return eventTeam === 'Verein' || myTeams.includes(eventTeam);
-            }
-            return eventTeam === filter;
-        }).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-        const sportsEvents = filtered.filter(e => e.team !== 'Verein');
-        const clubEvents = filtered.filter(e => e.team === 'Verein');
-
-        let html = '';
-        if (sportsEvents.length > 0) {
-            html += `<tr style="background:#f8f9fa; border-left:4px solid #2e7d32;"><td colspan="5" style="padding:12px;"><b>🎯 Wettkampftermine</b></td></tr>`;
-            sportsEvents.forEach(e => {
-                html += `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0, 5) || '--:--'}</td><td style="color:#1565c0; font-weight:bold;">${e.team}</td><td>${e.opponent || '-'}</td><td>-</td></tr>`;
-            });
+    const filtered = allEvents.filter(e => {
+        const eventTeam = e.team ? e.team.trim() : "";
+        const eventTeamLower = eventTeam.toLowerCase();
+        
+        if (filter === 'all_teams') return true;
+        if (filter === 'Verein') return eventTeam === 'Verein';
+        if (filter === 'only_sports') return eventTeam !== 'Verein';
+        
+        if (filter === 'my_relevant') {
+            // Zeige es an, wenn es 'Verein' ist ODER wenn das Team des Events in deiner Liste steht
+            const isMyTeam = myTeams.includes(eventTeamLower);
+            return eventTeam === 'Verein' || isMyTeam;
         }
-        if (clubEvents.length > 0) {
-            html += `<tr style="background:#f8f9fa; border-left:4px solid #ef6c00;"><td colspan="5" style="padding:12px;"><b>📅 Vereinstermine</b></td></tr>`;
-            clubEvents.forEach(e => {
-                html += `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0, 5) || '--:--'}</td><td style="color:#666;">${e.team}</td><td>${e.opponent || '-'}</td><td>-</td></tr>`;
-            });
-        }
-        document.getElementById('tournament-list-body').innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">Keine Termine gefunden.</td></tr>';
+        
+        return eventTeam === filter;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Ab hier bleibt das HTML-Rendering gleich...
+    const sportsEvents = filtered.filter(e => e.team !== 'Verein');
+    const clubEvents = filtered.filter(e => e.team === 'Verein');
+
+    let html = '';
+    if (sportsEvents.length > 0) {
+        html += `<tr style="background:#f8f9fa; border-left:4px solid #2e7d32;"><td colspan="5" style="padding:12px;"><b>🎯 Wettkampftermine</b></td></tr>`;
+        sportsEvents.forEach(e => {
+            html += `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0, 5) || '--:--'}</td><td style="color:#1565c0; font-weight:bold;">${e.team}</td><td>${e.opponent || '-'}</td><td>-</td></tr>`;
+        });
     }
+    if (clubEvents.length > 0) {
+        html += `<tr style="background:#f8f9fa; border-left:4px solid #ef6c00;"><td colspan="5" style="padding:12px;"><b>📅 Vereinstermine</b></td></tr>`;
+        clubEvents.forEach(e => {
+            html += `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0, 5) || '--:--'}</td><td style="color:#666;">${e.team}</td><td>${e.opponent || '-'}</td><td>-</td></tr>`;
+        });
+    }
+    document.getElementById('tournament-list-body').innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">Keine Termine gefunden.</td></tr>';
+}
     
     function renderCalendar() {
         const container = document.getElementById('calendar-container'); container.innerHTML = '';
