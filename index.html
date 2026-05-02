@@ -215,103 +215,185 @@
 </div>
 
 <script>
-    const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
+const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
 
     let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
-    let editingEventId = null, allMileage = [];
+    let allMileage = [];
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
         if (session) setupApp(session.user);
-        else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
+        else { 
+            document.getElementById('loading-ui').style.display='none'; 
+            document.getElementById('auth-ui').style.display='block'; 
+        }
     };
 
     async function handleAuth() {
-        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
+        const { error } = await sb.auth.signInWithPassword({ 
+            email: document.getElementById('email').value, 
+            password: document.getElementById('password').value 
+        });
         if(error) alert(error.message); else location.reload();
     }
 
-async function setupApp(user) {
-    currentUser = user; 
-    isAdmin = user.email === ADMIN_EMAIL;
-    
-    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-    
-    if (p) {
-        userTeam = p.team || ""; 
-        isCaptain = p.is_captain || false; 
-        isOfficial = p.is_official || false;
+    async function setupApp(user) {
+        currentUser = user; 
+        isAdmin = user.email === ADMIN_EMAIL;
         
-        document.getElementById('prof-name').value = p.full_name || "";
+        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
         
-        // --- SICHTBARKEITSPRÜFUNG ---
-        
-        // Admin-Tab für Kapitäne, Funktionäre und Admins
-        if (isAdmin || isOfficial || isCaptain) {
-            document.getElementById('tab-admin').style.display = 'block';
+        if (p) {
+            userTeam = p.team || ""; 
+            isCaptain = p.is_captain || false; 
+            isOfficial = p.is_official || false;
+            
+            document.getElementById('prof-name').value = p.full_name || "";
+            
+            // Sichtbarkeit der Tabs
+            if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
+            if (isAdmin || isOfficial) document.getElementById('tab-mileage').style.display = 'block';
+            
+            // Wettkampf-Formular Anzeige
+            if (isAdmin || isCaptain) {
+                document.getElementById('captain-event-form').style.display = 'block';
+                fillTeamSelect();
+            }
         }
-
-        // Fahrtenbuch-Tab nur für Admins und Funktionäre (oder nach Bedarf anpassen)
-        if (isAdmin || isOfficial) {
-            document.getElementById('tab-mileage').style.display = 'block';
-        }
         
-        // Wettkampf-Formular (jetzt im Kalender-Tab)
-        if (isAdmin || isCaptain) {
-            document.getElementById('captain-event-form').style.display = 'block';
-            fillTeamSelect();
-        }
-    }
-    
-    renderTeamCheckboxes(userTeam);
-    document.getElementById('loading-ui').style.display = 'none';
-    document.getElementById('main-app').style.display = 'block';
-    loadHistory(); 
-    loadAllEvents();
-}
-
-// Füllt das Dropdown für Wettkämpfe basierend auf den Rechten
-function fillTeamSelect() {
-    const sel = document.getElementById('event-team-select');
-    const myTeams = userTeam ? userTeam.split(', ').map(t => t.trim()) : [];
-    
-    // Admin darf alle Teams wählen, Kapitän nur seine eigenen
-    const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
-    
-    sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
-}
-
-// Speichert den neuen Wettkampf in die Datenbank
-async function saveNewEvent() {
-    const date = document.getElementById('event-date').value;
-    const time = document.getElementById('event-time').value;
-    const team = document.getElementById('event-team-select').value;
-    const opponent = document.getElementById('event-opponent').value;
-
-    if (!date || !opponent || !team) {
-        return alert("Bitte Datum, Team und Gegner angeben!");
+        renderTeamCheckboxes(userTeam);
+        document.getElementById('loading-ui').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        loadHistory(); 
+        loadAllEvents();
     }
 
-    const { error } = await sb.from('tournaments').insert([{
-        date: date,
-        time: time,
-        team: team,
-        opponent: opponent
-    }]);
-
-    if (error) {
-        alert("Fehler beim Speichern: " + error.message);
-    } else {
-        alert("Wettkampf erfolgreich gespeichert!");
-        document.getElementById('event-opponent').value = '';
-        document.getElementById('event-time').value = '';
-        loadAllEvents(); // Aktualisiert Kalender und Liste sofort
+    function fillTeamSelect() {
+        const sel = document.getElementById('event-team-select');
+        if (!sel) return;
+        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+        const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
+        sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     }
-}
+
+    // --- KALENDER & WETTKAMPF LOGIK ---
+
+    async function saveNewEvent() {
+        const id = document.getElementById('edit-event-id').value;
+        const date = document.getElementById('event-date').value;
+        const time = document.getElementById('event-time').value;
+        const team = document.getElementById('event-team-select').value;
+        const opponent = document.getElementById('event-opponent').value;
+
+        if (!date || !opponent || !team) return alert("Bitte Datum, Team und Gegner angeben!");
+
+        const payload = { date, time, team, opponent };
+        let res;
+
+        if (id) {
+            res = await sb.from('tournaments').update(payload).eq('id', id);
+        } else {
+            res = await sb.from('tournaments').insert([payload]);
+        }
+
+        if (res.error) {
+            alert("Fehler: " + res.error.message);
+        } else {
+            alert(id ? "Termin aktualisiert!" : "Wettkampf erfolgreich gespeichert!");
+            resetEventForm();
+            loadAllEvents();
+        }
+    }
+
+    function editEvent(id) {
+        const ev = allEvents.find(x => x.id === id);
+        if (!ev) return;
+
+        // Zum Formular scrollen
+        document.getElementById('view-events').scrollIntoView({ behavior: 'smooth' });
+
+        document.getElementById('edit-event-id').value = id;
+        document.getElementById('event-date').value = ev.date;
+        document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
+        document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
+        document.getElementById('event-team-select').value = ev.team;
+
+        document.getElementById('event-form-title').innerText = "Wettkampf bearbeiten";
+        document.getElementById('btn-save-event').innerText = "Änderungen speichern";
+        document.getElementById('btn-cancel-event').style.display = "block";
+    }
+
+    function resetEventForm() {
+        const editId = document.getElementById('edit-event-id');
+        if (editId) editId.value = "";
+        document.getElementById('event-date').value = "";
+        document.getElementById('event-time').value = "";
+        document.getElementById('event-opponent').value = "";
+        document.getElementById('event-form-title').innerText = "Neuen Wettkampf anlegen";
+        document.getElementById('btn-save-event').innerText = "Termin speichern";
+        document.getElementById('btn-cancel-event').style.display = "none";
+    }
+
+    async function loadAllEvents() {
+        const { data: t } = await sb.from('tournaments').select('*');
+        const { data: c } = await sb.from('club_events').select('*');
+        allEvents = [...(t || []), ...(c || []).map(e => ({ ...e, team: 'Verein', opponent: e.title }))];
+        renderEventFilter(); 
+        renderCalendar(); 
+        renderTournamentList();
+    }
+
+    function renderTournamentList() {
+        const filter = document.getElementById('event-view-filter').value;
+        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+
+        const filtered = allEvents.filter(e => {
+            if (filter === 'all_teams') return true;
+            if (filter === 'Verein') return e.team === 'Verein';
+            if (filter === 'only_sports') return e.team !== 'Verein';
+            if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
+            return e.team === filter;
+        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        let html = '';
+        const sports = filtered.filter(e => e.team !== 'Verein');
+        const club = filtered.filter(e => e.team === 'Verein');
+
+        if (sports.length > 0) {
+            html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>🎯 Wettkampftermine</b></td></tr>`;
+            sports.forEach(e => html += renderEventRow(e));
+        }
+        if (club.length > 0) {
+            html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>📅 Vereinstermine</b></td></tr>`;
+            club.forEach(e => html += renderEventRow(e));
+        }
+        document.getElementById('tournament-list-body').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+    }
+
+    function renderEventRow(e) {
+        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+        const isMyTeam = myTeams.includes(e.team);
+        const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
+        
+        // Vereinstermine (club_events) haben oft andere Strukturen, daher Edit nur für tournaments via Formular
+        const editBtn = (canEdit && e.team !== 'Verein') 
+            ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}')">✏️</button>` 
+            : '-';
+        
+        return `<tr>
+            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+            <td>${e.time?.substring(0, 5) || '--:--'}</td>
+            <td>${e.team}</td>
+            <td>${e.opponent || e.title || '-'}</td>
+            <td>${editBtn}</td>
+        </tr>`;
+    }
+
+    // --- TABS & NAVIGATION ---
 
     function switchTab(t) { 
         ['home','events','profile','admin','mileage'].forEach(v => { 
@@ -325,6 +407,7 @@ async function saveNewEvent() {
     }
 
     // --- FAHRTENBUCH LOGIK ---
+
     function calcTotalKm() {
         const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
         const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
@@ -369,19 +452,38 @@ async function saveNewEvent() {
         document.getElementById('ml-cancel-btn').style.display = "none";
     }
 
-    // --- ADMIN & USER DETAILS ---
-    async function viewUserDetail(uid) {
-        const row = document.getElementById(`details-${uid}`);
-        const content = document.getElementById(`content-${uid}`);
-        if (row.style.display === 'table-row') {
-            row.style.display = 'none';
-        } else {
-            const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { descending: true });
-            let html = '<strong>Letzte Tätigkeiten:</strong><ul>';
-            html += (hours && hours.length > 0) ? hours.map(h => `<li>${h.date}: ${h.duration}h - ${h.description}</li>`).join('') : '<li>Keine Einträge</li>';
-            content.innerHTML = html + '</ul>';
-            row.style.display = 'table-row';
-        }
+    // --- STUNDEN LOGIK ---
+
+    async function sendHours() { 
+        await sb.from('work_hours').insert([{ 
+            user_id: currentUser.id, 
+            date: document.getElementById('date').value, 
+            duration: document.getElementById('hours').value, 
+            description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, 
+            status: 'pending' 
+        }]); 
+        alert("Gesendet!"); loadHistory(); 
+    }
+
+    async function loadHistory() { 
+        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {descending:true}); 
+        const approved = data?.filter(x=>x.status==='approved').reduce((s,x)=> s + parseFloat(x.duration), 0) || 0; 
+        document.getElementById('my-progress-bar').style.width = Math.min(approved*10, 100) + "%"; 
+        document.getElementById('my-progress-label').innerText = approved + " / 10 h"; 
+        document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${new Date(x.date).toLocaleDateString('de-DE')}</td><td>${x.description}</td><td>${x.duration}h</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join(''); 
+    }
+
+    // --- PROFIL & ADMIN ---
+
+    function renderTeamCheckboxes(sel) { 
+        const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
+        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>`).join(''); 
+    }
+
+    async function updateProfile() { 
+        const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', '); 
+        await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams }); 
+        userTeam = teams; alert("Gespeichert!"); fillTeamSelect();
     }
 
     async function loadAdmin() {
@@ -409,88 +511,7 @@ async function saveNewEvent() {
         }).join('');
     }
 
-    async function exportToPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-        doc.setFontSize(22);
-        doc.setTextColor(46, 125, 50);
-        doc.setFont("helvetica", "bold");
-        doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100);
-        const dateString = new Date().toLocaleDateString('de-DE');
-        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
-
-        doc.setDrawColor(46, 125, 50);
-        doc.setLineWidth(0.5);
-        doc.line(14, 35, 196, 35);
-
-        const tableRows = [];
-        profs.forEach(p => {
-            const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
-            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-            tableRows.push([
-                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
-                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
-                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
-            ]);
-            if (memberHours.length > 0) {
-                let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
-                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
-            } else {
-                tableRows.push([{ content: "    Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
-            }
-        });
-
-        doc.autoTable({
-            startY: 40,
-            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
-            body: tableRows,
-            theme: 'grid',
-            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
-            styles: { font: "helvetica", overflow: 'linebreak' },
-            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
-        });
-        doc.save(`Hubertus_Report_${dateString}.pdf`);
-    }
-
-    // --- BASIS FUNKTIONEN (STUNDEN & KALENDER) ---
-    async function sendHours() { 
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: document.getElementById('hours').value, description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, status: 'pending' }]); 
-        alert("Gesendet!"); loadHistory(); 
-    }
-
-    async function loadHistory() { 
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {descending:true}); 
-        const approved = data?.filter(x=>x.status==='approved').reduce((s,x)=> s + parseFloat(x.duration), 0) || 0; 
-        document.getElementById('my-progress-bar').style.width = Math.min(approved*10, 100) + "%"; 
-        document.getElementById('my-progress-label').innerText = approved + " / 10 h"; 
-        document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${new Date(x.date).toLocaleDateString('de-DE')}</td><td>${x.description}</td><td>${x.duration}h</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join(''); 
-    }
-
-    async function loadAllEvents() {
-        const { data: t } = await sb.from('tournaments').select('*');
-        const { data: c } = await sb.from('club_events').select('*');
-        allEvents = [...(t || []), ...(c || []).map(e => ({ ...e, team: 'Verein', opponent: e.title }))];
-        renderEventFilter(); renderCalendar(); renderTournamentList();
-    }
-
-    function renderTeamCheckboxes(sel) { 
-        const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
-        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>`).join(''); 
-    }
-
-    async function updateProfile() { 
-        const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(','); 
-        await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams }); 
-        userTeam = teams; alert("Gespeichert!"); 
-    }
-
-    // Hilfsfunktionen für Kalender etc.
+    // Hilfsfunktionen
     function getTeamClass(t) { if(t==='Verein') return 'team-verein'; if(t?.toLowerCase().includes('gewehr')) return 'team-lg'; if(t?.toLowerCase().includes('pistole')) return 'team-lp'; return ''; }
     function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
     async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
@@ -509,7 +530,7 @@ async function saveNewEvent() {
             container.innerHTML += `<div class="calendar-day ${new Date().toISOString().split('T')[0] === ds ? 'today' : ''}" onclick="showDay('${ds}')"><small>${d}</small><div class="event-dot-container">${dayEvents.map(e => `<div class="event-dot ${getTeamClass(e.team)}"></div>`).join('')}</div></div>`;
         }
     }
-    
+
     function showDay(ds) { 
         const evs = allEvents.filter(e => e.date === ds); 
         if(!evs.length) return; 
@@ -520,6 +541,7 @@ async function saveNewEvent() {
 
     function renderEventFilter() {
         const filterSelect = document.getElementById('event-view-filter');
+        if (!filterSelect) return;
         let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
         options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
         options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
@@ -527,145 +549,8 @@ async function saveNewEvent() {
         options += `<option disabled>────────────────────</option>`;
         options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
         filterSelect.innerHTML = options;
-        filterSelect.value = "my_relevant";
+        if(!filterSelect.value) filterSelect.value = "my_relevant";
     }
-
-   function renderTournamentList() {
-    const filter = document.getElementById('event-view-filter').value;
-    const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
-
-    const filtered = allEvents.filter(e => {
-        if (filter === 'all_teams') return true;
-        if (filter === 'Verein') return e.team === 'Verein';
-        if (filter === 'only_sports') return e.team !== 'Verein';
-        if (filter === 'my_relevant') {
-            return e.team === 'Verein' || myTeams.includes(e.team);
-        }
-        return e.team === filter;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    const sportsEvents = filtered.filter(e => e.team !== 'Verein');
-    const clubEvents = filtered.filter(e => e.team === 'Verein');
-
-    let html = '';
-
-    if (sportsEvents.length > 0) {
-        html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>🎯 Wettkampftermine</b></td></tr>`;
-        sportsEvents.forEach(e => html += renderEventRow(e));
-    }
-
-    if (clubEvents.length > 0) {
-        html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>📅 Vereinstermine</b></td></tr>`;
-        clubEvents.forEach(e => html += renderEventRow(e));
-    }
-
-    if (filtered.length === 0) {
-        html = '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
-    }
-
-    document.getElementById('tournament-list-body').innerHTML = html;
-}
-
-// Überarbeitete Row-Funktion mit Edit-Berechtigung
-function renderEventRow(e) {
-    const canEdit = isAdmin || isOfficial || isCaptain;
-    const editBtn = canEdit ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}', '${e.team === 'Verein' ? 'club_events' : 'tournaments'}')">✏️</button>` : '-';
-    
-    return `
-        <tr>
-            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-            <td>${e.time?.substring(0, 5) || '--:--'}</td>
-            <td>${e.team}</td>
-            <td>${e.opponent || e.title || '-'}</td>
-            <td>${editBtn}</td>
-        </tr>`;
-}
-
-// Neue Edit-Funktion für berechtigte Nutzer
-async function editEvent(id, table) {
-    const { data: ev, error } = await sb.from(table).select('*').eq('id', id).maybeSingle();
-    if (error || !ev) return alert("Fehler beim Laden des Termins.");
-
-    const currentTitle = table === 'tournaments' ? ev.opponent : ev.title;
-    const newTitle = prompt("Name/Gegner ändern:", currentTitle);
-    if (newTitle === null) return; // Abbruch
-
-    const newDate = prompt("Datum ändern (JJJJ-MM-TT):", ev.date);
-    if (newDate === null) return;
-
-    const newTime = prompt("Uhrzeit ändern (HH:MM):", ev.time?.substring(0,5) || "18:00");
-    if (newTime === null) return;
-
-    const updateData = table === 'tournaments' 
-        ? { opponent: newTitle, date: newDate, time: newTime }
-        : { title: newTitle, date: newDate, time: newTime };
-
-    const { error: upError } = await sb.from(table).update(updateData).eq('id', id);
-    
-    if (upError) {
-        alert("Fehler beim Speichern: " + upError.message);
-    } else {
-        alert("Termin erfolgreich aktualisiert!");
-        await loadAllEvents(); // Liste und Kalender aktualisieren
-    }
-}
-    function editEvent(id, table) {
-    const ev = allEvents.find(x => x.id === id);
-    if (!ev) return;
-
-    // Scroll zum Formular
-    document.getElementById('captain-event-form').scrollIntoView({ behavior: 'smooth' });
-
-    // Felder füllen
-    document.getElementById('edit-event-id').value = id;
-    document.getElementById('event-date').value = ev.date;
-    document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
-    document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
-    document.getElementById('event-team-select').value = ev.team;
-
-    // UI anpassen
-    document.getElementById('event-form-title').innerText = "Wettkampf bearbeiten";
-    document.getElementById('btn-save-event').innerText = "Änderungen speichern";
-    document.getElementById('btn-cancel-event').style.display = "block";
-}
-    async function saveNewEvent() {
-    const id = document.getElementById('edit-event-id').value;
-    const date = document.getElementById('event-date').value;
-    const time = document.getElementById('event-time').value;
-    const team = document.getElementById('event-team-select').value;
-    const opponent = document.getElementById('event-opponent').value;
-
-    if (!date || !opponent || !team) return alert("Bitte alle Felder ausfüllen!");
-
-    const payload = { date, time, team, opponent };
-    
-    let res;
-    if (id) {
-        // Bestehenden Termin aktualisieren
-        res = await sb.from('tournaments').update(payload).eq('id', id);
-    } else {
-        // Neuen Termin anlegen
-        res = await sb.from('tournaments').insert([payload]);
-    }
-
-    if (res.error) {
-        alert("Fehler: " + res.error.message);
-    } else {
-        alert(id ? "Termin aktualisiert!" : "Termin gespeichert!");
-        resetEventForm();
-        loadAllEvents();
-    }
-}
-
-function resetEventForm() {
-    document.getElementById('edit-event-id').value = "";
-    document.getElementById('event-date').value = "";
-    document.getElementById('event-time').value = "";
-    document.getElementById('event-opponent').value = "";
-    document.getElementById('event-form-title').innerText = "Neuen Wettkampf anlegen";
-    document.getElementById('btn-save-event').innerText = "Termin speichern";
-    document.getElementById('btn-cancel-event').style.display = "none";
-}
 </script>
     
 </body>
