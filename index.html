@@ -157,21 +157,50 @@
         document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
     }
 
-    async function handleAuth() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
-        const confirmPass = document.getElementById('password-confirm').value;
-        const name = document.getElementById('auth-name').value;
-        if (isRegisterMode) {
-            if(!name) return alert("Name fehlt!");
-            if(pass !== confirmPass) return alert("Passwörter ungleich!");
-            const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-            if (error) alert(error.message); else alert("Erfolgreich! Warte nun auf Admin-Freischaltung.");
-        } else {
-            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-            if (error) alert(error.message); else location.reload();
+   async function handleAuth() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+    const confirmPass = document.getElementById('password-confirm').value;
+    const name = document.getElementById('auth-name').value;
+
+    if (isRegisterMode) {
+        if(!name) return alert("Name fehlt!");
+        if(pass !== confirmPass) return alert("Passwörter stimmen nicht überein!");
+        
+        // PASSWORT-CHECK ANWENDEN
+        if (!checkPasswordStrength(pass)) {
+            alert("Passwort zu schwach!\n\nAnforderungen:\n- Mindestens 8 Zeichen\n- 3 der folgenden 4 Kriterien: Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen.");
+            return;
         }
+
+        const { error } = await sb.auth.signUp({ 
+            email, 
+            password: pass, 
+            options: { data: { full_name: name } } 
+        });
+        if (error) alert(error.message); 
+        else alert("Erfolgreich registriert! Bitte warte auf die Freigabe durch einen Admin.");
+    } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) alert(error.message); else location.reload();
     }
+}
+
+// In der Profil-Update-Funktion ebenfalls einbauen:
+async function updatePassword() {
+    const p1 = document.getElementById('new-pass').value;
+    const p2 = document.getElementById('new-pass-confirm').value;
+    if(p1 !== p2) return alert("Passwörter ungleich!");
+    
+    // PASSWORT-CHECK AUCH HIER
+    if (!checkPasswordStrength(p1)) {
+        alert("Neues Passwort ist zu schwach (8 Zeichen, 3 von 4 Kriterien nötig)!");
+        return;
+    }
+
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    if(error) alert(error.message); else alert("Passwort erfolgreich geändert!");
+}
 
     async function setupApp(user) {
         currentUser = user;
@@ -374,6 +403,25 @@
     }
     
     function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
+
+    function checkPasswordStrength(password) {
+    // 1. Mindestlänge 8 Zeichen
+    if (password.length < 8) return false;
+
+    // 2. Die vier Kriterien definieren
+    const criteria = [
+        /[a-z]/.test(password), // Kleinbuchstaben
+        /[A-Z]/.test(password), // Großbuchstaben
+        /[0-9]/.test(password), // Zahlen
+        /[!@#$%^&*(),.?":{}|<>]/.test(password) // Sonderzeichen
+    ];
+
+    // 3. Zählen, wie viele Kriterien erfüllt sind
+    const metCriteria = criteria.filter(Boolean).length;
+
+    // 4. Mindestens 3 von 4 müssen wahr sein
+    return metCriteria >= 3;
+}
 
 </script>
 </body>
