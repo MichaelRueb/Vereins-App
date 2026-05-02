@@ -318,7 +318,7 @@
         }).join('');
     }
 
-       async function exportToPDF() {
+    async function exportToPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
@@ -351,7 +351,7 @@
                 let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
                 tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
             } else {
-                tableRows.push([{ content: "   Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+                tableRows.push([{ content: "    Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
             }
         });
 
@@ -366,17 +366,6 @@
         });
         doc.save(`Hubertus_Report_${dateString}.pdf`);
     }
- function doGet(e) {
-  var output = HtmlService.createHtmlOutputFromFile('Index'); // Name deiner HTML-Datei
-  
-  return output
-    .setTitle('Hubertus Stunden Pro')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no')
-    .addMetaTag('mobile-web-app-capable', 'yes')
-    .addMetaTag('apple-mobile-web-app-capable', 'yes')
-    .addMetaTag('apple-mobile-web-app-status-bar-style', 'black-translucent')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
 
     // --- BASIS FUNKTIONEN (STUNDEN & KALENDER) ---
     async function sendHours() { 
@@ -452,10 +441,8 @@
 
    function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
-    // WICHTIG: Erstellt ein sauberes Array deiner Teams aus dem Profil
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
 
-    // 1. Alle Events filtern
     const filtered = allEvents.filter(e => {
         if (filter === 'all_teams') return true;
         if (filter === 'Verein') return e.team === 'Verein';
@@ -466,19 +453,16 @@
         return e.team === filter;
     }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // 2. In zwei Gruppen aufteilen
     const sportsEvents = filtered.filter(e => e.team !== 'Verein');
     const clubEvents = filtered.filter(e => e.team === 'Verein');
 
     let html = '';
 
-    // Sektion: Wettkämpfe
     if (sportsEvents.length > 0) {
         html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>🎯 Wettkampftermine</b></td></tr>`;
         sportsEvents.forEach(e => html += renderEventRow(e));
     }
 
-    // Sektion: Verein
     if (clubEvents.length > 0) {
         html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>📅 Vereinstermine</b></td></tr>`;
         clubEvents.forEach(e => html += renderEventRow(e));
@@ -491,27 +475,50 @@
     document.getElementById('tournament-list-body').innerHTML = html;
 }
 
-// Hilfsfunktion für die Zeilen-Erstellung
+// Überarbeitete Row-Funktion mit Edit-Berechtigung
 function renderEventRow(e) {
+    const canEdit = isAdmin || isOfficial || isCaptain;
+    const editBtn = canEdit ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}', '${e.team === 'Verein' ? 'club_events' : 'tournaments'}')">✏️</button>` : '-';
+    
     return `
         <tr>
             <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
             <td>${e.time?.substring(0, 5) || '--:--'}</td>
             <td>${e.team}</td>
-            <td>${e.opponent || '-'}</td>
-            <td>-</td>
+            <td>${e.opponent || e.title || '-'}</td>
+            <td>${editBtn}</td>
         </tr>`;
 }
-    function renderEventRow(e) {
-    return `
-        <tr>
-            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-            <td>${e.time?.substring(0, 5) || '--:--'}</td>
-            <td>${e.team}</td>
-            <td>${e.opponent || '-'}</td>
-            <td>-</td>
-        </tr>`;
+
+// Neue Edit-Funktion für berechtigte Nutzer
+async function editEvent(id, table) {
+    const { data: ev, error } = await sb.from(table).select('*').eq('id', id).maybeSingle();
+    if (error || !ev) return alert("Fehler beim Laden des Termins.");
+
+    const currentTitle = table === 'tournaments' ? ev.opponent : ev.title;
+    const newTitle = prompt("Name/Gegner ändern:", currentTitle);
+    if (newTitle === null) return; // Abbruch
+
+    const newDate = prompt("Datum ändern (JJJJ-MM-TT):", ev.date);
+    if (newDate === null) return;
+
+    const newTime = prompt("Uhrzeit ändern (HH:MM):", ev.time?.substring(0,5) || "18:00");
+    if (newTime === null) return;
+
+    const updateData = table === 'tournaments' 
+        ? { opponent: newTitle, date: newDate, time: newTime }
+        : { title: newTitle, date: newDate, time: newTime };
+
+    const { error: upError } = await sb.from(table).update(updateData).eq('id', id);
+    
+    if (upError) {
+        alert("Fehler beim Speichern: " + upError.message);
+    } else {
+        alert("Termin erfolgreich aktualisiert!");
+        await loadAllEvents(); // Liste und Kalender aktualisieren
+    }
 }
 </script>
+    
 </body>
 </html>
