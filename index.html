@@ -577,6 +577,45 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         row.style.display = 'table-row';
     }
 }
+function checkFavRoute() {
+    const start = document.getElementById('ml-start').value;
+    const end = document.getElementById('ml-end').value;
+    
+    if(window.mySavedRoutes) {
+        // Sucht in den geladenen Favoriten nach der Kombination
+        const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
+        if(found) { 
+            document.getElementById('ml-km-single').value = found.distance_single; 
+            calcTotalKm(); // Berechnet sofort die Gesamtstrecke (H+R)
+        }
+    }
+}
+    async function loadRouteSuggestions() {
+    const { data: routeData } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
+    const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+
+    if (routeData) {
+        // Füllt die Datalists im HTML für Start und Ziel
+        document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
+        document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
+        // Speichert die Routen global für checkFavRoute()
+        window.mySavedRoutes = routeData;
+    }
+
+    if (logData) {
+        // Füllt die Vorschläge für den Zweck
+        const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
+        document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
+    }
+}
+    // Speichert die neue Route automatisch als Favorit/Vorschlag ab
+await sb.from('saved_routes').upsert({ 
+    user_id: currentUser.id, 
+    start_point: start, 
+    end_point: end, 
+    distance_single: single 
+}, { onConflict: 'user_id,start_point,end_point' });
+    
 </script>
     
 </body>
