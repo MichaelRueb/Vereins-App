@@ -440,14 +440,78 @@
 
     function renderEventFilter() {
         const filterSelect = document.getElementById('event-view-filter');
-        filterSelect.innerHTML = `<option value="all">Alle Termine</option>` + ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join('');
+        let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
+        options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
+        options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
+        options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
+        options += `<option disabled>────────────────────</option>`;
+        options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
+        filterSelect.innerHTML = options;
+        filterSelect.value = "my_relevant";
     }
 
-    function renderTournamentList() {
-        const filter = document.getElementById('event-view-filter').value;
-        const filtered = allEvents.filter(e => filter === 'all' || e.team === filter).sort((a, b) => new Date(a.date) - new Date(b.date));
-        document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `<tr><td>${e.date}</td><td>${e.time || '--'}</td><td>${e.team}</td><td>${e.opponent}</td><td>-</td></tr>`).join('');
+   function renderTournamentList() {
+    const filter = document.getElementById('event-view-filter').value;
+    // WICHTIG: Erstellt ein sauberes Array deiner Teams aus dem Profil
+    const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+
+    // 1. Alle Events filtern
+    const filtered = allEvents.filter(e => {
+        if (filter === 'all_teams') return true;
+        if (filter === 'Verein') return e.team === 'Verein';
+        if (filter === 'only_sports') return e.team !== 'Verein';
+        if (filter === 'my_relevant') {
+            return e.team === 'Verein' || myTeams.includes(e.team);
+        }
+        return e.team === filter;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // 2. In zwei Gruppen aufteilen
+    const sportsEvents = filtered.filter(e => e.team !== 'Verein');
+    const clubEvents = filtered.filter(e => e.team === 'Verein');
+
+    let html = '';
+
+    // Sektion: Wettkämpfe
+    if (sportsEvents.length > 0) {
+        html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>🎯 Wettkampftermine</b></td></tr>`;
+        sportsEvents.forEach(e => html += renderEventRow(e));
     }
+
+    // Sektion: Verein
+    if (clubEvents.length > 0) {
+        html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>📅 Vereinstermine</b></td></tr>`;
+        clubEvents.forEach(e => html += renderEventRow(e));
+    }
+
+    if (filtered.length === 0) {
+        html = '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+    }
+
+    document.getElementById('tournament-list-body').innerHTML = html;
+}
+
+// Hilfsfunktion für die Zeilen-Erstellung
+function renderEventRow(e) {
+    return `
+        <tr>
+            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+            <td>${e.time?.substring(0, 5) || '--:--'}</td>
+            <td>${e.team}</td>
+            <td>${e.opponent || '-'}</td>
+            <td>-</td>
+        </tr>`;
+}
+    function renderEventRow(e) {
+    return `
+        <tr>
+            <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+            <td>${e.time?.substring(0, 5) || '--:--'}</td>
+            <td>${e.team}</td>
+            <td>${e.opponent || '-'}</td>
+            <td>-</td>
+        </tr>`;
+}
 </script>
 </body>
 </html>
