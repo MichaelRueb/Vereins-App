@@ -207,7 +207,7 @@
         if(error) alert(error.message); else location.reload();
     }
 
-  async function setupApp(user) {
+async function setupApp(user) {
     currentUser = user; 
     isAdmin = user.email === ADMIN_EMAIL;
     
@@ -217,15 +217,22 @@
         userTeam = p.team || ""; 
         isCaptain = p.is_captain || false; 
         isOfficial = p.is_official || false;
+        
         document.getElementById('prof-name').value = p.full_name || "";
         
-        // Tab-Sichtbarkeit für Admin/Funktionäre
+        // --- SICHTBARKEITSPRÜFUNG ---
+        
+        // Admin-Tab für Kapitäne, Funktionäre und Admins
         if (isAdmin || isOfficial || isCaptain) {
             document.getElementById('tab-admin').style.display = 'block';
-            if (isAdmin) document.getElementById('admin-pdf-btn').style.display = 'block';
         }
 
-        // NEU: Formular-Sichtbarkeit wird hier einmalig initialisiert
+        // Fahrtenbuch-Tab nur für Admins und Funktionäre (oder nach Bedarf anpassen)
+        if (isAdmin || isOfficial) {
+            document.getElementById('tab-mileage').style.display = 'block';
+        }
+        
+        // Wettkampf-Formular (jetzt im Kalender-Tab)
         if (isAdmin || isCaptain) {
             document.getElementById('captain-event-form').style.display = 'block';
             fillTeamSelect();
