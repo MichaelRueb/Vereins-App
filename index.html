@@ -68,16 +68,28 @@
 <body>
 
 <div class="card">
-    <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro wird geladen...</div
-   <div id="auth-ui" style="display:none;">
-    <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
-    <input type="text" id="full-name" placeholder="Vollständiger Name" style="display:none;">
-    <input type="email" id="email" placeholder="E-Mail">
-    <input type="password" id="password" placeholder="Passwort">
-    <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
-    <button onclick="handleAuth()" id="auth-btn">Einloggen</button>
-    <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">
-        Noch kein Konto? Registrieren
+    <!-- Lade-Anzeige -->
+    <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro wird geladen...</div>
+
+    <!-- Login/Registrierung -->
+    <div id="auth-ui" style="display:none;">
+        <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
+        <input type="text" id="full-name" placeholder="Vollständiger Name" style="display:none;">
+        <input type="email" id="email" placeholder="E-Mail">
+        <input type="password" id="password" placeholder="Passwort">
+        <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
+        <button onclick="handleAuth()" id="auth-btn">Einloggen</button>
+        <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">
+            Noch kein Konto? Registrieren
+        </div>
+    </div>
+
+    <!-- DER HAUPTINHALT (Alles was bisher im Hintergrund zu sehen war) -->
+    <div id="main-app" style="display:none;">
+        <!-- Hier deine Tabs (Stunden, Kalender, Profil) reinschieben -->
+        <div class="tabs"> ... </div>
+        <div id="stunden-bereich"> ... </div>
+        <!-- ... alle weiteren App-Elemente ... -->
     </div>
 </div>
 
@@ -270,36 +282,69 @@
     fullNameField.style.display = isRegisterMode ? "block" : "none";
 }
 
-    async function handleAuth() {
+   async function handleAuth() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+    const fullName = document.getElementById('full-name')?.value; // Holen falls vorhanden
+    const confirmPass = document.getElementById('password-confirm')?.value;
 
     if (isRegisterMode) {
-        // --- START PASSWORT-CHECK ---
+        // 1. Validierung
+        if (!fullName) return alert("Bitte gib deinen Namen an!");
+        if (password !== confirmPass) return alert("Passwörter stimmen nicht überein!");
+
+        // 2. Passwort-Check (deine Logik)
         const criteria = [
-            password.length >= 8,                       // 1. Länge mind. 8
-            /[a-z]/.test(password),                    // 2. Kleinbuchstabe
-            /[A-Z]/.test(password),                    // 3. Großbuchstabe
-            /[0-9]/.test(password),                    // 4. Zahl
-            /[!@#$%^&*(),.?":{}|<>]/.test(password)    // 5. Sonderzeichen
+            password.length >= 8,
+            /[a-z]/.test(password),
+            /[A-Z]/.test(password),
+            /[0-9]/.test(password),
+            /[!@#$%^&*(),.?":{}|<>]/.test(password)
         ];
-
-        // Die erste Bedingung (Länge) muss immer wahr sein
-        const isLongEnough = criteria[0];
-        // Von den restlichen 4 müssen 3 erfüllt sein
-        const otherCriteriaMet = criteria.slice(1).filter(Boolean).length;
-
-        if (!isLongEnough || otherCriteriaMet < 3) {
-            alert("Das Passwort ist nicht sicher genug!\n\n" +
-                  "Anforderungen:\n" +
-                  "- Mindestens 8 Zeichen (Pflicht)\n" +
-                  "- Erfüllung von 3 der 4 folgenden Merkmale:\n" +
-                  "  • Kleinbuchstaben\n" +
-                  "  • Großbuchstaben\n" +
-                  "  • Zahlen\n" +
-                  "  • Sonderzeichen");
-            return; // Funktion abbrechen, kein SignUp bei Supabase
+        if (!criteria[0] || criteria.slice(1).filter(Boolean).length < 3) {
+            return alert("Passwort zu schwach (8 Zeichen + 3 von 4 Merkmalen)!");
         }
+
+        // 3. Registrierung mit Metadaten
+        const { error } = await sb.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    full_name: fullName,
+                    is_approved: false // Sperre für Admin
+                }
+            }
+        });
+
+        if (error) alert(error.message);
+        else alert("Registrierung erfolgreich! Bitte E-Mail bestätigen. Danach schaltet dich der Admin frei.");
+
+    } else {
+        // --- LOGIN LOGIK ---
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+            alert(error.message);
+        } else {
+            const user = data.user;
+            const isApproved = user.user_metadata?.is_approved;
+
+            if (isApproved !== true) {
+                // Nutzer ist eingeloggt, aber NICHT freigeschaltet
+                await sb.auth.signOut(); 
+                alert("Dein Account wurde noch nicht vom Admin freigeschaltet.");
+                
+                // Sicherstellen, dass das UI gesperrt bleibt
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('auth-ui').style.display = 'block';
+            } else {
+                // Alles okay -> Seite laden
+                location.reload();
+            }
+        }
+    }
+}
         // --- ENDE PASSWORT-CHECK ---
 
         const { error } = await sb.auth.signUp({ email, password });
