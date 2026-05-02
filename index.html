@@ -585,12 +585,45 @@
     function resetEventForm() { document.getElementById('edit-event-id').value=""; document.getElementById('ev-opp').value=""; document.getElementById('cancel-edit-btn').style.display='none'; }
     async function deleteEvent(id) { if(confirm("Wettkampf löschen?")) { await sb.from('tournaments').delete().eq('id', id); loadAllEvents(); } }
 
-    async function changePassword() {
-        const newPass = document.getElementById('new-password').value;
-        if (newPass.length < 6) return alert("Mindestens 6 Zeichen!");
-        const { error } = await sb.auth.updateUser({ password: newPass });
-        if (error) alert(error.message); else alert("Passwort geändert!");
+   async function changePassword() {
+    const newPass = document.getElementById('new-password').value;
+
+    // --- START SICHERHEITS-CHECK ---
+    const criteria = [
+        newPass.length >= 8,                       // 1. Länge mind. 8 (Pflicht)
+        /[a-z]/.test(newPass),                    // 2. Kleinbuchstabe
+        /[A-Z]/.test(newPass),                    // 3. Großbuchstabe
+        /[0-9]/.test(newPass),                    // 4. Zahl
+        /[!@#$%^&*(),.?":{}|<>]/.test(newPass)    // 5. Sonderzeichen
+    ];
+
+    const isLongEnough = criteria[0];
+    // Zähle erfüllte Merkmale aus den restlichen 4 Kriterien
+    const metCriteriaCount = criteria.slice(1).filter(Boolean).length;
+
+    if (!isLongEnough || metCriteriaCount < 3) {
+        return alert(
+            "Das neue Passwort ist nicht sicher genug!\n\n" +
+            "Anforderungen:\n" +
+            "- Mindestens 8 Zeichen (Pflicht)\n" +
+            "- Sowie 3 der folgenden 4 Merkmale:\n" +
+            "  • Kleinbuchstaben\n" +
+            "  • Großbuchstaben\n" +
+            "  • Zahlen\n" +
+            "  • Sonderzeichen"
+        );
     }
+    // --- ENDE SICHERHEITS-CHECK ---
+
+    const { error } = await sb.auth.updateUser({ password: newPass });
+    
+    if (error) {
+        alert(error.message);
+    } else {
+        alert("Passwort erfolgreich geändert!");
+        document.getElementById('new-password').value = ""; // Feld leeren
+    }
+}
 
     // --- FAHRTENBUCH LOGIK ---
     function calcTotalKm() {
