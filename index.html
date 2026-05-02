@@ -115,6 +115,16 @@
             <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
                 <h4 id="selection-date-label" style="margin:0"></h4><div id="selection-content"></div>
             </div>
+            <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
+        <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
+        <input type="date" id="event-date">
+        <input type="time" id="event-time">
+        <select id="event-team-select">
+            <!-- Wird dynamisch gefüllt -->
+        </select>
+        <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
+        <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
+    </div>
             <h4 style="margin-top:25px;">Terminliste</h4>
             <select id="event-view-filter" onchange="renderTournamentList()"></select>
             <table><thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead><tbody id="tournament-list-body"></tbody></table>
@@ -167,16 +177,6 @@
         <!-- ADMIN VIEW -->
         <div id="view-admin" style="display:none;">
             <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; display:none;">📄 Stunden Report (PDF)</button>
-            <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
-        <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
-        <input type="date" id="event-date">
-        <input type="time" id="event-time">
-        <select id="event-team-select">
-            <!-- Wird dynamisch gefüllt -->
-        </select>
-        <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
-        <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
-    </div>
             <h4>⏳ Offene Stunden-Anträge</h4>
             <table><tbody id="admin-pending-body-real"></tbody></table>
             <h4>👥 Mitglieder-Verwaltung</h4>
