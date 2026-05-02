@@ -68,16 +68,18 @@
 <body>
 
 <div class="card">
-    <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro wird geladen...</div>
-
-    <div id="auth-ui" style="display:none;">
-        <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
-        <input type="email" id="email" placeholder="E-Mail">
-        <input type="password" id="password" placeholder="Passwort">
-        <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
-        <button onclick="handleAuth()" id="auth-btn">Einloggen</button>
-        <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">Noch kein Konto? Registrieren</div>
+    <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro wird geladen...</div
+   <div id="auth-ui" style="display:none;">
+    <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
+    <input type="text" id="full-name" placeholder="Vollständiger Name" style="display:none;">
+    <input type="email" id="email" placeholder="E-Mail">
+    <input type="password" id="password" placeholder="Passwort">
+    <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="display:none;">
+    <button onclick="handleAuth()" id="auth-btn">Einloggen</button>
+    <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:#2e7d32; margin-top:10px;">
+        Noch kein Konto? Registrieren
     </div>
+</div>
 
     <div id="main-app" style="display:none;">
         <div class="tabs" id="main-tabs">
@@ -249,10 +251,24 @@
     };
 
     function toggleAuthMode() {
-        isRegisterMode = !isRegisterMode;
-        document.getElementById('auth-title').innerText = isRegisterMode ? "Registrieren" : "Anmelden";
-        document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
-    }
+    isRegisterMode = !isRegisterMode;
+    
+    // Elemente abrufen
+    const title = document.getElementById('auth-title');
+    const btn = document.getElementById('auth-btn');
+    const toggleText = document.getElementById('auth-toggle');
+    const confirmPass = document.getElementById('password-confirm');
+    const fullNameField = document.getElementById('full-name');
+
+    // UI Texte und Sichtbarkeit anpassen
+    title.innerText = isRegisterMode ? "Registrieren" : "Anmelden";
+    btn.innerText = isRegisterMode ? "Konto erstellen" : "Einloggen";
+    toggleText.innerText = isRegisterMode ? "Bereits ein Konto? Einloggen" : "Noch kein Konto? Registrieren";
+    
+    // Felder ein/ausblenden
+    confirmPass.style.display = isRegisterMode ? "block" : "none";
+    fullNameField.style.display = isRegisterMode ? "block" : "none";
+}
 
     async function handleAuth() {
     const email = document.getElementById('email').value;
