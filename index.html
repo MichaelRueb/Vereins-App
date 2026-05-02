@@ -119,7 +119,7 @@
                 <div id="selection-content"></div>
             </div>
             <h4>Terminliste</h4>
-            <select id="event-view-filter" onchange="renderTournamentList()"></select>
+            <select id="event-view-filter" onchange="TournamentList()"></select>
             <table>
                 <thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th></tr></thead>
                 <tbody id="tournament-list-body"></tbody>
@@ -317,11 +317,11 @@ async function viewUserDetail(uid, name) {
     }
 }
     
-   async function loadAdmin() {
+  async function loadAdmin() {
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: hours } = await sb.from('work_hours').select('*').order('date', {ascending: false});
 
-    // 1. NEUE ANFRAGEN (Bleibt gleich)
+    // 1. NEUE ANFRAGEN
     const pendingM = profs.filter(p => !p.is_approved && p.id !== currentUser.id);
     let mHtml = (isAdmin || isOfficial) && pendingM.length ? "<h4>🆕 Neue Anfragen</h4>" : "";
     if (isAdmin || isOfficial) {
@@ -332,14 +332,14 @@ async function viewUserDetail(uid, name) {
     }
     document.getElementById('admin-pending-section').innerHTML = mHtml;
 
-    // 2. STUNDEN-FREIGABE (Bleibt gleich)
+    // 2. STUNDEN-FREIGABE
     const pendingH = hours?.filter(h => h.status === 'pending') || [];
     document.getElementById('admin-pending-body-real').innerHTML = pendingH.map(h => {
         const u = profs.find(p => p.id === h.user_id);
         return `<tr><td>${u?.full_name}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')" style="width:auto;">OK</button></td></tr>`;
     }).join('');
 
-    // 3. MITGLIEDERLISTE (JETZT MIT EXPLORER-REIHEN)
+    // 3. MITGLIEDERLISTE (JETZT MIT FIXIERTEN CHECKBOXEN)
     document.getElementById('admin-member-table-list').innerHTML = profs.filter(p => p.is_approved).map(p => {
         const sum = hours?.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) || 0;
         const canEdit = isAdmin || isOfficial;
@@ -352,8 +352,17 @@ async function viewUserDetail(uid, name) {
                 </td>
                 <td>${sum} h</td>
                 <td>
-                    <label style="font-size:0.7em;"><input type="checkbox" ${p.is_captain?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label><br>
-                    <label style="font-size:0.7em;"><input type="checkbox" ${p.is_official?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funkt.</label>
+                    <!-- Hier greift das neue CSS -->
+                    <div class="admin-role-unit">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" ${p.is_captain?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_captain',this.checked)">
+                            <span>Kapt.</span>
+                        </label>
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" ${p.is_official?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_official',this.checked)">
+                            <span>Funkt.</span>
+                        </label>
+                    </div>
                 </td>
             </tr>
             <!-- Versteckte Detailzeile (Explorer) -->
@@ -380,7 +389,19 @@ async function viewUserDetail(uid, name) {
         document.getElementById('my-progress-label').innerText = approved + " / 10 h";
         document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${x.date}</td><td>${x.description}</td><td>${x.duration}</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
     }
-    function renderTeamCheckboxes(sel) { const arr = sel ? sel.split(', ') : []; document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t)?'checked':''}> ${t}</label>`).join(''); }
+
+function renderTeamCheckboxes(sel) {
+    const arr = sel ? sel.split(', ') : [];
+    const container = document.getElementById('team-checkboxes');
+    
+    container.innerHTML = ALL_TEAMS.map(t => `
+        <label class="checkbox-wrapper">
+            <input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}>
+            <span>${t}</span>
+        </label>
+    `).join('');
+}
+    
     function renderEventFilter() { document.getElementById('event-view-filter').innerHTML = `<option value="all">Alle</option>` + ALL_TEAMS.map(t=>`<option value="${t}">${t}</option>`).join(''); }
     async function loadAllEvents() {
         const { data: t } = await sb.from('tournaments').select('*');
