@@ -38,6 +38,7 @@
 <div class="card">
     <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro lädt...</div>
 
+    <!-- AUTH -->
     <div id="auth-ui" style="display:none;">
         <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
         <input type="text" id="auth-name" placeholder="Vollständiger Name" style="display:none;">
@@ -48,6 +49,7 @@
         <div id="auth-toggle" onclick="toggleAuthMode()" style="text-align:center; cursor:pointer; color:var(--primary); margin-top:10px;">Noch kein Konto? Registrieren</div>
     </div>
 
+    <!-- APP -->
     <div id="main-app" style="display:none;">
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
@@ -56,6 +58,7 @@
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
 
+        <!-- HOME -->
         <div id="view-home">
             <h3>Deine Stunden</h3>
             <div class="progress-container">
@@ -78,6 +81,7 @@
             </table>
         </div>
 
+        <!-- EVENTS -->
         <div id="view-events" style="display:none;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
@@ -97,6 +101,7 @@
             </table>
         </div>
 
+        <!-- PROFILE -->
         <div id="view-profile" style="display:none;">
             <h3>Dein Profil</h3>
             <input type="text" id="prof-name" placeholder="Name">
@@ -110,24 +115,15 @@
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
+        <!-- ADMIN -->
         <div id="view-admin" style="display:none;">
-            <!-- Nur sichtbar für Funktionäre/Admin -->
-            <button id="admin-pdf-btn" onclick="exportToPDF()" style="display:none; background:#0277bd; margin-bottom: 20px;">📄 Gesamt-Report (PDF)</button>
-            
+            <button id="admin-pdf-btn" onclick="exportToPDF()" style="display:none; background:#0277bd; margin-bottom:20px;">📄 SV Hubertus Report (PDF)</button>
             <div id="admin-pending-section"></div>
-            
             <h4>⏳ Offene Stunden-Anträge</h4>
             <table><tbody id="admin-pending-body-real"></tbody></table>
-            
             <h4>👥 Mitglieder-Verwaltung</h4>
             <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>h (bestätigt)</th>
-                        <th>Status / Rollen</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Name</th><th>h (bestätigt)</th><th>Rollen</th></tr></thead>
                 <tbody id="admin-member-table-list"></tbody>
             </table>
         </div>
@@ -141,66 +137,25 @@
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
 
-    let currentUser, userTeam = "", isAdmin = false, isOfficial = false, isCaptain = false, isRegisterMode = false, allEvents = [], currentViewDate = new Date();
+    let currentUser, userTeam = "", isAdmin = false, isOfficial = false, isCaptain = false, allEvents = [], currentViewDate = new Date(), isRegisterMode = false;
+
+    // Passwort-Stärke Check
+    function checkPasswordStrength(password) {
+        if (password.length < 8) return false;
+        const criteria = [
+            /[a-z]/.test(password),
+            /[A-Z]/.test(password),
+            /[0-9]/.test(password),
+            /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        ];
+        return criteria.filter(Boolean).length >= 3;
+    }
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
         if (session) setupApp(session.user);
         else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
     };
-
-    function toggleAuthMode() {
-        isRegisterMode = !isRegisterMode;
-        document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Anmelden";
-        document.getElementById('auth-btn').innerText = isRegisterMode ? "Konto erstellen" : "Einloggen";
-        document.getElementById('auth-name').style.display = isRegisterMode ? "block" : "none";
-        document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none";
-    }
-
-   async function handleAuth() {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    const confirmPass = document.getElementById('password-confirm').value;
-    const name = document.getElementById('auth-name').value;
-
-    if (isRegisterMode) {
-        if(!name) return alert("Name fehlt!");
-        if(pass !== confirmPass) return alert("Passwörter stimmen nicht überein!");
-        
-        // PASSWORT-CHECK ANWENDEN
-        if (!checkPasswordStrength(pass)) {
-            alert("Passwort zu schwach!\n\nAnforderungen:\n- Mindestens 8 Zeichen\n- 3 der folgenden 4 Kriterien: Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen.");
-            return;
-        }
-
-        const { error } = await sb.auth.signUp({ 
-            email, 
-            password: pass, 
-            options: { data: { full_name: name } } 
-        });
-        if (error) alert(error.message); 
-        else alert("Erfolgreich registriert! Bitte warte auf die Freigabe durch einen Admin.");
-    } else {
-        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-        if (error) alert(error.message); else location.reload();
-    }
-}
-
-// In der Profil-Update-Funktion ebenfalls einbauen:
-async function updatePassword() {
-    const p1 = document.getElementById('new-pass').value;
-    const p2 = document.getElementById('new-pass-confirm').value;
-    if(p1 !== p2) return alert("Passwörter ungleich!");
-    
-    // PASSWORT-CHECK AUCH HIER
-    if (!checkPasswordStrength(p1)) {
-        alert("Neues Passwort ist zu schwach (8 Zeichen, 3 von 4 Kriterien nötig)!");
-        return;
-    }
-
-    const { error } = await sb.auth.updateUser({ password: p1 });
-    if(error) alert(error.message); else alert("Passwort erfolgreich geändert!");
-}
 
     async function setupApp(user) {
         currentUser = user;
@@ -217,15 +172,8 @@ async function updatePassword() {
             isOfficial = p.is_official || false;
             isCaptain = p.is_captain || false;
             document.getElementById('prof-name').value = p.full_name || "";
-            
-            // Admin-Tab zeigen für Admin, Funktionäre ODER Kapitäne
-            if (isAdmin || isOfficial || isCaptain) {
-                document.getElementById('tab-admin').style.display = 'block';
-            }
-            // PDF Button nur für Admin oder Funktionäre
-            if (isAdmin || isOfficial) {
-                document.getElementById('admin-pdf-btn').style.display = 'block';
-            }
+            if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
+            if (isAdmin || isOfficial) document.getElementById('admin-pdf-btn').style.display = 'block';
         }
         
         renderTeamCheckboxes(userTeam);
@@ -235,15 +183,78 @@ async function updatePassword() {
         loadHistory(); loadAllEvents();
     }
 
+    async function handleAuth() {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+        const name = document.getElementById('auth-name').value;
+        if (isRegisterMode) {
+            if(!name) return alert("Name fehlt!");
+            if(!checkPasswordStrength(pass)) return alert("Passwort zu schwach! (min. 8 Zeichen, 3 von 4 Kriterien)");
+            const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+            if (error) alert(error.message); else alert("Registriert! Warte auf Admin-Freigabe.");
+        } else {
+            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+            if (error) alert(error.message); else location.reload();
+        }
+    }
+
+    async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+
+        doc.setFontSize(22);
+        doc.setTextColor(46, 125, 50);
+        doc.setFont("helvetica", "bold");
+        doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        const dateString = new Date().toLocaleDateString('de-DE');
+        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
+
+        doc.setDrawColor(46, 125, 50);
+        doc.setLineWidth(0.5);
+        doc.line(14, 35, 196, 35);
+
+        const tableRows = [];
+        profs.forEach(p => {
+            const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
+            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+            tableRows.push([
+                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
+                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
+            ]);
+            if (memberHours.length > 0) {
+                let detailText = memberHours.map(h => `  • ${h.date}: ${h.description} (${h.duration}h)`).join('\n');
+                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
+            } else {
+                tableRows.push([{ content: "    Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+            }
+        });
+
+        doc.autoTable({
+            startY: 40,
+            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
+            styles: { font: "helvetica", overflow: 'linebreak' },
+            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
+        });
+        doc.save(`Hubertus_Report_${dateString}.pdf`);
+    }
+
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*').order('date', {ascending: false});
 
-        // 1. Freigaben (Nur Admin/Funktionär darf freigeben)
+        // Neue Anfragen (Nur für Offizielle sichtbar)
         const pendingM = profs.filter(p => !p.is_approved && p.id !== currentUser.id);
-        let mHtml = "";
+        let mHtml = (isAdmin || isOfficial) && pendingM.length ? "<h4>🆕 Neue Anfragen</h4>" : "";
         if (isAdmin || isOfficial) {
-            mHtml = pendingM.length ? "<h4>🆕 Neue Anfragen</h4>" : "";
             pendingM.forEach(m => {
                 mHtml += `<div style="display:flex; justify-content:space-between; background:#fff3e0; padding:10px; margin-bottom:5px;">
                     <span>${m.full_name}</span><button onclick="approveMember('${m.id}')" style="width:auto;">Freigeben</button></div>`;
@@ -251,149 +262,36 @@ async function updatePassword() {
         }
         document.getElementById('admin-pending-section').innerHTML = mHtml;
 
-        // 2. Stunden-Anträge
+        // Stunden-Freigabe
         const pendingH = hours?.filter(h => h.status === 'pending') || [];
         document.getElementById('admin-pending-body-real').innerHTML = pendingH.map(h => {
             const u = profs.find(p => p.id === h.user_id);
-            return `<tr><td>${u?.full_name}</td><td>${h.description}</td><td>${h.duration}h</td>
-            <td><button onclick="approveHours('${h.id}')" style="width:auto;">OK</button></td></tr>`;
+            return `<tr><td>${u?.full_name}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')" style="width:auto;">OK</button></td></tr>`;
         }).join('');
 
-        // 3. Mitgliederliste
+        // Mitgliederliste
         document.getElementById('admin-member-table-list').innerHTML = profs.filter(p => p.is_approved).map(p => {
             const sum = hours?.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) || 0;
-            
-            // Rollen-Checkboxen nur für Haupt-Admin klickbar machen (oder auch Funktionär)
-            const canEditRoles = isAdmin || isOfficial;
-            
+            const canEdit = isAdmin || isOfficial;
             return `<tr>
-                <td onclick="viewUserDetail('${p.id}', '${p.full_name}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">${p.full_name}</td>
+                <td onclick="viewUserDetail('${p.id}', '${p.full_name}')" style="color:var(--primary); cursor:pointer;">${p.full_name}</td>
                 <td>${sum} h</td>
                 <td>
-                    <label style="font-size:0.8em; display:block;">
-                        <input type="checkbox" ${p.is_captain ? 'checked' : ''} ${!canEditRoles ? 'disabled' : ''} onchange="updateRole('${p.id}', 'is_captain', this.checked)"> Kapitän
-                    </label>
-                    <label style="font-size:0.8em; display:block;">
-                        <input type="checkbox" ${p.is_official ? 'checked' : ''} ${!canEditRoles ? 'disabled' : ''} onchange="updateRole('${p.id}', 'is_official', this.checked)"> Funktionär
-                    </label>
-                </td>
-            </tr>`;
+                    <label style="font-size:0.7em;"><input type="checkbox" ${p.is_captain?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label><br>
+                    <label style="font-size:0.7em;"><input type="checkbox" ${p.is_official?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funkt.</label>
+                </td></tr>`;
         }).join('');
     }
 
+    // Helper & Standard-Funktionen
+    async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
     async function approveMember(id) { await sb.from('profiles').update({ is_approved: true }).eq('id', id); loadAdmin(); }
     async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
-    
-    async function updateRole(uid, column, value) {
-        const updateData = {}; updateData[column] = value;
-        const { error } = await sb.from('profiles').update(updateData).eq('id', uid);
-        if (error) alert(error.message);
-    }
-
-    async function viewUserDetail(uid, name) {
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', {ascending: false});
-        let txt = `Stunden von ${name}:\n\n`;
-        data.forEach(h => txt += `${h.date} | ${h.duration}h | ${h.description} (${h.status})\n`);
-        alert(txt);
-    }
-
-    async function exportToPDF() {
-        const { data: profs } = await sb.from('profiles').select('*').eq('is_approved', true);
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
-        const doc = new jspdf.jsPDF();
-        doc.text("Hubertus Stunden-Report Gesamt", 14, 15);
-        const rows = profs.map(p => {
-            const total = hours.filter(h => h.user_id === p.id).reduce((s, h) => s + parseFloat(h.duration), 0);
-            let role = "Mitglied";
-            if (p.is_official) role = "Funktionär";
-            else if (p.is_captain) role = "Kapitän";
-            return [p.full_name, total + " h", role];
-        });
-        doc.autoTable({ head: [['Name', 'Stunden', 'Rolle']], body: rows, startY: 25 });
-        doc.save("Hubertus_Stunden_Report.pdf");
-    }
-
-    async function updatePassword() {
-        const p1 = document.getElementById('new-pass').value;
-        const p2 = document.getElementById('new-pass-confirm').value;
-        if(p1 !== p2) return alert("Passwörter ungleich!");
-        const { error } = await sb.auth.updateUser({ password: p1 });
-        if(error) alert(error.message); else alert("Passwort geändert!");
-    }
-
-    function getBavarianHolidays(year) {
-        const holidays = {};
-        const fixed = {"01-01":"Neujahr","01-06":"Hl. Drei Könige","05-01":"Tag der Arbeit","08-15":"Mariä Himmelfahrt","10-03":"Tag der Dt. Einheit","11-01":"Allerheiligen","12-25":"1. Weihnachtstag","12-26":"2. Weihnachtstag"};
-        for(let d in fixed) holidays[`${year}-${d}`] = fixed[d];
-        const a=year%19, b=Math.floor(year/100), c=year%100, d=Math.floor(b/4), e=b%4, f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30, i=Math.floor(c/4), k=c%4, l=(32+2*e+2*i-h-k)%7, m=Math.floor((a+11*h+22*l)/451), month=Math.floor((h+l-7*m+114)/31), day=((h+l-7*m+114)%31)+1;
-        const o = new Date(year, month-1, day);
-        const add = (n) => { let x=new Date(o); x.setDate(x.getDate()+n); return x.toISOString().split('T')[0]; };
-        holidays[add(-2)] = "Karfreitag"; holidays[add(1)] = "Ostermontag"; holidays[add(39)] = "Christi Himmelfahrt"; holidays[add(50)] = "Pfingstmontag"; holidays[add(60)] = "Fronleichnam";
-        return holidays;
-    }
-
-    function renderCalendar() {
-        const container = document.getElementById('calendar-container'); container.innerHTML = '';
-        const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
-        const holidays = getBavarianHolidays(y);
-        document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
-        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
-            container.innerHTML += `<div style="background:#eee; text-align:center; padding:5px; font-size:0.7em; font-weight:bold;">${d}</div>`;
-        });
-        const start = (new Date(y, m, 1).getDay() + 6) % 7;
-        const days = new Date(y, m + 1, 0).getDate();
-        for(let i=0; i<start; i++) container.innerHTML += `<div class="calendar-day"></div>`;
-        for(let d=1; d<=days; d++) {
-            const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const isHoliday = holidays[ds];
-            let dots = "";
-            allEvents.filter(e => e.date === ds).forEach(e => { dots += `<div class="event-dot ${getTeamClass(e.team)}"></div>`; });
-            const dayEl = document.createElement('div');
-            dayEl.className = `calendar-day ${isHoliday?'calendar-holiday':''} ${new Date().toISOString().split('T')[0]===ds?'today':''}`;
-            dayEl.innerHTML = `<small>${d}</small>${dots}`;
-            dayEl.onclick = () => {
-                const evs = allEvents.filter(e => e.date === ds);
-                let html = isHoliday ? `<div style="color:red;">🚩 ${isHoliday}</div>` : '';
-                html += evs.length ? evs.map(e => `<div><b>${e.team}:</b> ${e.opponent}</div>`).join('') : 'Keine Termine';
-                document.getElementById('selection-content').innerHTML = html;
-                document.getElementById('calendar-selection-details').style.display='block';
-            };
-            container.appendChild(dayEl);
-        }
-    }
-
-    async function loadAllEvents() {
-        const { data: t } = await sb.from('tournaments').select('*');
-        const { data: c } = await sb.from('club_events').select('*');
-        allEvents = [...(t||[]), ...(c||[]).map(e=>({...e, team:'Verein', opponent: e.title}))];
-        renderCalendar(); renderTournamentList();
-    }
-
-    function renderTournamentList() {
-        const f = document.getElementById('event-view-filter').value;
-        const filtered = allEvents.filter(e => f === 'all' || e.team === f);
-        document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `<tr><td>${e.date}</td><td>${e.time?.substring(0,5)}</td><td>${e.team}</td><td>${e.opponent}</td></tr>`).join('');
-    }
-
-    function switchTab(t) {
-        ['home','events','profile','admin'].forEach(v => {
-            const el = document.getElementById('view-'+v); if(el) el.style.display = (v===t)?'block':'none';
-            const tab = document.getElementById('tab-'+v); if(tab) tab.className = (v===t)?'tab active':'tab';
-        });
-        if(t==='admin') loadAdmin();
-    }
-
-    function getTeamClass(t) { if(!t) return ''; t=t.toLowerCase(); if(t.includes('verein')) return 'team-verein'; if(t.includes('gewehr')) return 'team-lg'; if(t.includes('pistole')) return 'team-lp'; return ''; }
-    function renderTeamCheckboxes(sel) { const arr = sel ? sel.split(', ') : []; document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t)?'checked':''}> ${t}</label><br>`).join(''); }
-    function renderEventFilter() { document.getElementById('event-view-filter').innerHTML = `<option value="all">Alle</option>` + ALL_TEAMS.map(t=>`<option value="${t}">${t}</option>`).join(''); }
+    function toggleAuthMode() { isRegisterMode = !isRegisterMode; document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Anmelden"; document.getElementById('auth-name').style.display = isRegisterMode ? "block" : "none"; document.getElementById('password-confirm').style.display = isRegisterMode ? "block" : "none"; }
+    function switchTab(t) { ['home','events','profile','admin'].forEach(v => { document.getElementById('view-'+v).style.display = (v===t)?'block':'none'; document.getElementById('tab-'+v).className = (v===t)?'tab active':'tab'; }); if(t==='admin') loadAdmin(); }
     async function updateProfile() { const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', '); await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams }); alert("Gespeichert!"); }
-    
-    async function sendHours() { 
-        const h = document.getElementById('hours').value, d = document.getElementById('date').value, cat = document.getElementById('work-category').value;
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: d, duration: h, description: cat + ": " + document.getElementById('description').value, status: 'pending' }]);
-        alert("Gesendet!"); loadHistory();
-    }
-    
+    async function updatePassword() { const p1 = document.getElementById('new-pass').value; if(!checkPasswordStrength(p1)) return alert("Passwort zu schwach!"); await sb.auth.updateUser({ password: p1 }); alert("Geändert!"); }
+    async function sendHours() { await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: document.getElementById('hours').value, description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, status: 'pending' }]); alert("Gesendet!"); loadHistory(); }
     async function loadHistory() {
         const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {ascending:false});
         const approved = data?.filter(x=>x.status==='approved').reduce((s,x)=> s + parseFloat(x.duration), 0) || 0;
@@ -401,28 +299,43 @@ async function updatePassword() {
         document.getElementById('my-progress-label').innerText = approved + " / 10 h";
         document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${x.date}</td><td>${x.description}</td><td>${x.duration}</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join('');
     }
-    
+    function renderTeamCheckboxes(sel) { const arr = sel ? sel.split(', ') : []; document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t)?'checked':''}> ${t}</label>`).join(''); }
+    function renderEventFilter() { document.getElementById('event-view-filter').innerHTML = `<option value="all">Alle</option>` + ALL_TEAMS.map(t=>`<option value="${t}">${t}</option>`).join(''); }
+    async function loadAllEvents() {
+        const { data: t } = await sb.from('tournaments').select('*');
+        const { data: c } = await sb.from('club_events').select('*');
+        allEvents = [...(t||[]), ...(c||[]).map(e=>({...e, team:'Verein', opponent: e.title}))];
+        renderCalendar(); renderTournamentList();
+    }
+    function renderTournamentList() {
+        const f = document.getElementById('event-view-filter').value;
+        const filtered = allEvents.filter(e => f === 'all' || e.team === f);
+        document.getElementById('tournament-list-body').innerHTML = filtered.map(e => `<tr><td>${e.date}</td><td>${e.time?.substring(0,5)}</td><td>${e.team}</td><td>${e.opponent}</td></tr>`).join('');
+    }
     function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
-
-    function checkPasswordStrength(password) {
-    // 1. Mindestlänge 8 Zeichen
-    if (password.length < 8) return false;
-
-    // 2. Die vier Kriterien definieren
-    const criteria = [
-        /[a-z]/.test(password), // Kleinbuchstaben
-        /[A-Z]/.test(password), // Großbuchstaben
-        /[0-9]/.test(password), // Zahlen
-        /[!@#$%^&*(),.?":{}|<>]/.test(password) // Sonderzeichen
-    ];
-
-    // 3. Zählen, wie viele Kriterien erfüllt sind
-    const metCriteria = criteria.filter(Boolean).length;
-
-    // 4. Mindestens 3 von 4 müssen wahr sein
-    return metCriteria >= 3;
-}
-
+    function getTeamClass(t) { if(!t) return ''; t=t.toLowerCase(); if(t.includes('verein')) return 'team-verein'; if(t.includes('gewehr')) return 'team-lg'; if(t.includes('pistole')) return 'team-lp'; return ''; }
+    function renderCalendar() {
+        const container = document.getElementById('calendar-container'); container.innerHTML = '';
+        const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
+        document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
+        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => container.innerHTML += `<div style="background:#eee; text-align:center; padding:5px; font-size:0.7em; font-weight:bold;">${d}</div>`);
+        const start = (new Date(y, m, 1).getDay() + 6) % 7;
+        const days = new Date(y, m + 1, 0).getDate();
+        for(let i=0; i<start; i++) container.innerHTML += `<div></div>`;
+        for(let d=1; d<=days; d++) {
+            const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            let dots = ""; allEvents.filter(e => e.date === ds).forEach(e => { dots += `<div class="event-dot ${getTeamClass(e.team)}"></div>`; });
+            const dayEl = document.createElement('div');
+            dayEl.className = `calendar-day ${new Date().toISOString().split('T')[0]===ds?'today':''}`;
+            dayEl.innerHTML = `<small>${d}</small>${dots}`;
+            dayEl.onclick = () => {
+                const evs = allEvents.filter(e => e.date === ds);
+                document.getElementById('selection-content').innerHTML = evs.length ? evs.map(e => `<div><b>${e.team}:</b> ${e.opponent}</div>`).join('') : 'Keine Termine';
+                document.getElementById('calendar-selection-details').style.display='block';
+            };
+            container.appendChild(dayEl);
+        }
+    }
 </script>
 </body>
 </html>
