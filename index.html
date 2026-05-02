@@ -100,6 +100,11 @@
                 <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
             </div>
             <div id="calendar-container" class="calendar-grid"></div>
+            <div class="calendar-legend">
+    <div class="legend-item"><div class="event-dot team-lg"></div> Luftgewehr</div>
+    <div class="legend-item"><div class="event-dot team-lp"></div> Luftpistole</div>
+    <div class="legend-item"><div class="event-dot team-verein"></div> Verein/Sonstiges</div>
+</div>
             <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
                 <h4 id="selection-date-label">Termine</h4>
                 <div id="selection-content"></div>
@@ -402,28 +407,52 @@ function renderTeamCheckboxes(sel) {
     }
     function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
     function getTeamClass(t) { if(!t) return ''; t=t.toLowerCase(); if(t.includes('verein')) return 'team-verein'; if(t.includes('gewehr')) return 'team-lg'; if(t.includes('pistole')) return 'team-lp'; return ''; }
+
     function renderCalendar() {
-        const container = document.getElementById('calendar-container'); container.innerHTML = '';
-        const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
-        document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
-        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => container.innerHTML += `<div style="background:#eee; text-align:center; padding:5px; font-size:0.7em; font-weight:bold;">${d}</div>`);
-        const start = (new Date(y, m, 1).getDay() + 6) % 7;
-        const days = new Date(y, m + 1, 0).getDate();
-        for(let i=0; i<start; i++) container.innerHTML += `<div></div>`;
-        for(let d=1; d<=days; d++) {
-            const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            let dots = ""; allEvents.filter(e => e.date === ds).forEach(e => { dots += `<div class="event-dot ${getTeamClass(e.team)}"></div>`; });
-            const dayEl = document.createElement('div');
-            dayEl.className = `calendar-day ${new Date().toISOString().split('T')[0]===ds?'today':''}`;
-            dayEl.innerHTML = `<small>${d}</small>${dots}`;
-            dayEl.onclick = () => {
-                const evs = allEvents.filter(e => e.date === ds);
-                document.getElementById('selection-content').innerHTML = evs.length ? evs.map(e => `<div><b>${e.team}:</b> ${e.opponent}</div>`).join('') : 'Keine Termine';
-                document.getElementById('calendar-selection-details').style.display='block';
-            };
-            container.appendChild(dayEl);
-        }
+    const container = document.getElementById('calendar-container'); 
+    container.innerHTML = '';
+    const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
+    
+    document.getElementById('current-month-display').innerText = 
+        new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
+    
+    ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => 
+        container.innerHTML += `<div style="background:#f8f9fa; text-align:center; padding:8px; font-size:0.75em; font-weight:bold; color:#555; border-bottom:1px solid #ddd;">${d}</div>`
+    );
+    
+    const start = (new Date(y, m, 1).getDay() + 6) % 7;
+    const days = new Date(y, m + 1, 0).getDate();
+    
+    for(let i=0; i<start; i++) container.innerHTML += `<div style="background:#fdfdfd;"></div>`;
+    
+    for(let d=1; d<=days; d++) {
+        const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dayEvents = allEvents.filter(e => e.date === ds);
+        
+        let dotsHtml = '<div class="event-dot-container">';
+        dayEvents.forEach(e => { 
+            dotsHtml += `<div class="event-dot ${getTeamClass(e.team)}" title="${e.team}"></div>`; 
+        });
+        dotsHtml += '</div>';
+        
+        const dayEl = document.createElement('div');
+        dayEl.className = `calendar-day ${new Date().toISOString().split('T')[0] === ds ? 'today' : ''}`;
+        dayEl.innerHTML = `<small>${d}</small>${dotsHtml}`;
+        
+        dayEl.onclick = () => {
+            document.getElementById('selection-content').innerHTML = dayEvents.length 
+                ? dayEvents.map(e => `
+                    <div style="margin-bottom:8px; padding-left:10px; border-left:4px solid ${e.team.includes('Gewehr')?'#2e7d32':e.team.includes('Pistole')?'#1565c0':'#FFD700'}">
+                        <strong>${e.time ? e.time.substring(0,5) : ''} Uhr - ${e.team}</strong><br>${e.opponent}
+                    </div>`).join('') 
+                : 'Keine Termine an diesem Tag';
+            document.getElementById('calendar-selection-details').style.display='block';
+            document.getElementById('selection-date-label').innerText = `Termine am ${d}.${m+1}.${y}`;
+        };
+        container.appendChild(dayEl);
     }
+}
+    
 </script>
 </body>
 </html>
