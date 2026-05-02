@@ -119,8 +119,7 @@
             <h4 style="margin-top:25px;">Terminliste</h4>
             <select id="event-view-filter" onchange="renderTournamentList()"></select>
             <table><thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead><tbody id="tournament-list-body"></tbody></table>
-        </div>
-         <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
+             <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
         <h4 style="margin-top:0;">Neuen Wettkampf anlegen</h4>
         <input type="date" id="event-date">
         <input type="time" id="event-time">
@@ -130,6 +129,8 @@
         <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
         <button onclick="saveNewEvent()" style="background:var(--primary-dark);">Termin speichern</button>
     </div>
+        </div>
+        
 
         <!-- FAHRTENBUCH VIEW -->
         <div id="view-mileage" style="display:none;">
