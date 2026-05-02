@@ -248,66 +248,96 @@
     }
 
 async function viewUserDetail(uid, name) {
-    // Holt alle genehmigten Stunden für das spezifische Mitglied
+    const detailRow = document.getElementById(`details-${uid}`);
+    const detailContent = document.getElementById(`content-${uid}`);
+
+    // Wenn es schon offen ist -> Schließen (Toggle)
+    if (detailRow.style.display === 'table-row') {
+        detailRow.style.display = 'none';
+        return;
+    }
+
+    // Lade-Anzeige im Explorer-Stil
+    detailContent.innerHTML = "<i>Lade Details...</i>";
+    detailRow.style.display = 'table-row';
+
     const { data, error } = await sb.from('work_hours')
         .select('*')
         .eq('user_id', uid)
         .order('date', { ascending: false });
 
     if (error) {
-        alert("Fehler beim Laden der Details: " + error.message);
+        detailContent.innerHTML = "<span style='color:red;'>Fehler beim Laden.</span>";
         return;
     }
 
-    let txt = `Detaillierte Übersicht für ${name}:\n\n`;
-    
     if (data.length === 0) {
-        txt += "Keine Einträge vorhanden.";
+        detailContent.innerHTML = "Keine Einträge vorhanden.";
     } else {
+        // Tabellarische Auflistung im "Explorer"
+        let html = `<table style="width:100%; background:#f9f9f9; font-size:0.85em; border:1px solid #eee;">
+            <tr style="background:#eee;"><th>Datum</th><th>Tätigkeit</th><th>h</th><th>Status</th></tr>`;
+        
         data.forEach(h => {
-            const statusIcon = h.status === 'approved' ? '✅' : '⏳';
-            txt += `${h.date} | ${h.duration}h | ${h.description} (${statusIcon})\n`;
+            const icon = h.status === 'approved' ? '✅' : '⏳';
+            html += `<tr>
+                <td>${h.date}</td>
+                <td>${h.description}</td>
+                <td>${h.duration}</td>
+                <td>${icon}</td>
+            </tr>`;
         });
+        html += `</table>`;
+        detailContent.innerHTML = html;
     }
-    
-    alert(txt);
 }
     
-    async function loadAdmin() {
-        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').order('date', {ascending: false});
+   async function loadAdmin() {
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*').order('date', {ascending: false});
 
-        // Neue Anfragen (Nur für Offizielle sichtbar)
-        const pendingM = profs.filter(p => !p.is_approved && p.id !== currentUser.id);
-        let mHtml = (isAdmin || isOfficial) && pendingM.length ? "<h4>🆕 Neue Anfragen</h4>" : "";
-        if (isAdmin || isOfficial) {
-            pendingM.forEach(m => {
-                mHtml += `<div style="display:flex; justify-content:space-between; background:#fff3e0; padding:10px; margin-bottom:5px;">
-                    <span>${m.full_name}</span><button onclick="approveMember('${m.id}')" style="width:auto;">Freigeben</button></div>`;
-            });
-        }
-        document.getElementById('admin-pending-section').innerHTML = mHtml;
+    // 1. NEUE ANFRAGEN (Bleibt gleich)
+    const pendingM = profs.filter(p => !p.is_approved && p.id !== currentUser.id);
+    let mHtml = (isAdmin || isOfficial) && pendingM.length ? "<h4>🆕 Neue Anfragen</h4>" : "";
+    if (isAdmin || isOfficial) {
+        pendingM.forEach(m => {
+            mHtml += `<div style="display:flex; justify-content:space-between; background:#fff3e0; padding:10px; margin-bottom:5px;">
+                <span>${m.full_name}</span><button onclick="approveMember('${m.id}')" style="width:auto;">Freigeben</button></div>`;
+        });
+    }
+    document.getElementById('admin-pending-section').innerHTML = mHtml;
 
-        // Stunden-Freigabe
-        const pendingH = hours?.filter(h => h.status === 'pending') || [];
-        document.getElementById('admin-pending-body-real').innerHTML = pendingH.map(h => {
-            const u = profs.find(p => p.id === h.user_id);
-            return `<tr><td>${u?.full_name}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')" style="width:auto;">OK</button></td></tr>`;
-        }).join('');
+    // 2. STUNDEN-FREIGABE (Bleibt gleich)
+    const pendingH = hours?.filter(h => h.status === 'pending') || [];
+    document.getElementById('admin-pending-body-real').innerHTML = pendingH.map(h => {
+        const u = profs.find(p => p.id === h.user_id);
+        return `<tr><td>${u?.full_name}</td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')" style="width:auto;">OK</button></td></tr>`;
+    }).join('');
 
-        // Mitgliederliste
-        document.getElementById('admin-member-table-list').innerHTML = profs.filter(p => p.is_approved).map(p => {
-            const sum = hours?.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) || 0;
-            const canEdit = isAdmin || isOfficial;
-            return `<tr>
-                <td onclick="viewUserDetail('${p.id}', '${p.full_name}')" style="color:var(--primary); cursor:pointer;">${p.full_name}</td>
+    // 3. MITGLIEDERLISTE (JETZT MIT EXPLORER-REIHEN)
+    document.getElementById('admin-member-table-list').innerHTML = profs.filter(p => p.is_approved).map(p => {
+        const sum = hours?.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) || 0;
+        const canEdit = isAdmin || isOfficial;
+        
+        return `
+            <!-- Hauptzeile -->
+            <tr style="border-top: 2px solid #eee;">
+                <td onclick="viewUserDetail('${p.id}', '${p.full_name}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">
+                    ▶ ${p.full_name}
+                </td>
                 <td>${sum} h</td>
                 <td>
                     <label style="font-size:0.7em;"><input type="checkbox" ${p.is_captain?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label><br>
                     <label style="font-size:0.7em;"><input type="checkbox" ${p.is_official?'checked':''} ${!canEdit?'disabled':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funkt.</label>
-                </td></tr>`;
-        }).join('');
-    }
+                </td>
+            </tr>
+            <!-- Versteckte Detailzeile (Explorer) -->
+            <tr id="details-${p.id}" style="display:none; background:#f0f0f0;">
+                <td colspan="3" id="content-${p.id}" style="padding:10px 20px;"></td>
+            </tr>
+        `;
+    }).join('');
+}
 
     // Helper & Standard-Funktionen
     async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
