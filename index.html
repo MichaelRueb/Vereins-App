@@ -424,7 +424,103 @@ function renderTeamCheckboxes(sel) {
     `).join('');
 }
     
-    function renderEventFilter() { document.getElementById('event-view-filter').innerHTML = `<option value="all">Alle</option>` + ALL_TEAMS.map(t=>`<option value="${t}">${t}</option>`).join(''); }
+function renderEventFilter() {
+    const filterSelect = document.getElementById('event-view-filter');
+    if (!filterSelect) return;
+
+    let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
+    options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
+    options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
+    options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
+    options += `<option disabled>──────────</option>`;
+    options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
+    
+    filterSelect.innerHTML = options;
+    filterSelect.value = "my_relevant"; 
+}
+
+function renderTournamentList() {
+    const filter = document.getElementById('event-view-filter').value;
+    const listBody = document.getElementById('tournament-list-body');
+    const myTeams = userTeam ? userTeam.split(', ') : [];
+    
+    // 1. Filtern
+    const filteredEvents = allEvents.filter(e => {
+        if (filter === 'all_teams') return true;
+        if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
+        if (filter === 'Verein') return e.team === 'Verein';
+        if (filter === 'only_sports') return e.team !== 'Verein';
+        return e.team === filter;
+    });
+
+    // 2. Sortieren: Erst Sport (Wettkämpfe), dann Verein
+    const sortedEvents = filteredEvents.sort((a, b) => {
+        const isAClub = a.team === 'Verein';
+        const isBClub = b.team === 'Verein';
+        // Wenn einer Verein ist und der andere nicht, kommt der Sportler zuerst
+        if (isAClub !== isBClub) return isAClub ? 1 : -1;
+        // Innerhalb der Gruppen nach Datum sortieren
+        return new Date(a.date) - new Date(b.date);
+    });
+
+    let html = "";
+    let competitionHeaderSent = false;
+    let clubHeaderSent = false;
+
+    // 3. HTML generieren
+    if (sortedEvents.length === 0) {
+        listBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Keine Termine gefunden</td></tr>';
+        return;
+    }
+
+    sortedEvents.forEach(e => {
+        const isClub = e.team === 'Verein';
+
+        // Header für Wettkämpfe (Grün/Dunkel)
+        if (!isClub && !competitionHeaderSent) {
+            html += '<tr style="background-color: #f1f8e9;">' +
+                    '<td colspan="5" style="text-align: center; font-weight: bold; color: #1b5e20; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
+                    '🎯 WETTKAMPFTERMINE' +
+                    '</td></tr>';
+            competitionHeaderSent = true;
+        }
+
+        // Header für Verein (Blau/Gelb)
+        if (isClub && !clubHeaderSent) {
+            html += '<tr style="background-color: #e3f2fd;">' +
+                    '<td colspan="5" style="text-align: center; font-weight: bold; color: #1565c0; padding: 12px; border-top: 1px solid #ddd; border-bottom: 2px solid #ddd;">' +
+                    '📅 VEREINSTERMINE & VERANSTALTUNGEN' +
+                    '</td></tr>';
+            clubHeaderSent = true;
+        }
+
+        // RECHTE-CHECK: 
+        // Admin darf alles. 
+        // Kapitäne dürfen nur ihre eigenen Mannschaften (aber NICHT Verein) bearbeiten.
+        const canEdit = isAdmin || (!isClub && isCaptain && myTeams.includes(e.team));
+
+        const dateStr = new Date(e.date).toLocaleDateString('de-DE');
+        const timeStr = e.time ? e.time.substring(0, 5) : '--:--';
+        const teamCls = getTeamClass(e.team);
+
+        let actionCell = '<span style="color:#bbb;">🔒</span>'; // Schloss für nicht veränderbare Termine
+        if (canEdit) {
+            actionCell = `<button onclick="editEvent('${e.id}')" style="width:auto; padding:4px 8px; margin-right:4px; background:#ef6c00;">✏️</button>` +
+                         `<button onclick="deleteEvent('${e.id}')" style="width:auto; padding:4px 8px; background:#c62828;">🗑️</button>`;
+        }
+        
+        html += `<tr>
+                <td><b>${dateStr}</b></td>
+                <td>${timeStr}</td>
+                <td><div style="display:flex; align-items:center; gap:5px;"><div class="event-dot ${teamCls}"></div> ${e.team}</div></td>
+                <td>${e.opponent || '-'}</td>
+                <td style="text-align:right;">${actionCell}</td>
+                </tr>`;
+    });
+
+    listBody.innerHTML = html;
+}
+    
     async function loadAllEvents() {
         const { data: t } = await sb.from('tournaments').select('*');
         const { data: c } = await sb.from('club_events').select('*');
