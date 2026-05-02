@@ -552,6 +552,31 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         filterSelect.innerHTML = options;
         if(!filterSelect.value) filterSelect.value = "my_relevant";
     }
+    async function viewUserDetail(uid) {
+    const row = document.getElementById(`details-${uid}`);
+    const content = document.getElementById(`content-${uid}`);
+    
+    if (row.style.display === 'table-row') {
+        row.style.display = 'none';
+    } else {
+        // Lade die Stunden-Details für diesen Nutzer
+        const { data: hours } = await sb.from('work_hours')
+            .select('*')
+            .eq('user_id', uid)
+            .order('date', { descending: true });
+            
+        let html = '<strong>Letzte Tätigkeiten:</strong><br><ul>';
+        if (hours && hours.length > 0) {
+            html += hours.map(h => `<li>${h.date}: ${h.duration}h - ${h.description} (${h.status})</li>`).join('');
+        } else {
+            html += '<li>Keine Einträge gefunden</li>';
+        }
+        html += '</ul>';
+        
+        content.innerHTML = html;
+        row.style.display = 'table-row';
+    }
+}
 </script>
     
 </body>
