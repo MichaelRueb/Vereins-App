@@ -292,28 +292,40 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     }
 
     async function handleRegister() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const passwordConfirm = document.getElementById('password-confirm').value;
-        const fullName = document.getElementById('reg-name').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const passwordConfirm = document.getElementById('password-confirm').value;
+    const fullName = document.getElementById('reg-name').value; // Name abgreifen
 
-        if (!email || !password || !fullName || !passwordConfirm) return alert("Bitte alle Felder ausfüllen!");
-        if (password !== passwordConfirm) return alert("Passwörter stimmen nicht überein!");
-        
-        if (!validatePassword(password)) {
-            return alert("Passwort zu schwach! Mind. 8 Zeichen und 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).");
-        }
+    if (!email || !password || !fullName || !passwordConfirm) return alert("Bitte alles ausfüllen!");
+    if (password !== passwordConfirm) return alert("Passwörter ungleich!");
 
-        const { data, error } = await sb.auth.signUp({ email, password });
-        if (error) return alert(error.message);
+    // 1. User erstellen
+    const { data, error } = await sb.auth.signUp({ email, password });
+    
+    if (error) return alert(error.message);
 
-        if (data.user) {
-            // WICHTIG: is_approved ist standardmäßig false
-            await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName, team: "", is_approved: false }]);
-            alert("Registrierung erfolgreich! Dein Konto muss nun vom Admin freigeschaltet werden.");
+    if (data.user) {
+        // 2. Profil erstellen - fullName EXPLIZIT mitschicken
+        const { error: profileError } = await sb.from('profiles').insert([
+            { 
+                id: data.user.id, 
+                full_name: fullName, 
+                is_approved: false, // Standardmäßig gesperrt
+                is_official: false,
+                is_captain: false
+            }
+        ]);
+
+        if (profileError) {
+            console.error("Fehler beim Profil-Anlegen:", profileError);
+            alert("User angelegt, aber Profil-Name fehlgeschlagen.");
+        } else {
+            alert("Registriert! Bitte warte auf die Freischaltung durch den Admin.");
             toggleAuthMode();
         }
     }
+}
 
    async function setupApp(user) {
         currentUser = user; 
