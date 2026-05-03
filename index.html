@@ -71,12 +71,23 @@
 <div class="card">
     <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro lädt...</div>
 
-    <div id="auth-ui" style="display:none;">
-        <h2 style="text-align:center;">Anmelden</h2>
-        <input type="email" id="email" placeholder="E-Mail">
-        <input type="password" id="password" placeholder="Passwort">
-        <button onclick="handleAuth()">Einloggen</button>
+    <div id="auth-ui" style="display:none; max-width:400px; margin:50px auto; padding:20px; border:1px solid #ddd; border-radius:10px; background:white;">
+    <h2 id="auth-title" style="text-align:center;">Login</h2>
+    
+    <div id="reg-fields" style="display:none;">
+        <input type="text" id="reg-name" placeholder="Vollständiger Name" class="input-field">
     </div>
+
+    <input type="email" id="email" placeholder="E-Mail" class="input-field">
+    <input type="password" id="password" placeholder="Passwort" class="input-field">
+    
+    <button id="btn-auth-main" onclick="handleAuth()" class="btn-primary" style="width:100%;">Anmelden</button>
+    
+    <p style="text-align:center; margin-top:15px;">
+        <span id="auth-switch-text">Noch kein Konto?</span> 
+        <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-switch-link" style="color:var(--primary); font-weight:bold;">Jetzt registrieren</a>
+    </p>
+</div>
 
     <div id="main-app" style="display:none;">
         <div class="tabs">
@@ -247,13 +258,52 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
             document.getElementById('auth-ui').style.display='block'; 
         }
     };
+function toggleAuthMode() {
+        isRegisterMode = !isRegisterMode;
+        document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Login";
+        document.getElementById('reg-fields').style.display = isRegisterMode ? "block" : "none";
+        document.getElementById('btn-auth-main').innerText = isRegisterMode ? "Konto erstellen" : "Anmelden";
+        document.getElementById('auth-switch-text').innerText = isRegisterMode ? "Bereits Mitglied?" : "Noch kein Konto?";
+        document.getElementById('auth-switch-link').innerText = isRegisterMode ? "Zum Login" : "Jetzt registrieren";
+        document.getElementById('btn-auth-main').onclick = isRegisterMode ? handleRegister : handleAuth;
+    }
+
+    function validatePassword(pw) {
+        if (pw.length < 8) return false;
+        let criteria = 0;
+        if (/[A-Z]/.test(pw)) criteria++; // Großbuchstaben
+        if (/[a-z]/.test(pw)) criteria++; // Kleinbuchstaben
+        if (/[0-9]/.test(pw)) criteria++; // Zahlen
+        if (/[^A-Za-z0-9]/.test(pw)) criteria++; // Sonderzeichen
+        return criteria >= 3;
+    }
 
     async function handleAuth() {
         const { error } = await sb.auth.signInWithPassword({ 
             email: document.getElementById('email').value, 
             password: document.getElementById('password').value 
         });
-        if(error) alert(error.message); else location.reload();
+        if(error) alert("Login fehlgeschlagen: " + error.message); else location.reload();
+    }
+
+    async function handleRegister() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const fullName = document.getElementById('reg-name').value;
+
+        if (!email || !password || !fullName) return alert("Bitte alle Felder ausfüllen!");
+        if (!validatePassword(password)) {
+            return alert("Passwort-Sicherheit unzureichend!\n- Mindestens 8 Zeichen\n- Davon mind. 3 von 4: Groß-/Kleinbuchstaben, Zahlen, Sonderzeichen.");
+        }
+
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) return alert(error.message);
+
+        if (data.user) {
+            await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName, team: "" }]);
+            alert("Registrierung erfolgreich! Bitte logge dich nun ein.");
+            toggleAuthMode();
+        }
     }
 
     async function setupApp(user) {
