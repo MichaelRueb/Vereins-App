@@ -74,7 +74,6 @@
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
 
-        <!-- STUNDEN VIEW -->
         <div id="view-home" class="view">
             <h3>Deine Stunden</h3>
             <div class="progress-container"><div id="my-progress-bar" class="progress-bar"></div><div id="my-progress-label" class="progress-text">0 / 10 h</div></div>
@@ -91,7 +90,6 @@
             <table><thead><tr><th>Datum</th><th>Tätigkeit</th><th>h</th><th>Status</th></tr></thead><tbody id="history-body"></tbody></table>
         </div>
 
-        <!-- KALENDER VIEW -->
         <div id="view-events" class="view" style="display:none;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
@@ -117,7 +115,6 @@
             <table><thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead><tbody id="tournament-list-body"></tbody></table>
         </div>
 
-        <!-- FAHRTENBUCH VIEW -->
         <div id="view-mileage" class="view" style="display:none;">
             <h3>🚗 Fahrtenbuch</h3>
             <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9;">
@@ -137,16 +134,19 @@
             <table style="width:100%"><thead><tr><th>Datum</th><th>Route</th><th>KM</th><th>Aktion</th></tr></thead><tbody id="mileage-history-body"></tbody></table>
         </div>
 
-        <!-- PROFIL VIEW -->
         <div id="view-profile" class="view" style="display:none;">
             <h3>Profil</h3>
             <input type="text" id="prof-name" placeholder="Name">
-            <div id="team-checkboxes-container" style="padding:10px; border:1px solid #ddd; border-radius:8px;"></div>
+            <p><strong>Deine Mannschaften:</strong></p>
+            <div id="team-checkboxes-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding:10px; border:1px solid #ddd; border-radius:8px;"></div>
+            <hr>
+            <p><strong>Passwort ändern:</strong></p>
+            <input type="password" id="prof-password" placeholder="Neues Passwort">
+            <input type="password" id="prof-password-confirm" placeholder="Neues Passwort bestätigen">
             <button onclick="updateProfile()">Speichern</button>
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
-        <!-- ADMIN VIEW -->
         <div id="view-admin" class="view" style="display:none;">
             <button onclick="exportToPDF()" style="background:var(--blue);">📄 Stunden Report (PDF)</button>
             <div id="admin-approval-section" style="background:#fff3e0; padding:15px; border-radius:8px; margin-top:20px; border:1px solid #ffe0b2;">
@@ -199,15 +199,6 @@
         loadHistory(); loadAllEvents(); fillTeamSelect();
     }
 
-    // AUTH FUNCTIONS
-    function toggleAuthMode() {
-        isRegisterMode = !isRegisterMode;
-        document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Login";
-        document.getElementById('reg-fields').style.display = isRegisterMode ? "block" : "none";
-        document.getElementById('reg-confirm-field').style.display = isRegisterMode ? "block" : "none";
-        document.getElementById('btn-auth-main').onclick = isRegisterMode ? handleRegister : handleAuth;
-    }
-
     async function handleAuth() {
         const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
         if(error) alert(error.message); else location.reload();
@@ -222,7 +213,6 @@
         alert("Erfolgreich! Warte auf Freischaltung."); location.reload();
     }
 
-    // STUNDEN FUNCTIONS
     async function sendHours() { 
         await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: document.getElementById('hours').value, description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, status: 'pending' }]); 
         alert("Gesendet!"); loadHistory(); 
@@ -236,7 +226,6 @@
         document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${new Date(x.date).toLocaleDateString('de-DE')}</td><td>${x.description}</td><td>${x.duration}h</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join(''); 
     }
 
-    // CALENDAR FUNCTIONS
     async function loadAllEvents() {
         const { data: t } = await sb.from('tournaments').select('*');
         const { data: c } = await sb.from('club_events').select('*');
@@ -269,7 +258,6 @@
         document.getElementById('calendar-selection-details').style.display = 'block'; 
     }
 
-    // MILEAGE FUNCTIONS
     function calcTotalKm() {
         const s = parseFloat(document.getElementById('ml-km-single').value) || 0;
         const t = document.getElementById('ml-roundtrip').checked ? s * 2 : s;
@@ -288,28 +276,34 @@
         document.getElementById('mileage-history-body').innerHTML = data?.map(m => `<tr><td>${m.date}</td><td>${m.purpose}</td><td>${m.distance_total}</td><td>-</td></tr>`).join('');
     }
 
-    // PROFILE & ADMIN
     function renderTeamCheckboxes(selected) {
         const selArr = selected ? selected.split(', ') : [];
-        document.getElementById('team-checkboxes-container').innerHTML = ALL_TEAMS.map(t => `<label style="display:block"><input type="checkbox" name="prof-teams" value="${t}" ${selArr.includes(t)?'checked':''}> ${t}</label>`).join('');
+        document.getElementById('team-checkboxes-container').innerHTML = ALL_TEAMS.map(t => `<label style="display:flex; align-items:center; gap:5px; font-size:13px;"><input type="checkbox" name="prof-teams" value="${t}" ${selArr.includes(t)?'checked':''}> ${t}</label>`).join('');
     }
 
     async function updateProfile() {
+        const name = document.getElementById('prof-name').value;
         const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c => c.value).join(', ');
-        await sb.from('profiles').update({ full_name: document.getElementById('prof-name').value, team: teams }).eq('id', currentUser.id);
-        alert("Gespeichert!");
+        const pass = document.getElementById('prof-password').value;
+        const confirm = document.getElementById('prof-password-confirm').value;
+
+        if (pass) {
+            if (pass !== confirm) return alert("Passwörter stimmen nicht überein!");
+            const { error } = await sb.auth.updateUser({ password: pass });
+            if (error) return alert("Fehler beim Passwort: " + error.message);
+        }
+
+        const { error } = await sb.from('profiles').update({ full_name: name, team: teams }).eq('id', currentUser.id);
+        if (error) alert("Fehler beim Speichern: " + error.message); else alert("Profil aktualisiert!");
     }
 
     async function loadAdmin() {
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
         const { data: hours } = await sb.from('work_hours').select('*');
-        
         const pending = profs.filter(p => !p.is_approved && p.email !== ADMIN_EMAIL);
         document.getElementById('admin-new-registrations').innerHTML = pending.map(p => `<div>${p.full_name} <button onclick="approveUser('${p.id}')">Freischalten</button></div>`).join('') || 'Keine Anfragen.';
-
         const open = hours.filter(h => h.status === 'pending');
         document.getElementById('admin-pending-body-real').innerHTML = open.map(h => `<tr><td>${h.date}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')">OK</button></td></tr>`).join('');
-
         const approved = profs.filter(p => p.is_approved || p.email === ADMIN_EMAIL);
         document.getElementById('admin-member-table-list').innerHTML = approved.map(p => {
             const sum = hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
@@ -330,6 +324,7 @@
         document.getElementById(`content-${uid}`).innerHTML = data?.map(h => `<div>${h.date}: ${h.duration}h - ${h.description}</div>`).join('') || 'Keine Daten';
     }
 
+    function toggleAuthMode() { isRegisterMode = !isRegisterMode; document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Login"; document.getElementById('reg-fields').style.display = isRegisterMode ? "block" : "none"; document.getElementById('reg-confirm-field').style.display = isRegisterMode ? "block" : "none"; }
     async function approveUser(id) { await sb.from('profiles').update({ is_approved: true }).eq('id', id); loadAdmin(); }
     async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
     async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); }
