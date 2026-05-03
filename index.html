@@ -71,15 +71,20 @@
 <div class="card">
     <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro lädt...</div>
 
-    <div id="auth-ui" style="display:none; max-width:400px; margin:50px auto; padding:20px; border:1px solid #ddd; border-radius:10px; background:white;">
+   <div id="auth-ui" style="display:none; max-width:400px; margin:50px auto; padding:20px; border:1px solid #ddd; border-radius:10px; background:white;">
     <h2 id="auth-title" style="text-align:center;">Login</h2>
     
     <div id="reg-fields" style="display:none;">
-        <input type="text" id="reg-name" placeholder="Vollständiger Name" class="input-field">
+        <input type="text" id="reg-name" placeholder="Vollständiger Name" class="input-field" style="width:100%; margin-bottom:10px;">
     </div>
 
-    <input type="email" id="email" placeholder="E-Mail" class="input-field">
-    <input type="password" id="password" placeholder="Passwort" class="input-field">
+    <input type="email" id="email" placeholder="E-Mail" class="input-field" style="width:100%; margin-bottom:10px;">
+    <input type="password" id="password" placeholder="Passwort" class="input-field" style="width:100%; margin-bottom:10px;">
+    
+    <!-- NEU: Bestätigungsfeld für die Registrierung -->
+    <div id="reg-confirm-field" style="display:none;">
+        <input type="password" id="password-confirm" placeholder="Passwort bestätigen" class="input-field" style="width:100%; margin-bottom:10px;">
+    </div>
     
     <button id="btn-auth-main" onclick="handleAuth()" class="btn-primary" style="width:100%;">Anmelden</button>
     
@@ -88,7 +93,6 @@
         <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-switch-link" style="color:var(--primary); font-weight:bold;">Jetzt registrieren</a>
     </p>
 </div>
-
     <div id="main-app" style="display:none;">
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
@@ -259,10 +263,13 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         }
     };
 
-    function toggleAuthMode() {
+   function toggleAuthMode() {
         isRegisterMode = !isRegisterMode;
         document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Login";
         document.getElementById('reg-fields').style.display = isRegisterMode ? "block" : "none";
+        // NEU: Bestätigungsfeld ein/ausblenden
+        document.getElementById('reg-confirm-field').style.display = isRegisterMode ? "block" : "none";
+        
         document.getElementById('btn-auth-main').innerText = isRegisterMode ? "Konto erstellen" : "Anmelden";
         document.getElementById('auth-switch-text').innerText = isRegisterMode ? "Bereits Mitglied?" : "Noch kein Konto?";
         document.getElementById('auth-switch-link').innerText = isRegisterMode ? "Zum Login" : "Jetzt registrieren";
@@ -289,9 +296,18 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     async function handleRegister() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
+        const passwordConfirm = document.getElementById('password-confirm').value; // NEU
         const fullName = document.getElementById('reg-name').value;
 
-        if (!email || !password || !fullName) return alert("Bitte alle Felder ausfüllen!");
+        if (!email || !password || !fullName || !passwordConfirm) {
+            return alert("Bitte alle Felder ausfüllen!");
+        }
+
+        // NEU: Passwort-Abgleich
+        if (password !== passwordConfirm) {
+            return alert("Die Passwörter stimmen nicht überein!");
+        }
+
         if (!validatePassword(password)) {
             return alert("Passwort-Sicherheit unzureichend!\n- Mindestens 8 Zeichen\n- Davon mind. 3 von 4: Groß-/Kleinbuchstaben, Zahlen, Sonderzeichen.");
         }
@@ -300,7 +316,6 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         if (error) return alert(error.message);
 
         if (data.user) {
-            // Profil in Datenbank anlegen
             await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName, team: "" }]);
             alert("Registrierung erfolgreich! Bitte logge dich nun ein.");
             toggleAuthMode();
