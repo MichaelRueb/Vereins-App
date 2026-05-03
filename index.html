@@ -221,9 +221,15 @@
 
        <!-- ADMIN VIEW -->
 <div id="view-admin" style="display:none;">
-    <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px;">
+    <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; display:none;">
         📄 Stunden Report (PDF)
     </button>
+    
+    <!-- NEU: Bereich für die Freischaltung unbestätigter Mitglieder -->
+    <div id="admin-approval-section" style="background:#fff3e0; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #ffe0b2;">
+        <h4 style="margin-top:0; color:#e65100;">🆕 Neue Registrierungen prüfen</h4>
+        <div id="admin-new-registrations"></div>
+    </div>
     
     <h4>⏳ Offene Stunden-Anträge</h4>
     <table><tbody id="admin-pending-body-real"></tbody></table>
@@ -240,9 +246,6 @@
         <tbody id="admin-member-table-list"></tbody>
     </table>
 </div>
-    </div>
-</div>
-
 <script>
 
 const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
@@ -607,33 +610,71 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     }
 
    async function loadAdmin() {
+    // 1. Daten aus Supabase laden
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*').order('date', {descending:true});
     
-    // 1. Liste der wartenden User (is_approved ist false)
-    const pendingUsers = profs.filter(p => p.is_approved === false);
+    if (!profs) return;
+
+    // --- SEKTION: NEUE REGISTRIERUNGEN (UNBESTÄTIGT) ---
+    // Filtert alle, die nicht approved sind (außer dem Admin selbst)
+    const pendingUsers = profs.filter(p => p.is_approved === false && p.email !== ADMIN_EMAIL);
     const regContainer = document.getElementById('admin-new-registrations');
     
     if (regContainer) {
-        regContainer.innerHTML = pendingUsers.map(p => `
-            <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
-                <span>${p.full_name || 'Kein Name'} (${p.id.substring(0,5)}...)</span>
-                <button onclick="approveUser('${p.id}')" style="background:green; color:white; border:none; padding:5px 10px; cursor:pointer;">Freischalten</button>
-            </div>
-        `).join('') || '<p>Keine neuen Anfragen.</p>';
+        if (pendingUsers.length === 0) {
+            regContainer.innerHTML = '<p style="color:gray; font-size:0.8em;">Keine neuen Anfragen.</p>';
+        } else {
+            regContainer.innerHTML = pendingUsers.map(p => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:10px; margin-bottom:5px; border-radius:5px; border:1px solid #ddd;">
+                    <span><strong>${p.full_name || 'Unbekannt (null)'}</strong><br><small>${p.id.substring(0,8)}...</small></span>
+                    <button onclick="approveUser('${p.id}')" style="background:#2e7d32; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Freischalten</button>
+                </div>
+            `).join('');
+        }
     }
 
-    // 2. Deine bestehende Mitglieder-Tabelle (nur approved User zeigen)
-    const approvedUsers = profs.filter(p => p.is_approved === true);
-    document.getElementById('admin-member-table-list').innerHTML = approvedUsers.map(p => {
-        // ... dein bisheriger Code für die Tabellenzeilen ...
-    }).join('');
+    // --- SEKTION: OFFENE STUNDEN-ANTRÄGE ---
+    const pendingHours = hours ? hours.filter(h => h.status === 'pending') : [];
+    document.getElementById('admin-pending-body-real').innerHTML = pendingHours.map(h => {
+        const u = profs.find(p => p.id === h.user_id);
+        return `<tr>
+            <td>${u ? u.full_name : 'Unbekannt'}<br><small>${h.date}</small></td>
+            <td>${h.description}</td>
+            <td>${h.duration}h</td>
+            <td><button onclick="approveHours('${h.id}')" class="btn-small">OK</button></td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="4">Keine offenen Anträge</td></tr>';
+
+    // --- SEKTION: MITGLIEDER-VERWALTUNG (BESTÄTIGT) ---
+    // Nur User anzeigen, die freigeschaltet sind
+    const approvedUsers = profs.filter(p => p.is_approved === true || p.email === ADMIN_EMAIL);
+    const memberTable = document.getElementById('admin-member-table-list');
+    
+    if (memberTable) {
+        memberTable.innerHTML = approvedUsers.map(p => {
+            const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+            return `
+                <tr>
+                    <td style="color:var(--primary); font-weight:bold;">${p.full_name || 'null'}</td>
+                    <td>${sum}h</td>
+                    <td>
+                        <div style="display:flex; flex-direction:column; gap:5px;">
+                            <label style="font-size:0.8em;"><input type="checkbox" ${p.is_captain?'checked':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label>
+                            <label style="font-size:0.8em;"><input type="checkbox" ${p.is_official?'checked':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funk.</label>
+                        </div>
+                    </td>
+                </tr>`;
+        }).join('');
+    }
 }
 
 async function approveUser(userId) {
     const { error } = await sb.from('profiles').update({ is_approved: true }).eq('id', userId);
-    if (error) alert("Fehler: " + error.message);
-    else {
-        alert("User freigeschaltet!");
+    if (error) {
+        alert("Fehler bei Freischaltung: " + error.message);
+    } else {
+        alert("Benutzer wurde freigeschaltet und erscheint nun in der Liste.");
         loadAdmin(); // Liste neu laden
     }
 }
