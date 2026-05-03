@@ -248,7 +248,7 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
 
     let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
-    let allMileage = [];
+    let allMileage = [], isRegisterMode = false; // WICHTIG: isRegisterMode hier definieren
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
@@ -258,7 +258,8 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
             document.getElementById('auth-ui').style.display='block'; 
         }
     };
-function toggleAuthMode() {
+
+    function toggleAuthMode() {
         isRegisterMode = !isRegisterMode;
         document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Login";
         document.getElementById('reg-fields').style.display = isRegisterMode ? "block" : "none";
@@ -279,10 +280,9 @@ function toggleAuthMode() {
     }
 
     async function handleAuth() {
-        const { error } = await sb.auth.signInWithPassword({ 
-            email: document.getElementById('email').value, 
-            password: document.getElementById('password').value 
-        });
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { error } = await sb.auth.signInWithPassword({ email, password });
         if(error) alert("Login fehlgeschlagen: " + error.message); else location.reload();
     }
 
@@ -300,6 +300,7 @@ function toggleAuthMode() {
         if (error) return alert(error.message);
 
         if (data.user) {
+            // Profil in Datenbank anlegen
             await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName, team: "" }]);
             alert("Registrierung erfolgreich! Bitte logge dich nun ein.");
             toggleAuthMode();
@@ -321,7 +322,13 @@ function toggleAuthMode() {
             
             // Sichtbarkeit der Tabs
             if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
-            if (isAdmin || isOfficial) document.getElementById('tab-mileage').style.display = 'block';
+            
+            // WICHTIG: PDF Button für Admins/Offizielle einblenden
+            if (isAdmin || isOfficial) {
+                document.getElementById('tab-mileage').style.display = 'block';
+                const pdfBtn = document.getElementById('admin-pdf-btn');
+                if(pdfBtn) pdfBtn.style.display = 'block';
+            }
             
             // Wettkampf-Formular Anzeige
             if (isAdmin || isCaptain) {
@@ -344,7 +351,6 @@ function toggleAuthMode() {
         const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
         sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     }
-
     // --- KALENDER & WETTKAMPF LOGIK ---
 
     async function saveNewEvent() {
