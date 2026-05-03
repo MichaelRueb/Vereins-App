@@ -294,37 +294,50 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         if(error) alert("Login fehlgeschlagen: " + error.message); else location.reload();
     }
 
-    async function handleRegister() {
+   async function handleRegister() {
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     const passwordConfirm = document.getElementById('password-confirm').value;
     const fullName = document.getElementById('reg-name').value.trim();
 
-    if (!email || !password || !fullName || !passwordConfirm) return alert("Bitte alles ausfüllen!");
-    if (password !== passwordConfirm) return alert("Passwörter ungleich!");
+    // 1. Pflichtfelder prüfen
+    if (!email || !password || !fullName || !passwordConfirm) {
+        return alert("Bitte alle Felder ausfüllen!");
+    }
 
-    // 1. Account im Auth-System erstellen
-    const { data, error } = await sb.auth.signUp({ email, password });
+    // 2. Passwort-Übereinstimmung prüfen
+    if (password !== passwordConfirm) {
+        return alert("Die Passwörter stimmen nicht überein!");
+    }
+
+    // 3. SICHERHEITS-CHECK (8 Zeichen, 3 von 4 Kriterien)
+    // Hier wird deine validatePassword Funktion aufgerufen
+    if (!validatePassword(password)) {
+        return alert("Passwort zu schwach!\n\nAnforderungen:\n- Mindestens 8 Zeichen\n- Davon mind. 3 von 4 Merkmalen:\n  (Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen)");
+    }
+
+    // --- Ab hier startet erst die Registrierung ---
+
+    // 4. Account im Auth-System erstellen
+    const { data, error: authError } = await sb.auth.signUp({ email, password });
     
-    if (error) return alert("Registrierung gestoppt: " + error.message);
+    if (authError) return alert("Registrierung gestoppt: " + authError.message);
 
     if (data.user) {
-        // 2. Profil in der Tabelle 'profiles' anlegen
-        // Wir nutzen upsert, um bestehende (leere) Einträge zu überschreiben
+        // 5. Profil in der Tabelle 'profiles' anlegen
         const { error: profileError } = await sb.from('profiles').upsert({ 
             id: data.user.id, 
             full_name: fullName, 
-            is_approved: false, // Hier war der Fehler, falls Spalte fehlte
+            is_approved: false, 
             is_official: false,
             is_captain: false
         });
 
         if (profileError) {
             console.error("Detail-Fehler:", profileError);
-            // Wir zeigen jetzt den echten Fehler an!
             alert("Profil-Fehler: " + profileError.message); 
         } else {
-            alert("Registrierung erfolgreich! Warte bitte auf die Freischaltung durch den Admin.");
+            alert("Registrierung erfolgreich! Bitte warte auf die Freischaltung durch den Admin.");
             toggleAuthMode();
         }
     }
