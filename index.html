@@ -263,13 +263,11 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         }
     };
 
-   function toggleAuthMode() {
+  function toggleAuthMode() {
         isRegisterMode = !isRegisterMode;
         document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Login";
         document.getElementById('reg-fields').style.display = isRegisterMode ? "block" : "none";
-        // NEU: Bestätigungsfeld ein/ausblenden
         document.getElementById('reg-confirm-field').style.display = isRegisterMode ? "block" : "none";
-        
         document.getElementById('btn-auth-main').innerText = isRegisterMode ? "Konto erstellen" : "Anmelden";
         document.getElementById('auth-switch-text').innerText = isRegisterMode ? "Bereits Mitglied?" : "Noch kein Konto?";
         document.getElementById('auth-switch-link').innerText = isRegisterMode ? "Zum Login" : "Jetzt registrieren";
@@ -296,63 +294,59 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     async function handleRegister() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const passwordConfirm = document.getElementById('password-confirm').value; // NEU
+        const passwordConfirm = document.getElementById('password-confirm').value;
         const fullName = document.getElementById('reg-name').value;
 
-        if (!email || !password || !fullName || !passwordConfirm) {
-            return alert("Bitte alle Felder ausfüllen!");
-        }
-
-        // NEU: Passwort-Abgleich
-        if (password !== passwordConfirm) {
-            return alert("Die Passwörter stimmen nicht überein!");
-        }
-
+        if (!email || !password || !fullName || !passwordConfirm) return alert("Bitte alle Felder ausfüllen!");
+        if (password !== passwordConfirm) return alert("Passwörter stimmen nicht überein!");
+        
         if (!validatePassword(password)) {
-            return alert("Passwort-Sicherheit unzureichend!\n- Mindestens 8 Zeichen\n- Davon mind. 3 von 4: Groß-/Kleinbuchstaben, Zahlen, Sonderzeichen.");
+            return alert("Passwort zu schwach! Mind. 8 Zeichen und 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).");
         }
 
         const { data, error } = await sb.auth.signUp({ email, password });
         if (error) return alert(error.message);
 
         if (data.user) {
-            await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName, team: "" }]);
-            alert("Registrierung erfolgreich! Bitte logge dich nun ein.");
+            // WICHTIG: is_approved ist standardmäßig false
+            await sb.from('profiles').insert([{ id: data.user.id, full_name: fullName, team: "", is_approved: false }]);
+            alert("Registrierung erfolgreich! Dein Konto muss nun vom Admin freigeschaltet werden.");
             toggleAuthMode();
         }
     }
 
-    async function setupApp(user) {
+   async function setupApp(user) {
         currentUser = user; 
         isAdmin = user.email === ADMIN_EMAIL;
         
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
         
         if (p) {
+            // SPERRE: Wenn nicht freigeschaltet und kein Admin
+            if (!p.is_approved && !isAdmin) {
+                document.getElementById('loading-ui').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                document.getElementById('main-app').innerHTML = `
+                    <div style="padding:40px; text-align:center; background:white; border-radius:10px; margin:20px;">
+                        <h2 style="color:var(--accent);">Warteschleife</h2>
+                        <p>Hallo <b>${p.full_name}</b>,<br>dein Zugang muss erst durch einen Admin bestätigt werden.</p>
+                        <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:gray;">Abmelden</button>
+                    </div>`;
+                return; 
+            }
+
+            // Normales Setup für freigeschaltete User
             userTeam = p.team || ""; 
             isCaptain = p.is_captain || false; 
             isOfficial = p.is_official || false;
             
-            document.getElementById('prof-name').value = p.full_name || "";
-            
-            // Sichtbarkeit der Tabs
             if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
-            
-            // WICHTIG: PDF Button für Admins/Offizielle einblenden
             if (isAdmin || isOfficial) {
                 document.getElementById('tab-mileage').style.display = 'block';
-                const pdfBtn = document.getElementById('admin-pdf-btn');
-                if(pdfBtn) pdfBtn.style.display = 'block';
-            }
-            
-            // Wettkampf-Formular Anzeige
-            if (isAdmin || isCaptain) {
-                if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'block';
-                fillTeamSelect();
+                if(document.getElementById('admin-pdf-btn')) document.getElementById('admin-pdf-btn').style.display = 'block';
             }
         }
         
-        renderTeamCheckboxes(userTeam);
         document.getElementById('loading-ui').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
         loadHistory(); 
@@ -625,6 +619,15 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         }).join('');
     }
 
+async function approveUser(uid) {
+        const { error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid);
+        if (error) alert("Fehler: " + error.message);
+        else {
+            alert("Mitglied erfolgreich freigeschaltet!");
+            loadAdmin(); // Liste aktualisieren
+        }
+    }
+    
     async function viewUserDetail(uid) {
         const row = document.getElementById(`details-${uid}`);
         const content = document.getElementById(`content-${uid}`);
