@@ -887,18 +887,32 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     if (memberList) {
         memberList.innerHTML = profs.filter(p => p.is_approved === true).map(p => {
             const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
-            return `
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold; padding:10px;">${p.full_name || 'Kein Name'}</td>
-                    <td style="padding:10px;">${sum}h</td>
-                    <td style="padding:10px;">
-                        <div class="admin-role-group" style="display:flex; gap:10px;">
-                            <label><input type="checkbox" ${p.is_captain?'checked':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label>
-                            <label><input type="checkbox" ${p.is_official?'checked':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funk.</label>
-                        </div>
-                    </td>
-                </tr>
-                <tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:10px;"></td></tr>`;
+           return `
+    <tr style="border-bottom: 1px solid #eee;">
+        <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold; padding:10px;">
+            ${p.full_name || 'Kein Name'}
+        </td>
+        <td style="padding:10px;">${sum}h</td>
+        <td style="padding:10px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em;">
+                    <input type="checkbox" style="margin: 0; width: 16px; height: 16px;" 
+                        ${p.is_captain ? 'checked' : ''} 
+                        onchange="updateRole('${p.id}','is_captain',this.checked)">
+                    <span>Kapt.</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em;">
+                    <input type="checkbox" style="margin: 0; width: 16px; height: 16px;" 
+                        ${p.is_official ? 'checked' : ''} 
+                        onchange="updateRole('${p.id}','is_official',this.checked)">
+                    <span>Funk.</span>
+                </label>
+            </div>
+        </td>
+    </tr>
+                <tr id="details-${p.id}" style="display:none;">
+        <td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:10px; border-left: 4px solid var(--primary);"></td>
+    </tr>`;
         }).join('');
     }
 }
