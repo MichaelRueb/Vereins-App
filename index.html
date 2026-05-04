@@ -71,12 +71,26 @@
 <div class="card">
     <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro lädt...</div>
 
-    <div id="auth-ui" style="display:none;">
-        <h2 style="text-align:center;">Anmelden</h2>
-        <input type="email" id="email" placeholder="E-Mail">
-        <input type="password" id="password" placeholder="Passwort">
-        <button onclick="handleAuth()">Einloggen</button>
+   <div id="auth-ui" style="display:none;">
+    <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
+    
+    <div id="reg-fields" style="display:none;">
+        <input type="text" id="reg-name" placeholder="Vollständiger Name">
     </div>
+    
+    <input type="email" id="email" placeholder="E-Mail">
+    <input type="password" id="password" placeholder="Passwort">
+    
+    <div id="reg-confirm-fields" style="display:none;">
+        <input type="password" id="password-confirm" placeholder="Passwort bestätigen">
+        <p style="font-size: 12px; color: #666;">Min. 8 Zeichen (3 von 4: Groß, Klein, Zahl, Sonderzeichen)</p>
+    </div>
+
+    <button id="auth-btn" onclick="handleAuth()">Einloggen</button>
+    
+    <p style="text-align:center; cursor:pointer; color:var(--blue); text-decoration:underline;" 
+       id="auth-toggle" onclick="toggleAuthMode()">Noch kein Konto? Hier registrieren</p>
+</div>
 
     <div id="main-app" style="display:none;">
         <div class="tabs">
@@ -738,6 +752,67 @@ async function exportMileagePDF() {
     const { error } = await sb.auth.updateUser({ password: p1 });
     // ... Rest der Funktion
 }
+
+let isRegistrationMode = false;
+
+    function toggleAuthMode() {
+        isRegistrationMode = !isRegistrationMode;
+        document.getElementById('auth-title').innerText = isRegistrationMode ? "Registrieren" : "Anmelden";
+        document.getElementById('auth-btn').innerText = isRegistrationMode ? "Konto erstellen" : "Einloggen";
+        document.getElementById('reg-fields').style.display = isRegistrationMode ? "block" : "none";
+        document.getElementById('reg-confirm-fields').style.display = isRegistrationMode ? "block" : "none";
+        document.getElementById('auth-toggle').innerText = isRegistrationMode ? "Zurück zum Login" : "Noch kein Konto? Hier registrieren";
+    }
+
+    async function handleAuth() {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+
+        if (isRegistrationMode) {
+            const name = document.getElementById('reg-name').value;
+            const confirm = document.getElementById('password-confirm').value;
+
+            if (!name || !email || !pass) return alert("Bitte alle Felder ausfüllen!");
+            if (pass !== confirm) return alert("Passwörter stimmen nicht überein!");
+            
+            // Passwort-Check (3 von 4 Regel wie zuvor definiert)
+            if (pass.length < 8) return alert("Passwort zu kurz!");
+            let criteria = (/[A-Z]/.test(pass)) + (/[a-z]/.test(pass)) + (/[0-9]/.test(pass)) + (/[^A-Za-z0-9]/.test(pass));
+            if (criteria < 3) return alert("Passwort erfüllt Sicherheitsregeln nicht!");
+
+            const { data, error } = await sb.auth.signUp({ email, password: pass });
+            if (error) return alert(error.message);
+
+            // Profil mit is_approved = false anlegen
+            await sb.from('profiles').insert([{ id: data.user.id, full_name: name, is_approved: false }]);
+            alert("Registriert! Bitte warte auf die Freigabe durch den Admin.");
+            location.reload();
+        } else {
+            const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+            if (error) return alert(error.message);
+            checkApproval(data.user);
+        }
+    }
+
+    async function checkApproval(user) {
+        const { data: p } = await sb.from('profiles').select('is_approved').eq('id', user.id).maybeSingle();
+        if (p && p.is_approved) {
+            setupApp(user);
+        } else {
+            await sb.auth.signOut();
+            alert("Dein Konto wurde noch nicht vom Admin freigeschaltet.");
+            location.reload();
+        }
+    }
+
+    // Erweitere loadAdmin() um die Freigabe-Funktion
+    async function approveMember(uid) {
+        const { error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid);
+        if(!error) {
+            alert("Mitglied freigeschaltet!");
+            loadAdmin();
+        }
+    }
     
 </script>
     
