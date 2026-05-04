@@ -221,6 +221,13 @@
 
        <!-- ADMIN VIEW -->
 <div id="view-admin" style="display:none;">
+    <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32;">
+    <h3 style="margin-top:0; color:#2e7d32;">Datensicherung</h3>
+    <p style="font-size: 0.9em;">Lade einmal pro Woche alle Vereinsdaten (Mitglieder, Stunden, Fahrten) als Sicherungsdatei herunter.</p>
+    <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%;">
+        📦 Vollständiges Backup erstellen (.json)
+    </button>
+</div>
     <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px;">
         📄 Stunden Report (PDF)
     </button>
@@ -897,6 +904,55 @@ function toggleAuthMode() {
     else {
         alert("Mitglied freigeschaltet!");
         loadAdmin(); // Liste aktualisieren
+    }
+}
+//Backup
+async function exportFullBackup() {
+    // Liste deiner Tabellen aus dem Screenshot
+    const tablesToExport = [
+        'profiles', 
+        'work_hours', 
+        'mileage_logs', 
+        'club_events', 
+        'competitions', 
+        'tournaments'
+    ];
+    
+    let backupData = {
+        info: "SV Hubertus Strullendorf - Datenbank Backup",
+        export_date: new Date().toLocaleString('de-DE'),
+        data: {}
+    };
+
+    try {
+        // Jede Tabelle einzeln abfragen
+        for (const tableName of tablesToExport) {
+            const { data, error } = await sb.from(tableName).select('*');
+            if (error) {
+                console.warn(`Fehler beim Export von ${tableName}:`, error);
+                backupData.data[tableName] = "Fehler beim Laden";
+            } else {
+                backupData.data[tableName] = data;
+            }
+        }
+
+        // In JSON umwandeln und Download starten
+        const jsonString = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement("a");
+        link.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        link.download = `Hubertus_Voll-Backup_${dateStr}.json`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert("Vollständiges Backup wurde erstellt und heruntergeladen!");
+    } catch (err) {
+        alert("Kritischer Fehler beim Backup: " + err.message);
     }
 }
     
