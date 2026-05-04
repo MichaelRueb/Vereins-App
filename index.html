@@ -22,6 +22,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
         th, td { padding: 12px 10px; border-bottom: 1px solid #eee; text-align: left; }
         
+        /* Kalender Styling */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
         .calendar-day { background: white; min-height: 80px; padding: 5px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
         .calendar-day.today { background: #fff9c4; font-weight: bold; }
@@ -31,6 +32,7 @@
         .team-lp { background-color: #1565c0 !important; } 
         .team-verein { background-color: #FFD700 !important; }
 
+        /* Fortschrittsbalken */
         .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; position: relative; overflow: hidden; margin: 10px 0; border: 1px solid #ddd; }
         .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s; }
         .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
@@ -40,7 +42,28 @@
         .btn-del { background: #c62828; }
         .mileage-sum { background: #e8f5e9; padding: 10px; border-radius: 8px; font-weight: bold; color: var(--primary-dark); margin-bottom: 10px; text-align: center; }
         
-        .checkbox-wrapper { display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 8px; margin: 4px 0; font-size: 14px; }
+        /* FIX: Saubere Checkboxen und Layout */
+        .checkbox-wrapper { 
+            display: grid; 
+            grid-template-columns: 24px 1fr; 
+            align-items: center; 
+            gap: 8px; 
+            margin: 4px 0; 
+            font-size: 14px; 
+            text-align: left;
+        }
+        .checkbox-wrapper input { 
+            width: 18px; 
+            height: 18px; 
+            margin: 0; 
+            cursor: pointer; 
+        }
+        .admin-role-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -48,21 +71,11 @@
 <div class="card">
     <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro lädt...</div>
 
-    <div id="auth-ui" style="display:none; max-width:400px; margin:50px auto; padding:20px; border:1px solid #ddd; border-radius:10px; background:white;">
-        <h2 id="auth-title" style="text-align:center;">Login</h2>
-        <div id="reg-fields" style="display:none;">
-            <input type="text" id="reg-name" placeholder="Vollständiger Name">
-        </div>
+    <div id="auth-ui" style="display:none;">
+        <h2 style="text-align:center;">Anmelden</h2>
         <input type="email" id="email" placeholder="E-Mail">
         <input type="password" id="password" placeholder="Passwort">
-        <div id="reg-confirm-field" style="display:none;">
-            <input type="password" id="password-confirm" placeholder="Passwort bestätigen">
-        </div>
-        <button id="btn-auth-main" onclick="handleAuth()">Anmelden</button>
-        <p style="text-align:center; margin-top:15px;">
-            <span id="auth-switch-text">Noch kein Konto?</span> 
-            <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-switch-link" style="color:var(--primary); font-weight:bold;">Jetzt registrieren</a>
-        </p>
+        <button onclick="handleAuth()">Einloggen</button>
     </div>
 
     <div id="main-app" style="display:none;">
@@ -74,7 +87,8 @@
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
 
-        <div id="view-home" class="view">
+        <!-- STUNDEN VIEW -->
+        <div id="view-home">
             <h3>Deine Stunden</h3>
             <div class="progress-container"><div id="my-progress-bar" class="progress-bar"></div><div id="my-progress-label" class="progress-text">0 / 10 h</div></div>
             <input type="date" id="date">
@@ -90,131 +104,407 @@
             <table><thead><tr><th>Datum</th><th>Tätigkeit</th><th>h</th><th>Status</th></tr></thead><tbody id="history-body"></tbody></table>
         </div>
 
-        <div id="view-events" class="view" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
-                <h3 id="current-month-display"></h3>
-                <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
-            </div>
-            <div id="calendar-container" class="calendar-grid"></div>
-            <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
-                <h4 id="selection-date-label" style="margin:0"></h4>
-                <div id="selection-content"></div>
-            </div>
-            <h4 style="margin-top:25px;">Terminliste</h4>
-            <select id="event-view-filter" onchange="renderTournamentList()"></select>
-            <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
-                <h4 id="event-form-title">Neuen Wettkampf anlegen</h4>
-                <input type="hidden" id="edit-event-id">
-                <input type="date" id="event-date">
-                <input type="time" id="event-time">
-                <select id="event-team-select"></select>
-                <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name">
-                <button id="btn-save-event" onclick="saveNewEvent()">Termin speichern</button>
-            </div>
-            <table><thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Aktion</th></tr></thead><tbody id="tournament-list-body"></tbody></table>
+       <!-- KALENDER VIEW -->
+<div id="view-events" style="display:none;">
+ 
+    <!-- KALENDER NAVIGATION -->
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
+        <h3 id="current-month-display"></h3>
+        <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
+    </div>
+    
+    <div id="calendar-container" class="calendar-grid"></div>
+    
+    <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
+        <h4 id="selection-date-label" style="margin:0"></h4>
+        <div id="selection-content"></div>
+    </div>
+    
+    <h4 style="margin-top:25px;">Terminliste</h4>
+    <select id="event-view-filter" onchange="renderTournamentList()" style="margin-bottom: 10px;"></select>
+    
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Zeit</th>
+                    <th>Team</th>
+                    <th>Gegner</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody id="tournament-list-body"></tbody>
+        </table>
+    </div>
+       <!-- EINGABEFENSTER (Jetzt oben platziert für bessere Usability beim Editieren) -->
+    <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
+        <h4 id="event-form-title" style="margin-top:0;">Neuen Wettkampf anlegen</h4>
+        <input type="hidden" id="edit-event-id"> <!-- Wichtig für die Bearbeitung -->
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <input type="date" id="event-date">
+            <input type="time" id="event-time">
         </div>
+        
+        <select id="event-team-select" style="width: 100%; margin-bottom: 10px;"></select>
+        <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name" style="width: 100%; margin-bottom: 10px;">
+        
+        <div style="display: flex; gap: 10px;">
+            <button id="btn-save-event" onclick="saveNewEvent()" style="background:var(--primary-dark); flex: 2;">Termin speichern</button>
+            <button id="btn-cancel-event" onclick="resetEventForm()" style="background:#777; flex: 1; display: none;">Abbrechen</button>
+        </div>
+    </div>
 
-        <div id="view-mileage" class="view" style="display:none;">
+</div>
+        
+
+        <!-- FAHRTENBUCH VIEW -->
+        <div id="view-mileage" style="display:none;">
             <h3>🚗 Fahrtenbuch</h3>
-            <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9;">
+            <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
+                <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
                 <input type="hidden" id="edit-ml-id">
-                <input type="date" id="ml-date">
-                <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck">
-                <input type="text" id="ml-start" list="start-suggestions" placeholder="Von...">
-                <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach...">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="ml-date">
+                    <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
+                    <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
+                </div>
                 <datalist id="purpose-suggestions"></datalist><datalist id="start-suggestions"></datalist><datalist id="end-suggestions"></datalist>
-                <label class="checkbox-wrapper"><input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt</label>
-                <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()">
-                <div id="ml-result" style="text-align: center; font-weight: bold;">Gesamt: 0.00 km</div>
+                
+                <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px;">
+                    <label class="checkbox-wrapper"><input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt</label>
+                    <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
+                </div>
+                <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">Gesamtstrecke: 0.00 km</div>
                 <button onclick="saveMileage()">Fahrt speichern</button>
+                <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none;">Abbrechen</button>
             </div>
-            <button onclick="exportMileagePDF()" style="background:var(--blue); margin-top:10px;">PDF Export</button>
+            
+            <button onclick="exportMileagePDF()" style="background:var(--blue); margin-bottom:15px;">📄 Fahrtenbuch PDF exportieren</button>
             <div class="mileage-sum" id="mileage-sum-display">Gesamt diesen Monat: 0.00 km</div>
-            <table style="width:100%"><thead><tr><th>Datum</th><th>Route</th><th>KM</th><th>Aktion</th></tr></thead><tbody id="mileage-history-body"></tbody></table>
+            <table><thead><tr><th>Datum</th><th>Zweck / Route</th><th>KM</th><th>Aktion</th></tr></thead><tbody id="mileage-history-body"></tbody></table>
         </div>
 
-        <div id="view-profile" class="view" style="display:none;">
+        <!-- PROFIL VIEW -->
+        <div id="view-profile" style="display:none;">
             <h3>Profil</h3>
             <input type="text" id="prof-name" placeholder="Name">
-            <p><strong>Deine Mannschaften:</strong></p>
-            <div id="team-checkboxes-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding:10px; border:1px solid #ddd; border-radius:8px;"></div>
+            <div id="team-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:15px; border:1px solid #ddd; border-radius:8px;"></div>
+            <button onclick="updateProfile()" style="margin-top:15px;">Speichern</button>
             <hr>
-            <p><strong>Passwort ändern:</strong></p>
-            <input type="password" id="prof-password" placeholder="Neues Passwort">
-            <input type="password" id="prof-password-confirm" placeholder="Neues Passwort bestätigen">
-            <button onclick="updateProfile()">Speichern</button>
+            <h4>Passwort ändern</h4>
+            <input type="password" id="new-pass" placeholder="Neues Passwort">
+            <input type="password" id="new-pass-confirm" placeholder="Bestätigen">
+            <button onclick="updatePassword()" style="background:var(--accent);">Passwort aktualisieren</button>
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
-        <div id="view-admin" class="view" style="display:none;">
-            <button onclick="exportToPDF()" style="background:var(--blue);">📄 Stunden Report (PDF)</button>
-            <div id="admin-approval-section" style="background:#fff3e0; padding:15px; border-radius:8px; margin-top:20px; border:1px solid #ffe0b2;">
-                <h4 style="margin-top:0;">🆕 Neue Registrierungen</h4>
-                <div id="admin-new-registrations"></div>
-            </div>
-            <h4>⏳ Offene Stunden</h4>
-            <table><tbody id="admin-pending-body-real"></tbody></table>
-            <h4>👥 Mitglieder</h4>
-            <table><thead><tr><th>Name</th><th>h</th><th>Rollen</th></tr></thead><tbody id="admin-member-table-list"></tbody></table>
-        </div>
+       <!-- ADMIN VIEW -->
+<div id="view-admin" style="display:none;">
+    <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px;">
+        📄 Stunden Report (PDF)
+    </button>
+    
+    <h4>⏳ Offene Stunden-Anträge</h4>
+    <table><tbody id="admin-pending-body-real"></tbody></table>
+    
+    <h4>👥 Mitglieder-Verwaltung</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>h</th>
+                <th style="width:140px;">Rollen</th>
+            </tr>
+        </thead>
+        <tbody id="admin-member-table-list"></tbody>
+    </table>
+</div>
     </div>
 </div>
 
 <script>
-    const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
+
+const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
     const sb = supabase.createClient(S_URL, S_KEY);
     const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
 
-    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date(), isRegisterMode = false;
+    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
+    let allMileage = [];
 
     window.onload = async () => {
         const { data: { session } } = await sb.auth.getSession();
         if (session) setupApp(session.user);
-        else { document.getElementById('loading-ui').style.display='none'; document.getElementById('auth-ui').style.display='block'; }
+        else { 
+            document.getElementById('loading-ui').style.display='none'; 
+            document.getElementById('auth-ui').style.display='block'; 
+        }
     };
+
+    async function handleAuth() {
+        const { error } = await sb.auth.signInWithPassword({ 
+            email: document.getElementById('email').value, 
+            password: document.getElementById('password').value 
+        });
+        if(error) alert(error.message); else location.reload();
+    }
 
     async function setupApp(user) {
         currentUser = user; 
         isAdmin = user.email === ADMIN_EMAIL;
+        
         const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
         
         if (p) {
-            if (!p.is_approved && !isAdmin) {
-                document.getElementById('loading-ui').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
-                document.getElementById('main-app').innerHTML = `<div style="padding:40px; text-align:center;"><h2>Warteschleife</h2><p>Hallo <b>${p.full_name}</b>, dein Zugang muss erst freigeschaltet werden.</p><button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:gray;">Abmelden</button></div>`;
-                return; 
-            }
-            userTeam = p.team || ""; isCaptain = p.is_captain || false; isOfficial = p.is_official || false;
+            userTeam = p.team || ""; 
+            isCaptain = p.is_captain || false; 
+            isOfficial = p.is_official || false;
+            
+            document.getElementById('prof-name').value = p.full_name || "";
+            
+            // Sichtbarkeit der Tabs
             if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
             if (isAdmin || isOfficial) document.getElementById('tab-mileage').style.display = 'block';
-            document.getElementById('prof-name').value = p.full_name || "";
-            renderTeamCheckboxes(p.team);
+            
+            // Wettkampf-Formular Anzeige
+            if (isAdmin || isCaptain) {
+                if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'block';
+                fillTeamSelect();
+            }
         }
+        
+        renderTeamCheckboxes(userTeam);
         document.getElementById('loading-ui').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
-        loadHistory(); loadAllEvents(); fillTeamSelect();
+        loadHistory(); 
+        loadAllEvents();
     }
 
-    async function handleAuth() {
-        const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
-        if(error) alert(error.message); else location.reload();
+    function fillTeamSelect() {
+        const sel = document.getElementById('event-team-select');
+        if (!sel) return;
+        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+        const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
+        sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     }
 
-    async function handleRegister() {
-        const email = document.getElementById('email').value, password = document.getElementById('password').value;
-        if(password !== document.getElementById('password-confirm').value) return alert("Passwörter ungleich!");
-        const { data, error } = await sb.auth.signUp({ email, password });
-        if(error) return alert(error.message);
-        await sb.from('profiles').upsert({ id: data.user.id, full_name: document.getElementById('reg-name').value, is_approved: false });
-        alert("Erfolgreich! Warte auf Freischaltung."); location.reload();
+    // --- KALENDER & WETTKAMPF LOGIK ---
+
+    async function saveNewEvent() {
+        const id = document.getElementById('edit-event-id').value;
+        const date = document.getElementById('event-date').value;
+        const time = document.getElementById('event-time').value;
+        const team = document.getElementById('event-team-select').value;
+        const opponent = document.getElementById('event-opponent').value;
+
+        if (!date || !opponent || !team) return alert("Bitte Datum, Team und Gegner angeben!");
+
+        const payload = { date, time, team, opponent };
+        let res;
+
+        if (id) {
+            res = await sb.from('tournaments').update(payload).eq('id', id);
+        } else {
+            res = await sb.from('tournaments').insert([payload]);
+        }
+
+        if (res.error) {
+            alert("Fehler: " + res.error.message);
+        } else {
+            alert(id ? "Termin aktualisiert!" : "Wettkampf erfolgreich gespeichert!");
+            resetEventForm();
+            loadAllEvents();
+        }
     }
+
+    function editEvent(id) {
+        const ev = allEvents.find(x => x.id === id);
+        if (!ev) return;
+        document.getElementById('view-events').scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('edit-event-id').value = id;
+        document.getElementById('event-date').value = ev.date;
+        document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
+        document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
+        document.getElementById('event-team-select').value = ev.team;
+        document.getElementById('event-form-title').innerText = "Wettkampf bearbeiten";
+        document.getElementById('btn-save-event').innerText = "Änderungen speichern";
+        document.getElementById('btn-cancel-event').style.display = "block";
+    }
+
+    function resetEventForm() {
+        if(document.getElementById('edit-event-id')) document.getElementById('edit-event-id').value = "";
+        document.getElementById('event-date').value = "";
+        document.getElementById('event-time').value = "";
+        document.getElementById('event-opponent').value = "";
+        document.getElementById('event-form-title').innerText = "Neuen Wettkampf anlegen";
+        document.getElementById('btn-save-event').innerText = "Termin speichern";
+        document.getElementById('btn-cancel-event').style.display = "none";
+    }
+
+    async function loadAllEvents() {
+        const { data: t } = await sb.from('tournaments').select('*');
+        const { data: c } = await sb.from('club_events').select('*');
+        allEvents = [...(t || []), ...(c || []).map(e => ({ ...e, team: 'Verein', opponent: e.title }))];
+        renderEventFilter(); 
+        renderCalendar(); 
+        renderTournamentList();
+    }
+
+    function renderTournamentList() {
+        const filter = document.getElementById('event-view-filter').value;
+        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+        const filtered = allEvents.filter(e => {
+            if (filter === 'all_teams') return true;
+            if (filter === 'Verein') return e.team === 'Verein';
+            if (filter === 'only_sports') return e.team !== 'Verein';
+            if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
+            return e.team === filter;
+        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        let html = '';
+        const sports = filtered.filter(e => e.team !== 'Verein');
+        const club = filtered.filter(e => e.team === 'Verein');
+
+        if (sports.length > 0) {
+            html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>🎯 Wettkampftermine</b></td></tr>`;
+            sports.forEach(e => html += renderEventRow(e));
+        }
+        if (club.length > 0) {
+            html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>📅 Vereinstermine</b></td></tr>`;
+            club.forEach(e => html += renderEventRow(e));
+        }
+        document.getElementById('tournament-list-body').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+    }
+
+    function renderEventRow(e) {
+        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+        const isMyTeam = myTeams.includes(e.team);
+        const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
+        const editBtn = (canEdit && e.team !== 'Verein') ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}')">✏️</button>` : '-';
+        return `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0, 5) || '--:--'}</td><td>${e.team}</td><td>${e.opponent || e.title || '-'}</td><td>${editBtn}</td></tr>`;
+    }
+
+    // --- TABS & NAVIGATION ---
+
+    function switchTab(t) { 
+        ['home','events','profile','admin','mileage'].forEach(v => { 
+            const view = document.getElementById('view-'+v);
+            const tab = document.getElementById('tab-'+v);
+            if(view) view.style.display = (v===t)?'block':'none'; 
+            if(tab) tab.className = (v===t)?'tab active':'tab'; 
+        }); 
+        if(t==='admin') loadAdmin(); 
+        if(t==='mileage') {
+            resetMileageForm();
+            loadMileageHistory();
+            loadRouteSuggestions(); // Fehlerbehebung: Lädt Vorschläge beim Tab-Wechsel
+            if(document.getElementById('ml-date')) document.getElementById('ml-date').valueAsDate = new Date();
+        }
+    }
+
+    // --- FAHRTENBUCH LOGIK ---
+
+    function calcTotalKm() {
+        const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
+        const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
+        const resElem = document.getElementById('ml-result');
+        if(resElem) resElem.innerText = `Gesamtstrecke: ${total.toFixed(2)} km`;
+        return total;
+    }
+
+    async function loadRouteSuggestions() {
+        const { data: routeData } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
+        const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+
+        if (routeData) {
+            document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
+            document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
+            window.mySavedRoutes = routeData;
+        }
+
+        if (logData) {
+            const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
+            document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
+        }
+    }
+
+    function checkFavRoute() {
+        const start = document.getElementById('ml-start').value;
+        const end = document.getElementById('ml-end').value;
+        if(window.mySavedRoutes) {
+            const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
+            if(found) { 
+                document.getElementById('ml-km-single').value = found.distance_single; 
+                calcTotalKm(); 
+            }
+        }
+    }
+
+    async function loadMileageHistory() {
+        const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
+        if(data) {
+            allMileage = data;
+            const now = new Date();
+            const monthSum = data.filter(m => new Date(m.date).getMonth() === now.getMonth()).reduce((s, m) => s + parseFloat(m.distance_total), 0);
+            document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${monthSum.toFixed(2)} km`;
+            document.getElementById('mileage-history-body').innerHTML = data.map(m => `
+                <tr>
+                    <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
+                    <td><strong>${m.purpose}</strong><br><small>${m.start_location} ➔ ${m.end_location}</small></td>
+                    <td>${parseFloat(m.distance_total).toFixed(2)} km</td>
+                    <td><button class="btn-small btn-edit" onclick="editMileage('${m.id}')">✏️</button></td>
+                </tr>`).join('');
+        }
+    }
+
+    async function saveMileage() {
+        const id = document.getElementById('edit-ml-id').value;
+        const date = document.getElementById('ml-date').value, purpose = document.getElementById('ml-purpose').value;
+        const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value, single = parseFloat(document.getElementById('ml-km-single').value);
+        if(!date || !purpose || !start || !end || !single) return alert("Bitte alle Felder ausfüllen!");
+        
+        const total = calcTotalKm();
+        const payload = { user_id: currentUser.id, date, purpose, start_location: start, end_location: end, distance_single: single, is_round_trip: document.getElementById('ml-roundtrip').checked, distance_total: total };
+        
+        const res = id ? await sb.from('mileage_logs').update(payload).eq('id', id) : await sb.from('mileage_logs').insert([payload]);
+        
+        if(res.error) alert(res.error.message); 
+        else { 
+            // Automatisch als Vorschlag für später speichern
+            await sb.from('saved_routes').upsert({ 
+                user_id: currentUser.id, start_point: start, end_point: end, distance_single: single 
+            }, { onConflict: 'user_id,start_point,end_point' });
+            
+            resetMileageForm(); 
+            loadMileageHistory(); 
+            loadRouteSuggestions();
+        }
+    }
+
+    function resetMileageForm() {
+        document.getElementById('edit-ml-id').value = "";
+        document.getElementById('ml-purpose').value = "";
+        document.getElementById('ml-form-title').innerText = "Fahrt erfassen";
+        if(document.getElementById('ml-cancel-btn')) document.getElementById('ml-cancel-btn').style.display = "none";
+    }
+
+    // --- STUNDEN LOGIK ---
 
     async function sendHours() { 
-        await sb.from('work_hours').insert([{ user_id: currentUser.id, date: document.getElementById('date').value, duration: document.getElementById('hours').value, description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, status: 'pending' }]); 
+        await sb.from('work_hours').insert([{ 
+            user_id: currentUser.id, 
+            date: document.getElementById('date').value, 
+            duration: document.getElementById('hours').value, 
+            description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, 
+            status: 'pending' 
+        }]); 
         alert("Gesendet!"); loadHistory(); 
     }
 
@@ -226,115 +516,208 @@
         document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${new Date(x.date).toLocaleDateString('de-DE')}</td><td>${x.description}</td><td>${x.duration}h</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join(''); 
     }
 
-    async function loadAllEvents() {
-        const { data: t } = await sb.from('tournaments').select('*');
-        const { data: c } = await sb.from('club_events').select('*');
-        allEvents = [...(t || []), ...(c || []).map(e => ({ ...e, team: 'Verein', opponent: e.title }))];
-        renderCalendar(); renderEventFilter(); renderTournamentList();
+    // --- PROFIL & ADMIN ---
+
+    function renderTeamCheckboxes(sel) { 
+        const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
+        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>`).join(''); 
+    }
+
+    async function updateProfile() { 
+        const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', '); 
+        await sb.from('profiles').upsert({ id: currentUser.id, full_name: document.getElementById('prof-name').value, team: teams }); 
+        userTeam = teams; alert("Gespeichert!"); fillTeamSelect();
+    }
+
+    async function loadAdmin() {
+        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+        const { data: hours } = await sb.from('work_hours').select('*').order('date', {descending:true});
+        const pending = hours.filter(h => h.status === 'pending');
+        
+        document.getElementById('admin-pending-body-real').innerHTML = pending.map(h => {
+            const u = profs.find(p => p.id === h.user_id);
+            return `<tr><td>${u?.full_name}<br><small>${h.date}</small></td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')">OK</button></td></tr>`;
+        }).join('') || '<tr><td>Keine neuen Anträge</td></tr>';
+        
+        document.getElementById('admin-member-table-list').innerHTML = profs.map(p => {
+            const sum = hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
+            return `<tr>
+                <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">${p.full_name}</td>
+                <td>${sum}h</td>
+                <td>
+                    <div class="admin-role-group">
+                        <label class="checkbox-wrapper"><input type="checkbox" ${p.is_captain?'checked':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label>
+                        <label class="checkbox-wrapper"><input type="checkbox" ${p.is_official?'checked':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funk.</label>
+                    </div>
+                </td>
+            </tr><tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:10px;"></td></tr>`;
+        }).join('');
+    }
+
+    async function viewUserDetail(uid) {
+        const row = document.getElementById(`details-${uid}`);
+        const content = document.getElementById(`content-${uid}`);
+        if (row.style.display === 'table-row') row.style.display = 'none';
+        else {
+            const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { descending: true });
+            let html = '<strong>Letzte Tätigkeiten:</strong><br><ul>';
+            html += (hours && hours.length > 0) ? hours.map(h => `<li>${h.date}: ${h.duration}h - ${h.description} (${h.status})</li>`).join('') : '<li>Keine Einträge gefunden</li>';
+            content.innerHTML = html + '</ul>';
+            row.style.display = 'table-row';
+        }
     }
 
     function renderCalendar() {
         const container = document.getElementById('calendar-container'); container.innerHTML = '';
         const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
         document.getElementById('current-month-display').innerText = new Intl.DateTimeFormat('de-DE', {month:'long', year:'numeric'}).format(currentViewDate);
-        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => container.innerHTML += `<div style="background:#eee; text-align:center; padding:5px; font-size:0.8em;">${d}</div>`);
+        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => container.innerHTML += `<div style="background:#eee; text-align:center; padding:5px; font-size:0.8em; font-weight:bold;">${d}</div>`);
         const start = (new Date(y, m, 1).getDay() + 6) % 7;
         for(let i=0; i<start; i++) container.innerHTML += `<div></div>`;
         for(let d=1; d<=new Date(y, m + 1, 0).getDate(); d++) {
             const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const evs = allEvents.filter(e => e.date === ds);
-            container.innerHTML += `<div class="calendar-day" onclick="showDay('${ds}')"><small>${d}</small><div class="event-dot-container">${evs.map(e => `<div class="event-dot ${getTeamClass(e.team)}"></div>`).join('')}</div></div>`;
+            const dayEvents = allEvents.filter(e => e.date === ds);
+            container.innerHTML += `<div class="calendar-day ${new Date().toISOString().split('T')[0] === ds ? 'today' : ''}" onclick="showDay('${ds}')"><small>${d}</small><div class="event-dot-container">${dayEvents.map(e => `<div class="event-dot ${getTeamClass(e.team)}"></div>`).join('')}</div></div>`;
         }
     }
 
-    function getTeamClass(t) { if(t==='Verein') return 'team-verein'; if(t?.includes('gewehr')) return 'team-lg'; if(t?.includes('pistole')) return 'team-lp'; return ''; }
-    function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
-    
     function showDay(ds) { 
         const evs = allEvents.filter(e => e.date === ds); 
         if(!evs.length) return; 
         document.getElementById('selection-content').innerHTML = evs.map(e => `<strong>${e.team}</strong>: ${e.opponent}`).join('<br>');
-        document.getElementById('selection-date-label').innerText = ds;
+        document.getElementById('selection-date-label').innerText = "Termine am " + new Date(ds).toLocaleDateString('de-DE');
         document.getElementById('calendar-selection-details').style.display = 'block'; 
     }
 
-    function calcTotalKm() {
-        const s = parseFloat(document.getElementById('ml-km-single').value) || 0;
-        const t = document.getElementById('ml-roundtrip').checked ? s * 2 : s;
-        document.getElementById('ml-result').innerText = `Gesamt: ${t.toFixed(2)} km`;
-        return t;
+    function renderEventFilter() {
+        const filterSelect = document.getElementById('event-view-filter');
+        if (!filterSelect) return;
+        let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
+        options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
+        options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
+        options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
+        options += `<option disabled>────────────────────</option>`;
+        options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
+        filterSelect.innerHTML = options;
+        if(!filterSelect.value) filterSelect.value = "my_relevant";
     }
 
-    async function saveMileage() {
-        const payload = { user_id: currentUser.id, date: document.getElementById('ml-date').value, purpose: document.getElementById('ml-purpose').value, start_location: document.getElementById('ml-start').value, end_location: document.getElementById('ml-end').value, distance_total: calcTotalKm() };
-        await sb.from('mileage_logs').insert([payload]);
-        loadMileageHistory();
-    }
+    function getTeamClass(t) { if(t==='Verein') return 'team-verein'; if(t?.toLowerCase().includes('gewehr')) return 'team-lg'; if(t?.toLowerCase().includes('pistole')) return 'team-lp'; return ''; }
+    function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
+    async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
+    async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
 
-    async function loadMileageHistory() {
-        const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {descending:true});
-        document.getElementById('mileage-history-body').innerHTML = data?.map(m => `<tr><td>${m.date}</td><td>${m.purpose}</td><td>${m.distance_total}</td><td>-</td></tr>`).join('');
-    }
+    // --- EXPORT FUNKTIONEN ---
 
-    function renderTeamCheckboxes(selected) {
-        const selArr = selected ? selected.split(', ') : [];
-        document.getElementById('team-checkboxes-container').innerHTML = ALL_TEAMS.map(t => `<label style="display:flex; align-items:center; gap:5px; font-size:13px;"><input type="checkbox" name="prof-teams" value="${t}" ${selArr.includes(t)?'checked':''}> ${t}</label>`).join('');
-    }
-
-    async function updateProfile() {
-        const name = document.getElementById('prof-name').value;
-        const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c => c.value).join(', ');
-        const pass = document.getElementById('prof-password').value;
-        const confirm = document.getElementById('prof-password-confirm').value;
-
-        if (pass) {
-            if (pass !== confirm) return alert("Passwörter stimmen nicht überein!");
-            const { error } = await sb.auth.updateUser({ password: pass });
-            if (error) return alert("Fehler beim Passwort: " + error.message);
+    async function exportToPDF() {
+        // Prüfen ob Bibliotheken geladen sind
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            alert("PDF-Bibliothek wird noch geladen oder fehlt. Bitte Seite neu laden.");
+            return;
         }
 
-        const { error } = await sb.from('profiles').update({ full_name: name, team: teams }).eq('id', currentUser.id);
-        if (error) alert("Fehler beim Speichern: " + error.message); else alert("Profil aktualisiert!");
-    }
-
-    async function loadAdmin() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Daten von Supabase laden
         const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*');
-        const pending = profs.filter(p => !p.is_approved && p.email !== ADMIN_EMAIL);
-        document.getElementById('admin-new-registrations').innerHTML = pending.map(p => `<div>${p.full_name} <button onclick="approveUser('${p.id}')">Freischalten</button></div>`).join('') || 'Keine Anfragen.';
-        const open = hours.filter(h => h.status === 'pending');
-        document.getElementById('admin-pending-body-real').innerHTML = open.map(h => `<tr><td>${h.date}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')">OK</button></td></tr>`).join('');
-        const approved = profs.filter(p => p.is_approved || p.email === ADMIN_EMAIL);
-        document.getElementById('admin-member-table-list').innerHTML = approved.map(p => {
-            const sum = hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
-            return `<tr style="cursor:pointer">
-                <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); font-weight:bold">${p.full_name} ▾</td>
-                <td onclick="viewUserDetail('${p.id}')">${sum}h</td>
-                <td><input type="checkbox" ${p.is_captain?'checked':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> K</td>
-            </tr>
-            <tr id="details-${p.id}" style="display:none; background:#f0f0f0"><td colspan="3"><div id="content-${p.id}"></div></td></tr>`;
-        }).join('');
+        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+
+        // Header Styling
+        doc.setFontSize(22);
+        doc.setTextColor(46, 125, 50);
+        doc.setFont("helvetica", "bold");
+        doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
+        
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        const dateString = new Date().toLocaleDateString('de-DE');
+        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
+
+        // Trennlinie
+        doc.setDrawColor(46, 125, 50);
+        doc.setLineWidth(0.5);
+        doc.line(14, 35, 196, 35);
+
+        const tableRows = [];
+        profs.forEach(p => {
+            const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
+            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+            
+            // Hauptzeile Mitglied
+            tableRows.push([
+                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
+                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
+            ]);
+            
+            // Detailzeilen
+            if (memberHours.length > 0) {
+                let detailText = memberHours.map(h => `  • ${new Date(h.date).toLocaleDateString('de-DE')}: ${h.description} (${h.duration}h)`).join('\n');
+                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
+            } else {
+                tableRows.push([{ content: "    Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+            }
+        });
+
+        // Tabelle generieren
+        doc.autoTable({
+            startY: 40,
+            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
+            styles: { font: "helvetica", overflow: 'linebreak' },
+            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
+        });
+
+        doc.save(`Hubertus_Report_${dateString}.pdf`);
     }
 
-    async function viewUserDetail(uid) {
-        const row = document.getElementById(`details-${uid}`);
-        if(row.style.display === 'table-row') { row.style.display = 'none'; return; }
-        row.style.display = 'table-row';
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', {descending:true});
-        document.getElementById(`content-${uid}`).innerHTML = data?.map(h => `<div>${h.date}: ${h.duration}h - ${h.description}</div>`).join('') || 'Keine Daten';
+async function exportMileagePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
+        const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+        if (!logs || logs.length === 0) return alert("Keine Fahrten zum Exportieren gefunden!");
+
+        doc.setFontSize(18);
+        doc.setTextColor(46, 125, 50);
+        doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
+        doc.setFontSize(11);
+        doc.setTextColor(80);
+        doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
+        doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
+
+        const tableRows = logs.map(l => [
+            new Date(l.date).toLocaleDateString('de-DE'),
+            l.purpose,
+            `${l.start_location} > ${l.end_location}`,
+            l.is_round_trip ? 'Ja' : 'Nein',
+            `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
+        ]);
+
+        const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
+        tableRows.push([
+            { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+            { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+        ]);
+
+        doc.autoTable({
+            head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
+            body: tableRows,
+            startY: 45,
+            theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
+            styles: { fontSize: 9 },
+            columnStyles: { 4: { halign: 'right' } }
+        });
+        doc.save(`Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
     }
 
-    function toggleAuthMode() { isRegisterMode = !isRegisterMode; document.getElementById('auth-title').innerText = isRegisterMode ? "Registrierung" : "Login"; document.getElementById('reg-fields').style.display = isRegisterMode ? "block" : "none"; document.getElementById('reg-confirm-field').style.display = isRegisterMode ? "block" : "none"; }
-    async function approveUser(id) { await sb.from('profiles').update({ is_approved: true }).eq('id', id); loadAdmin(); }
-    async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
-    async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); }
-    function switchTab(t) { document.querySelectorAll('.view').forEach(v => v.style.display = v.id === 'view-'+t ? 'block' : 'none'); if(t==='admin') loadAdmin(); if(t==='mileage') loadMileageHistory(); }
-    function fillTeamSelect() { const sel = document.getElementById('event-team-select'); if(sel) sel.innerHTML = ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join(''); }
-    function renderEventFilter() { const sel = document.getElementById('event-view-filter'); if(sel) sel.innerHTML = `<option value="all">Alle</option>` + ALL_TEAMS.map(t => `<option value="${t}">${t}</option>`).join(''); }
-    function renderTournamentList() { }
-    async function exportToPDF() { alert("PDF Export gestartet..."); }
-    async function exportMileagePDF() { alert("Mileage PDF Export gestartet..."); }
+    
 </script>
-
+    
 </body>
 </html>
