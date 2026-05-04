@@ -622,34 +622,42 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     
     if (pErr) console.error("Fehler beim Laden der Profile:", pErr);
 
-    // 1. Liste der unbestätigten Mitglieder (is_approved ist false ODER null)
+    // 1. NEUE REGISTRIERUNGEN
     const unapproved = profs.filter(p => p.is_approved === false || p.is_approved === null);
-    
     let pendingHtml = unapproved.map(p => `
         <tr style="background: #fff3e0;">
             <td><strong>${p.full_name || 'Name fehlt'}</strong><br><small>${p.id.substring(0,8)}</small></td>
             <td>Wartet auf Freigabe</td>
-            <td><button onclick="approveMember('${p.id}')" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Freigeben</button></td>
+            <td colspan="2"><button onclick="approveMember('${p.id}')" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Freigeben</button></td>
         </tr>
     `).join('');
 
-    // 2. Offene Stunden-Anträge
+    // 2. OFFENE STUNDEN-ANTRÄGE
     const pendingHours = hours ? hours.filter(h => h.status === 'pending') : [];
     let hoursHtml = pendingHours.map(h => {
         const u = profs.find(p => p.id === h.user_id);
-        return `<tr><td>${u?.full_name || 'Gelöschter User'}<br><small>${h.date}</small></td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')">OK</button></td></tr>`;
+        return `
+            <tr>
+                <td>${u?.full_name || 'Gelöschter User'}<br><small>${h.date}</small></td>
+                <td>${h.description}</td>
+                <td>${h.duration}h</td>
+                <td style="white-space:nowrap;">
+                    <button onclick="approveHours('${h.id}')" style="background:#2e7d32; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;" title="Bestätigen">OK</button>
+                    <button onclick="rejectHours('${h.id}')" style="background:#d32f2f; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer; margin-left:5px;" title="Ablehnen mit Begründung">❌</button>
+                </td>
+            </tr>`;
     }).join('');
 
-    // Anzeige zusammenführen
+    // Anzeige zusammenführen (jetzt mit 4 Spalten Layout)
     const target = document.getElementById('admin-pending-body-real');
     if (target) {
         target.innerHTML = 
-            (pendingHtml ? "<tr><td colspan='3' style='background:#f4f4f4;'><b>NEUE REGISTRIERUNGEN:</b></td></tr>" + pendingHtml : "") +
-            (hoursHtml ? "<tr><td colspan='3' style='background:#f4f4f4;'><b>STUNDEN-ANTRÄGE:</b></td></tr>" + hoursHtml : 
-            (!pendingHtml ? "<tr><td colspan='3'>Keine neuen Anträge</td></tr>" : ""));
+            (pendingHtml ? "<tr><td colspan='4' style='background:#f4f4f4;'><b>NEUE REGISTRIERUNGEN:</b></td></tr>" + pendingHtml : "") +
+            (hoursHtml ? "<tr><td colspan='4' style='background:#f4f4f4;'><b>STUNDEN-ANTRÄGE:</b></td></tr>" + hoursHtml : 
+            (!pendingHtml ? "<tr><td colspan='4'>Keine neuen Anträge</td></tr>" : ""));
     }
 
-    // Mitglieder-Verwaltung (nur freigeschaltete User)
+    // MITGLIEDER-VERWALTUNG (unverändert, aber wichtig für die Übersicht)
     const memberList = document.getElementById('admin-member-table-list');
     if (memberList) {
         memberList.innerHTML = profs.filter(p => p.is_approved === true).map(p => {
@@ -1083,6 +1091,29 @@ function prepareEdit(id, date, duration, desc) {
     if (btn) {
         btn.innerText = "Senden";
         btn.style.background = "";
+    }
+}
+
+    async function rejectHours(id) {
+    const reason = prompt("Bitte gib eine Begründung an, warum die Stunden abgelehnt werden:");
+    
+    // Abbrechen gedrückt oder leer gelassen?
+    if (reason === null) return; 
+    if (reason.trim() === "") return alert("Du musst eine Begründung angeben!");
+
+    const { error } = await sb
+        .from('work_hours')
+        .update({ 
+            status: 'rejected', 
+            admin_comment: reason 
+        })
+        .eq('id', id);
+
+    if (error) {
+        alert("Fehler beim Ablehnen: " + error.message);
+    } else {
+        alert("Stunden wurden abgelehnt und der User benachrichtigt.");
+        loadAdmin();
     }
 }
     
