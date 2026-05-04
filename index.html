@@ -744,55 +744,75 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     }
 }
 
-   async function saveMileage() {
+  async function saveMileage() {
+    const date = document.getElementById('mileage-date').value;
+    const purpose = document.getElementById('mileage-purpose').value;
+    const startLoc = document.getElementById('mileage-from').value;
+    const endLoc = document.getElementById('mileage-to').value;
+    const kmSingle = parseFloat(document.getElementById('mileage-km').value);
     const isRoundTrip = document.getElementById('mileage-roundtrip').checked;
-    const distanceSingle = parseFloat(document.getElementById('mileage-km').value) || 0;
-    
-    const payload = {
-        date: document.getElementById('mileage-date').value,
-        purpose: document.getElementById('mileage-purpose').value,
-        start_location: document.getElementById('mileage-from').value,
-        end_location: document.getElementById('mileage-to').value,
-        distance_single: distanceSingle,
-        distance_total: isRoundTrip ? distanceSingle * 2 : distanceSingle,
-        is_round_trip: isRoundTrip,
-        user_id: currentUser.id
-    };
 
-    if (currentMileageEditId) {
-        // Bearbeiten Modus
-        const { error } = await sb.from('mileage_logs').update(payload).eq('id', currentMileageEditId);
-        if (error) alert("Fehler beim Aktualisieren: " + error.message);
-        else alert("Fahrt wurde korrigiert!");
-    } else {
-        // Neu erstellen Modus
-        const { error } = await sb.from('mileage_logs').insert([payload]);
-        if (error) alert("Fehler beim Speichern: " + error.message);
-        else alert("Fahrt wurde gespeichert!");
+    // Validierung
+    if (!date || !purpose || !startLoc || !endLoc || isNaN(kmSingle)) {
+        return alert("Bitte alle Pflichtfelder korrekt ausfüllen!");
     }
 
-    resetMileageForm();
-    loadMileages(); // Deine Funktion zum Neuladen der Tabelle
+    // Berechnung der Gesamtdistanz
+    const totalDist = isRoundTrip ? kmSingle * 2 : kmSingle;
+
+    const payload = {
+        date: date,
+        purpose: purpose,
+        start_location: startLoc,
+        end_location: endLoc,
+        distance_single: kmSingle,
+        distance_total: totalDist,
+        is_round_trip: isRoundTrip,
+        user_id: currentUser.id // Sicherstellen, dass currentUser global verfügbar ist
+    };
+
+    try {
+        if (currentMileageEditId) {
+            // Update bestehender Eintrag
+            const { error } = await sb.from('mileage_logs')
+                .update(payload)
+                .eq('id', currentMileageEditId);
+            
+            if (error) throw error;
+            alert("Fahrt erfolgreich aktualisiert!");
+        } else {
+            // Neuer Eintrag
+            const { error } = await sb.from('mileage_logs')
+                .insert([payload]);
+            
+            if (error) throw error;
+            alert("Fahrt erfolgreich gespeichert!");
+        }
+
+        resetMileageForm();
+        if (typeof loadMileageHistory === "function") loadMileageHistory(); 
+    } catch (err) {
+        console.error("Fehler beim Speichern der Fahrt:", err);
+        alert("Fehler: " + err.message);
+    }
 }
 
 function resetMileageForm() {
     currentMileageEditId = null;
     
-    // Sicherstellen, dass die IDs exakt mit deinem HTML übereinstimmen
     const fields = ['mileage-date', 'mileage-purpose', 'mileage-from', 'mileage-to', 'mileage-km'];
     fields.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.value = ''; // Nur leeren, wenn das Element existiert
+        if (el) el.value = '';
     });
 
-    const cb = document.getElementById('mileage-roundtrip');
-    if (cb) cb.checked = false;
+    const checkbox = document.getElementById('mileage-roundtrip');
+    if (checkbox) checkbox.checked = false;
 
-    // Button zurücksetzen
     const btn = document.querySelector('button[onclick="saveMileage()"]');
     if (btn) {
         btn.innerText = "Fahrt speichern";
-        btn.style.background = ""; 
+        btn.style.backgroundColor = ""; // Reset auf Standard
     }
 }
     
@@ -800,46 +820,45 @@ function resetMileageForm() {
 
 // --- FAHRT ZUM BEARBEITEN LADEN ---
 async function editMileage(id) {
-    // 1. Daten aus Supabase holen (oder aus lokaler Liste, falls vorhanden)
-    const { data: record, error } = await sb.from('mileage_logs').select('*').eq('id', id).single();
-    
-    if (error || !record) return alert("Fahrt konnte nicht geladen werden.");
+    try {
+        const { data: record, error } = await sb.from('mileage_logs')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-    currentMileageEditId = id;
+        if (error || !record) throw new Error("Eintrag nicht gefunden.");
 
-    // 2. Formularfelder befüllen (IDs basierend auf deinem Screenshot)
-    document.getElementById('mileage-date').value = record.date;
-    document.getElementById('mileage-purpose').value = record.purpose;
-    document.getElementById('mileage-from').value = record.start_location;
-    document.getElementById('mileage-to').value = record.end_location;
-    document.getElementById('mileage-km').value = record.distance_single; // Falls du Einzel-KM speicherst
-    document.getElementById('mileage-roundtrip').checked = record.is_round_trip;
+        currentMileageEditId = id;
+        
+        // Formular befüllen
+        document.getElementById('mileage-date').value = record.date;
+        document.getElementById('mileage-purpose').value = record.purpose;
+        document.getElementById('mileage-from').value = record.start_location;
+        document.getElementById('mileage-to').value = record.end_location;
+        document.getElementById('mileage-km').value = record.distance_single;
+        document.getElementById('mileage-roundtrip').checked = record.is_round_trip;
 
-    // 3. UI anpassen
-    const btn = document.querySelector('button[onclick="saveMileage()"]');
-    if (btn) {
-        btn.innerText = "Änderungen speichern";
-        btn.style.background = "#f39c12"; // Orange zur Signalisierung
+        // UI Feedback
+        const btn = document.querySelector('button[onclick="saveMileage()"]');
+        if (btn) {
+            btn.innerText = "Änderungen speichern";
+            btn.style.backgroundColor = "#f39c12"; // Orange für Edit-Modus
+        }
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+        alert("Fehler beim Laden: " + err.message);
     }
-    
-    // Nach oben scrollen zum Erfassen-Bereich
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 // --- FAHRT LÖSCHEN ---
 async function deleteMileage(id) {
-    if (!confirm("Diese Fahrt wirklich aus dem Fahrtenbuch löschen?")) return;
+    if (!confirm("Möchtest du diese Fahrt wirklich löschen?")) return;
 
-    const { error } = await sb
-        .from('mileage_logs')
-        .delete()
-        .eq('id', id);
-
+    const { error } = await sb.from('mileage_logs').delete().eq('id', id);
     if (error) {
         alert("Fehler beim Löschen: " + error.message);
     } else {
-        alert("Fahrt erfolgreich gelöscht.");
-        if (typeof loadMileages === 'function') loadMileages(); // Liste aktualisieren
+        if (typeof loadMileageHistory === "function") loadMileageHistory();
     }
 }
 
