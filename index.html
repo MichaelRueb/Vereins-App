@@ -745,19 +745,33 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
 }
 
   async function saveMileage() {
-    const date = document.getElementById('mileage-date').value;
-    const purpose = document.getElementById('mileage-purpose').value;
-    const startLoc = document.getElementById('mileage-from').value;
-    const endLoc = document.getElementById('mileage-to').value;
-    const kmSingle = parseFloat(document.getElementById('mileage-km').value);
-    const isRoundTrip = document.getElementById('mileage-roundtrip').checked;
+    // 1. Referenzen auf die Elemente holen
+    const elDate = document.getElementById('mileage-date');
+    const elPurpose = document.getElementById('mileage-purpose');
+    const elFrom = document.getElementById('mileage-from');
+    const elTo = document.getElementById('mileage-to');
+    const elKm = document.getElementById('mileage-km');
+    const elRound = document.getElementById('mileage-roundtrip');
 
-    // Validierung
-    if (!date || !purpose || !startLoc || !endLoc || isNaN(kmSingle)) {
-        return alert("Bitte alle Pflichtfelder korrekt ausfüllen!");
+    // 2. Sicherheits-Check: Existieren alle IDs im HTML?
+    if (!elDate || !elPurpose || !elFrom || !elTo || !elKm || !elRound) {
+        console.error("HTML-ID Fehler:", { elDate, elPurpose, elFrom, elTo, elKm, elRound });
+        return alert("Entwickler-Fehler: Eines der Eingabefelder wurde im HTML nicht gefunden (siehe Konsole).");
     }
 
-    // Berechnung der Gesamtdistanz
+    // 3. Werte auslesen
+    const date = elDate.value;
+    const purpose = elPurpose.value;
+    const startLoc = elFrom.value;
+    const endLoc = elTo.value;
+    const kmSingle = parseFloat(elKm.value);
+    const isRoundTrip = elRound.checked;
+
+    // 4. Validierung der Eingabe
+    if (!date || !purpose || isNaN(kmSingle)) {
+        return alert("Bitte Datum, Zweck und Kilometer korrekt angeben!");
+    }
+
     const totalDist = isRoundTrip ? kmSingle * 2 : kmSingle;
 
     const payload = {
@@ -768,35 +782,30 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         distance_single: kmSingle,
         distance_total: totalDist,
         is_round_trip: isRoundTrip,
-        user_id: currentUser.id // Sicherstellen, dass currentUser global verfügbar ist
+        user_id: currentUser.id 
     };
 
     try {
+        let result;
         if (currentMileageEditId) {
-            // Update bestehender Eintrag
-            const { error } = await sb.from('mileage_logs')
-                .update(payload)
-                .eq('id', currentMileageEditId);
-            
-            if (error) throw error;
-            alert("Fahrt erfolgreich aktualisiert!");
+            result = await sb.from('mileage_logs').update(payload).eq('id', currentMileageEditId);
         } else {
-            // Neuer Eintrag
-            const { error } = await sb.from('mileage_logs')
-                .insert([payload]);
-            
-            if (error) throw error;
-            alert("Fahrt erfolgreich gespeichert!");
+            result = await sb.from('mileage_logs').insert([payload]);
         }
 
+        if (result.error) throw result.error;
+
+        alert("Fahrt erfolgreich gespeichert!");
         resetMileageForm();
-        if (typeof loadMileageHistory === "function") loadMileageHistory(); 
+        
+        // Falls du eine Funktion hast, die die Liste aktualisiert:
+        if (typeof loadMileages === 'function') loadMileages(); 
+
     } catch (err) {
-        console.error("Fehler beim Speichern der Fahrt:", err);
-        alert("Fehler: " + err.message);
+        console.error("Supabase Fehler:", err);
+        alert("Datenbank-Fehler: " + err.message);
     }
 }
-
 function resetMileageForm() {
     currentMileageEditId = null;
     
