@@ -580,17 +580,17 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
 
     if (error) return console.error(error);
 
-    const list = document.getElementById('history-body'); // Prüfe, ob deine ID so heißt!
+    const list = document.getElementById('history-body');
+    if (!list) return; // Verhindert den Fehler aus Bild 1
     
     list.innerHTML = hours.map(h => {
-        // --- DIESE LOGIK MUSS HIER INNEN STEHEN ---
         const isPending = h.status === 'pending';
         
+        // Wir übergeben die Daten an prepareEdit
         const actionButtons = isPending ? `
-            <button onclick="prepareEdit('${h.id}', '${h.date}', '${h.duration}', '${h.description}')" title="Bearbeiten" style="background:none; border:none; cursor:pointer;">✏️</button>
+            <button onclick="prepareEdit('${h.id}', '${h.date}', '${h.duration}', '${h.description.replace(/'/g, "\\'")}')" title="Bearbeiten" style="background:none; border:none; cursor:pointer;">✏️</button>
             <button onclick="deleteWork('${h.id}')" title="Löschen" style="background:none; border:none; cursor:pointer; color:#d32f2f; margin-left:10px;">🗑️</button>
         ` : '<span style="color:green;">✔️</span>';
-        // ------------------------------------------
 
         return `
             <tr>
@@ -983,72 +983,67 @@ async function exportFullBackup() {
 let currentEditId = null; // Globale Variable, um zu wissen, ob wir gerade editieren
 
 function prepareEdit(id, date, duration, desc) {
-    console.log("Starte Bearbeitung für ID:", id);
+    // Nutze die IDs, die im Formular wirklich existieren (aus deinem sendHours-Teil)
+    const fieldDate = document.getElementById('date');
+    const fieldHours = document.getElementById('hours');
+    const fieldCat = document.getElementById('work-category');
+    const fieldDesc = document.getElementById('description');
+    const btn = document.querySelector('button[onclick="saveWork()"]') || document.querySelector('button[onclick="sendHours()"]');
 
-    // Liste der IDs, die wir füllen wollen
-    const fields = {
-        'work-date': date,
-        'work-hours': duration,
-        'work-desc': desc
-    };
-
-    // Wir prüfen jedes Feld einzeln
-    for (const [fieldId, value] of Object.entries(fields)) {
-        const element = document.getElementById(fieldId);
-        if (element) {
-            element.value = value;
-        } else {
-            console.error(`Fehler: Element mit ID '${fieldId}' nicht gefunden!`);
-        }
+    if (fieldDate) fieldDate.value = date;
+    if (fieldHours) fieldHours.value = duration;
+    
+    // Beschreibung aufteilen (Kategorie: Details)
+    if (desc.includes(': ')) {
+        const parts = desc.split(': ');
+        if (fieldCat) fieldCat.value = parts[0];
+        if (fieldDesc) fieldDesc.value = parts[1];
+    } else {
+        if (fieldDesc) fieldDesc.value = desc;
     }
 
-    // Den Button-Text anpassen
-    const btn = document.getElementById('submit-work-btn');
+    currentEditId = id;
+
     if (btn) {
-        currentEditId = id;
         btn.innerText = "Änderung speichern";
         btn.style.background = "#ffa000";
-        document.getElementById('work-date')?.scrollIntoView({ behavior: 'smooth' });
-    } else {
-        console.error("Fehler: Button 'submit-work-btn' nicht gefunden!");
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-    async function saveWork() {
-    const date = document.getElementById('work-date').value;
-    const hours = document.getElementById('work-hours').value;
-    const desc = document.getElementById('work-desc').value;
+   async function saveWork() {
+    // IDs abrufen
+    const date = document.getElementById('date').value;
+    const hours = document.getElementById('hours').value;
+    const category = document.getElementById('work-category').value;
+    const details = document.getElementById('description').value;
 
-    if (!date || !hours || !desc) return alert("Bitte alles ausfüllen!");
+    if (!date || !hours) return alert("Bitte Datum und Stunden angeben!");
 
+    const fullDescription = category + ": " + details;
+    const payload = { 
+        user_id: currentUser.id, 
+        date, 
+        duration: hours, 
+        description: fullDescription, 
+        status: 'pending' 
+    };
+
+    let result;
     if (currentEditId) {
-        // --- UPDATE eines bestehenden Eintrags ---
-        const { error } = await sb
-            .from('work_hours')
-            .update({ date, duration: hours, description: desc })
-            .eq('id', currentEditId);
-
-        if (error) alert("Fehler beim Ändern: " + error.message);
-        else alert("Eintrag wurde korrigiert!");
-        
-        currentEditId = null; // Reset
-        document.getElementById('submit-work-btn').innerText = "Stunden melden";
-        document.getElementById('submit-work-btn').style.background = ""; // Zurück zu Grün
+        result = await sb.from('work_hours').update(payload).eq('id', currentEditId);
     } else {
-        // --- NORMALER NEUER EINTRAG ---
-        const { error } = await sb
-            .from('work_hours')
-            .insert([{ user_id: currentUser.id, date, duration: hours, description: desc, status: 'pending' }]);
-
-        if (error) alert("Fehler: " + error.message);
-        else alert("Stunden wurden gemeldet!");
+        result = await sb.from('work_hours').insert([payload]);
     }
 
-    // Formular leeren & Liste neu laden
-    document.getElementById('work-desc').value = '';
-    loadHistory();
+    if (result.error) {
+        alert("Fehler: " + result.error.message);
+    } else {
+        alert(currentEditId ? "Eintrag aktualisiert!" : "Stunden gemeldet!");
+        resetWorkForm();
+        loadHistory();
+    }
 }
-
     async function deleteWork(id) {
     // Sicherheitsabfrage, damit nichts aus Versehen verschwindet
     if (!confirm("Möchtest du diesen Eintrag wirklich unwiderruflich löschen?")) return;
@@ -1078,6 +1073,16 @@ function prepareEdit(id, date, duration, desc) {
         
     } catch (err) {
         alert("Fehler beim Löschen: " + err.message);
+    }
+}
+
+    function resetWorkForm() {
+    currentEditId = null;
+    document.getElementById('description').value = '';
+    const btn = document.querySelector('button[onclick="saveWork()"]') || document.querySelector('button[onclick="sendHours()"]');
+    if (btn) {
+        btn.innerText = "Senden";
+        btn.style.background = "";
     }
 }
     
