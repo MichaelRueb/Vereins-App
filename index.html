@@ -9,62 +9,251 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
-    <style>
-        :root { --primary: #2e7d32; --primary-dark: #1b5e20; --bg: #f4f7f6; --accent: #ef6c00; --blue: #0277bd; }
-        body { font-family: -apple-system, sans-serif; padding: 20px; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 1100px; box-sizing: border-box; }
-        input, select, textarea, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
-        button:active { opacity: 0.8; }
-        .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; width: 100%; }
-        .tab { flex: 1; min-width: 80px; padding: 12px 5px; text-align: center; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
-        .tab.active { background: var(--primary); color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
-        th, td { padding: 12px 10px; border-bottom: 1px solid #eee; text-align: left; }
-        
-        /* Kalender Styling */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
-        .calendar-day { background: white; min-height: 80px; padding: 5px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-        .calendar-day.today { background: #fff9c4; font-weight: bold; }
-        .event-dot-container { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; width: 100%; margin-top: 5px; }
-        .event-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
-        .team-lg { background-color: #2e7d32 !important; } 
-        .team-lp { background-color: #1565c0 !important; } 
-        .team-verein { background-color: #FFD700 !important; }
+   <style>
+    :root { 
+        --primary: #2e7d32; 
+        --primary-dark: #1b5e20; 
+        --bg: #f4f7f6; 
+        --accent: #ef6c00; 
+        --blue: #0277bd; 
+        --danger: #d32f2f;
+    }
 
-        /* Fortschrittsbalken */
-        .progress-container { background: #e9ecef; border-radius: 20px; height: 24px; position: relative; overflow: hidden; margin: 10px 0; border: 1px solid #ddd; }
-        .progress-bar { background: #1976d2; height: 100%; transition: width 0.6s; }
-        .progress-text { position: absolute; width: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; }
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+        padding: 20px; 
+        background: var(--bg); 
+        margin: 0; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+    }
 
-        .btn-small { width: auto; padding: 4px 8px; margin: 2px; font-size: 12px; }
-        .btn-edit { background: #ffa000; }
-        .btn-del { background: #c62828; }
-        .mileage-sum { background: #e8f5e9; padding: 10px; border-radius: 8px; font-weight: bold; color: var(--primary-dark); margin-bottom: 10px; text-align: center; }
-        
-        /* FIX: Saubere Checkboxen und Layout */
-        .checkbox-wrapper { 
-            display: grid; 
-            grid-template-columns: 24px 1fr; 
-            align-items: center; 
-            gap: 8px; 
-            margin: 4px 0; 
-            font-size: 14px; 
-            text-align: left;
-        }
-        .checkbox-wrapper input { 
-            width: 18px; 
-            height: 18px; 
-            margin: 0; 
-            cursor: pointer; 
-        }
-        .admin-role-group { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            justify-content: center;
-        }
-    </style>
+    .card { 
+        background: white; 
+        padding: 25px; 
+        border-radius: 12px; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+        width: 100%; 
+        max-width: 1100px; 
+        box-sizing: border-box; 
+    }
+
+    input, select, textarea, button { 
+        width: 100%; 
+        padding: 12px; 
+        margin: 8px 0; 
+        border: 1px solid #ddd; 
+        border-radius: 8px; 
+        box-sizing: border-box; 
+        font-size: 15px; 
+    }
+
+    button { 
+        background: var(--primary); 
+        color: white; 
+        border: none; 
+        font-weight: bold; 
+        cursor: pointer; 
+        transition: opacity 0.2s, transform 0.1s; 
+    }
+
+    button:active { 
+        opacity: 0.8; 
+        transform: scale(0.98);
+    }
+
+    .tabs { 
+        display: flex; 
+        flex-wrap: wrap; 
+        gap: 8px; 
+        margin-bottom: 20px; 
+        width: 100%; 
+    }
+
+    .tab { 
+        flex: 1; 
+        min-width: 80px; 
+        padding: 12px 5px; 
+        text-align: center; 
+        background: #eee; 
+        border-radius: 8px; 
+        cursor: pointer; 
+        font-weight: bold; 
+        font-size: 14px; 
+    }
+
+    .tab.active { 
+        background: var(--primary); 
+        color: white; 
+    }
+
+    /* Tabellen Styling */
+    table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        margin-top: 15px; 
+        font-size: 0.9em; 
+    }
+
+    th, td { 
+        padding: 12px 10px; 
+        border-bottom: 1px solid #eee; 
+        text-align: left; 
+    }
+
+    /* Admin spezifische Tabellen-Anpassungen */
+    #admin-pending-body-real td {
+        padding: 15px 10px;
+        vertical-align: middle;
+    }
+
+    .admin-member-info {
+        line-height: 1.4;
+    }
+
+    .admin-member-info strong {
+        display: block;
+        font-size: 1.05em;
+        color: #333;
+    }
+
+    .admin-member-info small {
+        color: #666;
+        font-size: 0.85em;
+    }
+
+    /* Admin Action Buttons */
+    .admin-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .btn-admin {
+        padding: 8px 12px;
+        width: auto; /* Überschreibt die 100% Breite */
+        margin: 0;
+        min-width: 45px;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+
+    .btn-approve { background-color: var(--primary); }
+    .btn-reject { background-color: var(--danger); }
+
+    /* Kalender Styling */
+    .calendar-grid { 
+        display: grid; 
+        grid-template-columns: repeat(7, 1fr); 
+        gap: 1px; 
+        background: #ccc; 
+        border-radius: 8px; 
+        overflow: hidden; 
+        border: 1px solid #ddd; 
+    }
+
+    .calendar-day { 
+        background: white; 
+        min-height: 80px; 
+        padding: 5px; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        cursor: pointer; 
+    }
+
+    .calendar-day.today { 
+        background: #fff9c4; 
+        font-weight: bold; 
+    }
+
+    .event-dot-container { 
+        display: flex; 
+        flex-wrap: wrap; 
+        gap: 3px; 
+        justify-content: center; 
+        width: 100%; 
+        margin-top: 5px; 
+    }
+
+    .event-dot { 
+        width: 8px; 
+        height: 8px; 
+        border-radius: 50%; 
+        border: 1px solid rgba(0,0,0,0.1); 
+    }
+
+    .team-lg { background-color: #2e7d32 !important; } 
+    .team-lp { background-color: #1565c0 !important; } 
+    .team-verein { background-color: #FFD700 !important; }
+
+    /* Fortschrittsbalken */
+    .progress-container { 
+        background: #e9ecef; 
+        border-radius: 20px; 
+        height: 24px; 
+        position: relative; 
+        overflow: hidden; 
+        margin: 10px 0; 
+        border: 1px solid #ddd; 
+    }
+
+    .progress-bar { 
+        background: #1976d2; 
+        height: 100%; 
+        transition: width 0.6s; 
+    }
+
+    .progress-text { 
+        position: absolute; 
+        width: 100%; 
+        text-align: center; 
+        line-height: 24px; 
+        font-size: 13px; 
+        font-weight: bold; 
+    }
+
+    /* Hilfsklassen */
+    .btn-small { width: auto; padding: 4px 8px; margin: 2px; font-size: 12px; }
+    .btn-edit { background: #ffa000; }
+    .btn-del { background: #c62828; }
+
+    .mileage-sum { 
+        background: #e8f5e9; 
+        padding: 10px; 
+        border-radius: 8px; 
+        font-weight: bold; 
+        color: var(--primary-dark); 
+        margin-bottom: 10px; 
+        text-align: center; 
+    }
+    
+    .checkbox-wrapper { 
+        display: grid; 
+        grid-template-columns: 24px 1fr; 
+        align-items: center; 
+        gap: 8px; 
+        margin: 4px 0; 
+        font-size: 14px; 
+        text-align: left;
+    }
+
+    .checkbox-wrapper input { 
+        width: 18px; 
+        height: 18px; 
+        margin: 0; 
+        cursor: pointer; 
+    }
+
+    .admin-role-group { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px; 
+        justify-content: center;
+    }
+</style>
 </head>
 <body>
 
@@ -1104,12 +1293,11 @@ function prepareEdit(id, date, duration, desc) {
     }
 }
 
-    async function rejectHours(id) {
-    const reason = prompt("Bitte gib eine Begründung an, warum die Stunden abgelehnt werden:");
+   async function rejectHours(id) {
+    const reason = prompt("Bitte gib eine Begründung für die Ablehnung an:");
     
-    // Abbrechen gedrückt oder leer gelassen?
-    if (reason === null) return; 
-    if (reason.trim() === "") return alert("Du musst eine Begründung angeben!");
+    if (reason === null) return; // Abbrechen
+    if (reason.trim() === "") return alert("Eine Begründung ist zwingend erforderlich.");
 
     const { error } = await sb
         .from('work_hours')
@@ -1120,10 +1308,10 @@ function prepareEdit(id, date, duration, desc) {
         .eq('id', id);
 
     if (error) {
-        alert("Fehler beim Ablehnen: " + error.message);
+        alert("Fehler: " + error.message);
     } else {
-        alert("Stunden wurden abgelehnt und der User benachrichtigt.");
-        loadAdmin();
+        alert("Eintrag abgelehnt und Begründung gespeichert.");
+        loadAdmin(); // Admin-Ansicht aktualisieren
     }
 }
     
