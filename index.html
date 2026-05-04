@@ -71,9 +71,10 @@
 <div class="card">
     <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro lädt...</div>
 
-   <div id="auth-ui" style="display:none;">
+  <div id="auth-ui" style="display:none;">
     <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
     
+    <!-- Felder für Neuregistrierung -->
     <div id="reg-fields" style="display:none;">
         <input type="text" id="reg-name" placeholder="Vollständiger Name">
     </div>
@@ -83,15 +84,15 @@
     
     <div id="reg-confirm-fields" style="display:none;">
         <input type="password" id="password-confirm" placeholder="Passwort bestätigen">
-        <p style="font-size: 12px; color: #666;">Min. 8 Zeichen (3 von 4: Groß, Klein, Zahl, Sonderzeichen)</p>
+        <p style="font-size: 11px; color: #666; margin: 0 5px;">Mind. 8 Zeichen, 3 von 4 (Groß, Klein, Zahl, Sonderzeichen)</p>
     </div>
 
     <button id="auth-btn" onclick="handleAuth()">Einloggen</button>
     
-    <p style="text-align:center; cursor:pointer; color:var(--blue); text-decoration:underline;" 
+    <p style="text-align:center; cursor:pointer; color:var(--blue); text-decoration:underline; font-size: 14px;" 
        id="auth-toggle" onclick="toggleAuthMode()">Noch kein Konto? Hier registrieren</p>
 </div>
-
+    
     <div id="main-app" style="display:none;">
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
@@ -578,45 +579,45 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     }
 
    async function loadAdmin() {
-    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours } = await sb.from('work_hours').select('*').order('date', {descending:true});
+    const { data: profs, error: pErr } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours, error: hErr } = await sb.from('work_hours').select('*').order('date', {descending:true});
     
-    // 1. Liste der unbestätigten Mitglieder
-    const unapproved = profs.filter(p => p.is_approved === false);
+    if (pErr) console.error("Fehler beim Laden der Profile:", pErr);
+
+    // 1. Liste der unbestätigten Mitglieder (is_approved ist false ODER null)
+    const unapproved = profs.filter(p => p.is_approved === false || p.is_approved === null);
+    
     let pendingHtml = unapproved.map(p => `
         <tr style="background: #fff3e0;">
-            <td><strong>${p.full_name || 'Unbekannt'}</strong><br><small>${p.id.substring(0,8)}</small></td>
+            <td><strong>${p.full_name || 'Name fehlt'}</strong><br><small>${p.id.substring(0,8)}</small></td>
             <td>Wartet auf Freigabe</td>
-            <td><button onclick="approveMember('${p.id}')" style="background:var(--primary);">Freigeben</button></td>
+            <td><button onclick="approveMember('${p.id}')" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Freigeben</button></td>
         </tr>
     `).join('');
 
-    // 2. Bestehende Liste der offenen Stunden-Anträge
-    const pendingHours = hours.filter(h => h.status === 'pending');
+    // 2. Offene Stunden-Anträge
+    const pendingHours = hours ? hours.filter(h => h.status === 'pending') : [];
     let hoursHtml = pendingHours.map(h => {
         const u = profs.find(p => p.id === h.user_id);
         return `<tr><td>${u?.full_name || 'Gelöschter User'}<br><small>${h.date}</small></td><td>${h.description}</td><td>${h.duration}h</td><td><button onclick="approveHours('${h.id}')">OK</button></td></tr>`;
     }).join('');
 
-    // Anzeigen (Kombiniert in die bestehende Tabelle oder neue Sektion)
-    document.getElementById('admin-pending-body-real').innerHTML = 
-        (pendingHtml ? "<tr><td colspan='3'><b>NEUE REGISTRIERUNGEN:</b></td></tr>" + pendingHtml : "") +
-        (hoursHtml ? "<tr><td colspan='3'><b>STUNDEN-ANTRÄGE:</b></td></tr>" + hoursHtml : "<tr><td colspan='3'>Keine neuen Anträge</td></tr>");
+    // Anzeige zusammenführen
+    const target = document.getElementById('admin-pending-body-real');
+    if (target) {
+        target.innerHTML = 
+            (pendingHtml ? "<tr><td colspan='3' style='background:#f4f4f4;'><b>NEUE REGISTRIERUNGEN:</b></td></tr>" + pendingHtml : "") +
+            (hoursHtml ? "<tr><td colspan='3' style='background:#f4f4f4;'><b>STUNDEN-ANTRÄGE:</b></td></tr>" + hoursHtml : 
+            (!pendingHtml ? "<tr><td colspan='3'>Keine neuen Anträge</td></tr>" : ""));
+    }
 
-    // Mitglieder-Verwaltung (nur freigeschaltete User anzeigen)
-    document.getElementById('admin-member-table-list').innerHTML = profs.filter(p => p.is_approved).map(p => {
-        const sum = hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0);
-        return `<tr><td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">${p.full_name}</td><td>${sum}h</td><td><div class="admin-role-group"><label class="checkbox-wrapper"><input type="checkbox" ${p.is_captain?'checked':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label><label class="checkbox-wrapper"><input type="checkbox" ${p.is_official?'checked':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funk.</label></div></td></tr><tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:10px;"></td></tr>`;
-    }).join('');
-}
-
-async function approveMember(uid) {
-    if (!confirm("Mitglied wirklich freischalten?")) return;
-    const { error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid);
-    if (error) alert(error.message);
-    else {
-        alert("Benutzer wurde erfolgreich freigeschaltet!");
-        loadAdmin();
+    // Mitglieder-Verwaltung (nur freigeschaltete User)
+    const memberList = document.getElementById('admin-member-table-list');
+    if (memberList) {
+        memberList.innerHTML = profs.filter(p => p.is_approved === true).map(p => {
+            const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+            return `<tr><td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">${p.full_name || 'Kein Name'}</td><td>${sum}h</td><td><div class="admin-role-group"><label class="checkbox-wrapper"><input type="checkbox" ${p.is_captain?'checked':''} onchange="updateRole('${p.id}','is_captain',this.checked)"> Kapt.</label><label class="checkbox-wrapper"><input type="checkbox" ${p.is_official?'checked':''} onchange="updateRole('${p.id}','is_official',this.checked)"> Funk.</label></div></td></tr><tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:10px;"></td></tr>`;
+        }).join('');
     }
 }
     
@@ -808,45 +809,69 @@ async function exportMileagePDF() {
 
 let isRegistrationMode = false;
 
-    function toggleAuthMode() {
-        isRegistrationMode = !isRegistrationMode;
-        document.getElementById('auth-title').innerText = isRegistrationMode ? "Registrieren" : "Anmelden";
-        document.getElementById('auth-btn').innerText = isRegistrationMode ? "Konto erstellen" : "Einloggen";
-        document.getElementById('reg-fields').style.display = isRegistrationMode ? "block" : "none";
-        document.getElementById('reg-confirm-fields').style.display = isRegistrationMode ? "block" : "none";
-        document.getElementById('auth-toggle').innerText = isRegistrationMode ? "Zurück zum Login" : "Noch kein Konto? Hier registrieren";
-    }
+function toggleAuthMode() {
+    isRegistrationMode = !isRegistrationMode;
+    document.getElementById('auth-title').innerText = isRegistrationMode ? "Registrieren" : "Anmelden";
+    document.getElementById('auth-btn').innerText = isRegistrationMode ? "Konto erstellen" : "Einloggen";
+    document.getElementById('reg-fields').style.display = isRegistrationMode ? "block" : "none";
+    document.getElementById('reg-confirm-fields').style.display = isRegistrationMode ? "block" : "none";
+    document.getElementById('auth-toggle').innerText = isRegistrationMode ? "Zurück zum Login" : "Noch kein Konto? Hier registrieren";
+}
 
-    async function handleAuth() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
+   async function handleAuth() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
 
-        if (isRegistrationMode) {
-            const name = document.getElementById('reg-name').value;
-            const confirm = document.getElementById('password-confirm').value;
+    if (isRegistrationMode) {
+        const name = document.getElementById('reg-name').value;
+        const confirm = document.getElementById('password-confirm').value;
 
-            if (!name || !email || !pass) return alert("Bitte alle Felder ausfüllen!");
-            if (pass !== confirm) return alert("Passwörter stimmen nicht überein!");
+        if (!name || !email || !pass) return alert("Bitte alle Felder ausfüllen!");
+        if (pass !== confirm) return alert("Passwörter stimmen nicht überein!");
+        
+        if (pass.length < 8) return alert("Passwort muss mindestens 8 Zeichen haben!");
+        let criteria = (/[A-Z]/.test(pass)) + (/[a-z]/.test(pass)) + (/[0-9]/.test(pass)) + (/[^A-Za-z0-9]/.test(pass));
+        if (criteria < 3) return alert("3 von 4 Kriterien für das Passwort erforderlich!");
+
+        // 1. Registrierung
+        const { data, error } = await sb.auth.signUp({ email, password: pass });
+        if (error) return alert("Fehler: " + error.message);
+
+        if (data.user) {
+            // 2. Profil SOFORT anlegen (wichtig: await!)
+            const { error: profError } = await sb.from('profiles').upsert([
+                { id: data.user.id, full_name: name, is_approved: false }
+            ]);
+
+            if (profError) {
+                return alert("Fehler beim Speichern des Profils: " + profError.message);
+            }
+
+            // 3. WICHTIG: Sofort ausloggen und Session löschen
+            await sb.auth.signOut();
             
-            // Passwort-Check (3 von 4 Regel wie zuvor definiert)
-            if (pass.length < 8) return alert("Passwort zu kurz!");
-            let criteria = (/[A-Z]/.test(pass)) + (/[a-z]/.test(pass)) + (/[0-9]/.test(pass)) + (/[^A-Za-z0-9]/.test(pass));
-            if (criteria < 3) return alert("Passwort erfüllt Sicherheitsregeln nicht!");
+            // Verhindert, dass Hintergrund-Scripts die App starten
+            alert("Registrierung erfolgreich! Bitte warte auf die Freigabe durch den Admin.");
+            window.location.replace(window.location.pathname); // Harter Reload ohne Session-Reste
+        }
+    } else {
+        // LOGIN-LOGIK
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) return alert("Login fehlgeschlagen: " + error.message);
 
-            const { data, error } = await sb.auth.signUp({ email, password: pass });
-            if (error) return alert(error.message);
-
-            // Profil mit is_approved = false anlegen
-            await sb.from('profiles').insert([{ id: data.user.id, full_name: name, is_approved: false }]);
-            alert("Registriert! Bitte warte auf die Freigabe durch den Admin.");
-            location.reload();
+        // Prüfung auf Freigabe (Sicherheits-Check)
+        const { data: p } = await sb.from('profiles').select('is_approved').eq('id', data.user.id).maybeSingle();
+        
+        if (p && p.is_approved) {
+            setupApp(data.user);
         } else {
-            const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-            if (error) return alert(error.message);
-            checkApproval(data.user);
+            await sb.auth.signOut();
+            alert("Dein Konto wurde noch nicht freigeschaltet.");
+            location.reload();
         }
     }
-
+}
+    
     async function checkApproval(user) {
         const { data: p } = await sb.from('profiles').select('is_approved').eq('id', user.id).maybeSingle();
         if (p && p.is_approved) {
@@ -859,13 +884,14 @@ let isRegistrationMode = false;
     }
 
     // Erweitere loadAdmin() um die Freigabe-Funktion
-    async function approveMember(uid) {
-        const { error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid);
-        if(!error) {
-            alert("Mitglied freigeschaltet!");
-            loadAdmin();
-        }
+   async function approveMember(uid) {
+    const { error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid);
+    if (error) alert("Fehler: " + error.message);
+    else {
+        alert("Mitglied freigeschaltet!");
+        loadAdmin(); // Liste aktualisieren
     }
+}
     
 </script>
     
