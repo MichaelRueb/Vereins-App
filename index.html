@@ -744,68 +744,81 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     }
 }
 
-  async function saveMileage() {
-    // 1. Referenzen auf die Elemente holen
-    const elDate = document.getElementById('mileage-date');
-    const elPurpose = document.getElementById('mileage-purpose');
-    const elFrom = document.getElementById('mileage-from');
-    const elTo = document.getElementById('mileage-to');
-    const elKm = document.getElementById('mileage-km');
-    const elRound = document.getElementById('mileage-roundtrip');
+ async function saveMileage() {
+    console.log("Speichervorgang gestartet...");
 
-    // 2. Sicherheits-Check: Existieren alle IDs im HTML?
-    if (!elDate || !elPurpose || !elFrom || !elTo || !elKm || !elRound) {
-        console.error("HTML-ID Fehler:", { elDate, elPurpose, elFrom, elTo, elKm, elRound });
-        return alert("Entwickler-Fehler: Eines der Eingabefelder wurde im HTML nicht gefunden (siehe Konsole).");
+    // 1. Elemente gezielt suchen
+    const fields = {
+        date: document.getElementById('mileage-date'),
+        purpose: document.getElementById('mileage-purpose'),
+        from: document.getElementById('mileage-from'),
+        to: document.getElementById('mileage-to'),
+        km: document.getElementById('mileage-km'),
+        roundtrip: document.getElementById('mileage-roundtrip')
+    };
+
+    // 2. Debug-Check: Welches Feld fehlt?
+    for (const [key, el] of Object.entries(fields)) {
+        if (!el) {
+            console.error(`Kritischer Fehler: Das Feld für "${key}" wurde im HTML nicht gefunden!`);
+            alert(`Strukturfehler: Das Eingabefeld für "${key}" fehlt im HTML-Code.`);
+            return; 
+        }
     }
 
-    // 3. Werte auslesen
-    const date = elDate.value;
-    const purpose = elPurpose.value;
-    const startLoc = elFrom.value;
-    const endLoc = elTo.value;
-    const kmSingle = parseFloat(elKm.value);
-    const isRoundTrip = elRound.checked;
+    // 3. Werte extrahieren
+    const date = fields.date.value;
+    const purpose = fields.purpose.value;
+    const from = fields.from.value;
+    const to = fields.to.value;
+    const kmSingle = parseFloat(fields.km.value.replace(',', '.')); // Erlaubt auch Komma-Eingabe
+    const isRound = fields.roundtrip.checked;
 
-    // 4. Validierung der Eingabe
+    // 4. Validierung
     if (!date || !purpose || isNaN(kmSingle)) {
-        return alert("Bitte Datum, Zweck und Kilometer korrekt angeben!");
+        alert("Bitte fülle mindestens Datum, Zweck und Kilometer aus.");
+        return;
     }
 
-    const totalDist = isRoundTrip ? kmSingle * 2 : kmSingle;
-
+    // 5. Datenpaket schnüren
     const payload = {
         date: date,
         purpose: purpose,
-        start_location: startLoc,
-        end_location: endLoc,
+        start_location: from,
+        end_location: to,
         distance_single: kmSingle,
-        distance_total: totalDist,
-        is_round_trip: isRoundTrip,
-        user_id: currentUser.id 
+        distance_total: isRound ? kmSingle * 2 : kmSingle,
+        is_round_trip: isRound,
+        user_id: currentUser?.id // Sicherer Zugriff auf User-ID
     };
 
+    if (!payload.user_id) {
+        alert("Fehler: Du scheinst nicht eingeloggt zu sein.");
+        return;
+    }
+
     try {
-        let result;
+        let error;
         if (currentMileageEditId) {
-            result = await sb.from('mileage_logs').update(payload).eq('id', currentMileageEditId);
+            const res = await sb.from('mileage_logs').update(payload).eq('id', currentMileageEditId);
+            error = res.error;
         } else {
-            result = await sb.from('mileage_logs').insert([payload]);
+            const res = await sb.from('mileage_logs').insert([payload]);
+            error = res.error;
         }
 
-        if (result.error) throw result.error;
+        if (error) throw error;
 
         alert("Fahrt erfolgreich gespeichert!");
         resetMileageForm();
+        if (typeof loadHistory === "function") loadHistory(); // Deine Funktion zum Neuladen der Liste
         
-        // Falls du eine Funktion hast, die die Liste aktualisiert:
-        if (typeof loadMileages === 'function') loadMileages(); 
-
     } catch (err) {
-        console.error("Supabase Fehler:", err);
-        alert("Datenbank-Fehler: " + err.message);
+        console.error("Datenbankfehler:", err);
+        alert("Speichern fehlgeschlagen: " + err.message);
     }
 }
+    
 function resetMileageForm() {
     currentMileageEditId = null;
     
