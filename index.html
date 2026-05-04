@@ -720,7 +720,6 @@ async function loadMileageHistory() {
     
     if(data) {
         const now = new Date();
-        
         const monthSum = data
             .filter(m => {
                 const d = new Date(m.date);
@@ -735,9 +734,10 @@ async function loadMileageHistory() {
                 <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
                 <td><strong>${m.purpose}</strong><br><small>${m.start_location} → ${m.end_location}</small></td>
                 <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
-                <td style="white-space:nowrap; text-align:right;">
-                    <button onclick="editMileage('${m.id}')" style="background:#f39c12; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer;" title="Bearbeiten">✏️</button>
-                    <button onclick="deleteMileage('${m.id}')" style="background:#d32f2f; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; margin-left:5px;" title="Löschen">🗑️</button>
+                <td style="white-space:nowrap;">
+                    <!-- Buttons jetzt mit Standard-Klassen und ohne feste Rechtsbündigung -->
+                    <button class="btn-edit" onclick="editMileage('${m.id}')" title="Bearbeiten">✏️</button>
+                    <button class="btn-del" onclick="deleteMileage('${m.id}')" title="Löschen">🗑️</button>
                 </td>
             </tr>`).join('');
     }
