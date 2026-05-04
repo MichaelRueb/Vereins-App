@@ -999,7 +999,7 @@ async function exportMileagePDF() {
     }
 }
 
- async function loadAdmin() {
+async function loadAdmin() {
     // Daten von Supabase holen
     const { data: profilesData, error: pErr } = await sb.from('profiles').select('*').order('full_name');
     const { data: hoursData, error: hErr } = await sb.from('work_hours').select('*').order('date', {descending:true});
@@ -1059,59 +1059,7 @@ async function exportMileagePDF() {
             <tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; font-size:0.85em;"></td></tr>`;
         }).join('');
     }
-}
-
-    // MITGLIEDER-VERWALTUNG
-    const memberList = document.getElementById('admin-member-table-list');
-    if (memberList) {
-        memberList.innerHTML = profs.filter(p => p.is_approved === true).map(p => {
-            const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
-            return `
-            <tr>
-                <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">${p.full_name || 'Kein Name'}</td>
-                <td>${sum}h</td>
-                <td>
-                    <small>Kapt:</small> <input type="checkbox" ${p.is_captain ? 'checked' : ''} onchange="updateRole('${p.id}','is_captain',this.checked)">
-                    <small>Funk:</small> <input type="checkbox" ${p.is_official ? 'checked' : ''} onchange="updateRole('${p.id}','is_official',this.checked)">
-                </td>
-            </tr>
-            <tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; font-size:0.85em;"></td></tr>`;
-        }).join('');
-    }
-}
-    // MITGLIEDER-VERWALTUNG
-    const memberList = document.getElementById('admin-member-table-list');
-    if (memberList) {
-        memberList.innerHTML = profs.filter(p => p.is_approved === true).map(p => {
-            const sum = hours ? hours.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
-           return `
-    <tr style="border-bottom: 1px solid #eee;">
-        <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold; padding:10px;">
-            ${p.full_name || 'Kein Name'}
-        </td>
-        <td style="padding:10px;">${sum}h</td>
-        <td style="padding:10px;">
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em;">
-                    <input type="checkbox" style="margin: 0; width: 16px; height: 16px;" 
-                        ${p.is_captain ? 'checked' : ''} 
-                        onchange="updateRole('${p.id}','is_captain',this.checked)">
-                    <span>Kapt.</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em;">
-                    <input type="checkbox" style="margin: 0; width: 16px; height: 16px;" 
-                        ${p.is_official ? 'checked' : ''} 
-                        onchange="updateRole('${p.id}','is_official',this.checked)">
-                    <span>Funk.</span>
-                </label>
-            </div>
-        </td>
-    </tr>
-                <tr id="details-${p.id}" style="display:none;">
-        <td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:10px; border-left: 4px solid var(--primary);"></td>
-    </tr>`;
-        }).join('');
-    }    
+}   
 
     async function viewUserDetail(uid) {
         const row = document.getElementById(`details-${uid}`);
