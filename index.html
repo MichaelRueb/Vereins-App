@@ -983,21 +983,35 @@ async function exportFullBackup() {
 let currentEditId = null; // Globale Variable, um zu wissen, ob wir gerade editieren
 
 function prepareEdit(id, date, duration, desc) {
-    // 1. Formularfelder füllen (IDs anpassen, falls sie bei dir anders heißen)
-    document.getElementById('work-date').value = date;
-    document.getElementById('work-hours').value = duration;
-    document.getElementById('work-desc').value = desc;
+    console.log("Starte Bearbeitung für ID:", id);
 
-    // 2. ID speichern
-    currentEditId = id;
+    // Liste der IDs, die wir füllen wollen
+    const fields = {
+        'work-date': date,
+        'work-hours': duration,
+        'work-desc': desc
+    };
 
-    // 3. Button-Text ändern
+    // Wir prüfen jedes Feld einzeln
+    for (const [fieldId, value] of Object.entries(fields)) {
+        const element = document.getElementById(fieldId);
+        if (element) {
+            element.value = value;
+        } else {
+            console.error(`Fehler: Element mit ID '${fieldId}' nicht gefunden!`);
+        }
+    }
+
+    // Den Button-Text anpassen
     const btn = document.getElementById('submit-work-btn');
-    btn.innerText = "Änderung speichern";
-    btn.style.background = "#ffa000"; // Orange zur Signalisierung
-
-    // 4. Zum Formular scrollen
-    document.getElementById('work-date').scrollIntoView({ behavior: 'smooth' });
+    if (btn) {
+        currentEditId = id;
+        btn.innerText = "Änderung speichern";
+        btn.style.background = "#ffa000";
+        document.getElementById('work-date')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        console.error("Fehler: Button 'submit-work-btn' nicht gefunden!");
+    }
 }
 
     async function saveWork() {
