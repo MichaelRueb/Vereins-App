@@ -572,8 +572,7 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     }
 
     async function loadHistory() {
-    const { data: hours, error } = await sb
-        .from('work_hours')
+    const { data: hours, error } = await sb.from('work_hours')
         .select('*')
         .eq('user_id', currentUser.id)
         .order('date', { descending: true });
@@ -581,23 +580,34 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     if (error) return console.error(error);
 
     const list = document.getElementById('history-body');
-    if (!list) return; // Verhindert den Fehler aus Bild 1
-    
     list.innerHTML = hours.map(h => {
-        const isPending = h.status === 'pending';
-        
-        // Wir übergeben die Daten an prepareEdit
-        const actionButtons = isPending ? `
+        let statusIcon = '';
+        let rowStyle = '';
+        let commentHtml = '';
+
+        if (h.status === 'approved') {
+            statusIcon = '<span style="color:green;">✔️</span>';
+        } else if (h.status === 'rejected') {
+            statusIcon = '<span style="color:red;" title="Abgelehnt">❌</span>';
+            rowStyle = 'background-color: #ffebee;'; // Leichter Rotschleier
+            commentHtml = `<br><small style="color:red;"><b>Grund:</b> ${h.admin_comment || 'Keine Angabe'}</small>`;
+        } else {
+            statusIcon = '<span title="Wartend">⏳</span>';
+        }
+
+        // Bearbeiten-Button nur wenn NICHT approved
+        const canEdit = h.status !== 'approved';
+        const actionButtons = canEdit ? `
             <button onclick="prepareEdit('${h.id}', '${h.date}', '${h.duration}', '${h.description.replace(/'/g, "\\'")}')" title="Bearbeiten" style="background:none; border:none; cursor:pointer;">✏️</button>
-            <button onclick="deleteWork('${h.id}')" title="Löschen" style="background:none; border:none; cursor:pointer; color:#d32f2f; margin-left:10px;">🗑️</button>
-        ` : '<span style="color:green;">✔️</span>';
+            <button onclick="deleteWork('${h.id}')" title="Löschen" style="background:none; border:none; cursor:pointer; color:#d32f2f;">🗑️</button>
+        ` : statusIcon;
 
         return `
-            <tr>
+            <tr style="${rowStyle}">
                 <td>${new Date(h.date).toLocaleDateString('de-DE')}</td>
-                <td>${h.description}</td>
+                <td>${h.description}${commentHtml}</td>
                 <td>${h.duration}h</td>
-                <td style="white-space: nowrap; text-align: right;">${actionButtons}</td>
+                <td style="text-align: right;">${actionButtons}</td>
             </tr>
         `;
     }).join('');
