@@ -1191,32 +1191,30 @@ async function exportFullBackup() {
 
 let currentEditId = null; // Globale Variable, um zu wissen, ob wir gerade editieren
 
-function prepareEdit(id, date, duration, desc) {
-    // Nutze die IDs, die im Formular wirklich existieren (aus deinem sendHours-Teil)
-    const fieldDate = document.getElementById('date');
-    const fieldHours = document.getElementById('hours');
-    const fieldCat = document.getElementById('work-category');
-    const fieldDesc = document.getElementById('description');
-    const btn = document.querySelector('button[onclick="saveWork()"]') || document.querySelector('button[onclick="sendHours()"]');
-
-    if (fieldDate) fieldDate.value = date;
-    if (fieldHours) fieldHours.value = duration;
+function prepareEdit(id, date, duration, description) {
+    currentEditId = id; // Ganz wichtig: ID global merken!
     
-    // Beschreibung aufteilen (Kategorie: Details)
-    if (desc.includes(': ')) {
-        const parts = desc.split(': ');
-        if (fieldCat) fieldCat.value = parts[0];
-        if (fieldDesc) fieldDesc.value = parts[1];
+    // Felder füllen
+    document.getElementById('date').value = date;
+    document.getElementById('hours').value = duration;
+    
+    // Beschreibung aufteilen (falls du Kategorien mit Doppelpunkt nutzt)
+    const parts = description.split(': ');
+    if (parts.length > 1) {
+        document.getElementById('work-category').value = parts[0];
+        document.getElementById('description').value = parts.slice(1).join(': ');
     } else {
-        if (fieldDesc) fieldDesc.value = desc;
+        document.getElementById('description').value = description;
     }
 
-    currentEditId = id;
-
+    // Button optisch anpassen
+    const btn = document.querySelector('button[onclick="saveWork()"]');
     if (btn) {
         btn.innerText = "Änderung speichern";
-        btn.style.background = "#ffa000";
+        btn.style.background = "#ef6c00"; // Orange für Bearbeitungsmodus
     }
+    
+    // Nach oben scrollen, damit der User das Formular sieht
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1226,51 +1224,42 @@ function prepareEdit(id, date, duration, desc) {
     const category = document.getElementById('work-category').value;
     const details = document.getElementById('description').value;
 
-    if (!date || !hours) return alert("Bitte Datum und Stunden angeben!");
+    if (!date || !hours) return alert("Bitte Felder ausfüllen!");
 
-    const fullDescription = category + ": " + details;
+    const fullDescription = details ? `${category}: ${details}` : `${category}:`;
     
-    // Datenpaket für Supabase
     const payload = { 
-        date: date, 
+        date, 
         duration: hours, 
-        description: fullDescription, 
-        status: 'pending',     // Status zurücksetzen für neue Prüfung
-        admin_comment: null    // Alten Ablehnungsgrund löschen
+        description: fullDescription,
+        status: 'pending',     // Zurück auf Warteschlange
+        admin_comment: null    // Alten Grund löschen
     };
 
-    let result;
-
     if (currentEditId) {
-        // FALL: Bearbeitung eines bestehenden (z.B. abgelehnten) Eintrags
-        result = await sb.from('work_hours')
+        // UPDATE statt INSERT
+        const { error } = await sb.from('work_hours')
             .update(payload)
-            .eq('id', currentEditId);
+            .eq('id', currentEditId); // Genau diesen einen Eintrag treffen
+
+        if (error) {
+            alert("Fehler beim Update: " + error.message);
+        } else {
+            alert("Eintrag erfolgreich aktualisiert!");
+            currentEditId = null; // ID danach wieder leeren!
+        }
     } else {
-        // FALL: Komplett neuer Eintrag
-        payload.user_id = currentUser.id; // User ID nur beim ersten Mal nötig
-        result = await sb.from('work_hours')
-            .insert([payload]);
+        // NEUER EINTRAG
+        payload.user_id = currentUser.id;
+        const { error } = await sb.from('work_hours').insert([payload]);
+        
+        if (error) alert("Fehler beim Speichern: " + error.message);
+        else alert("Stunden erfolgreich eingereicht!");
     }
 
-    if (result.error) {
-        alert("Fehler beim Speichern: " + result.error.message);
-    } else {
-        alert(currentEditId ? "Änderung gespeichert – wird neu geprüft!" : "Stunden gemeldet!");
-        
-        // WICHTIG: Formular komplett zurücksetzen
-        currentEditId = null; 
-        document.getElementById('description').value = '';
-        
-        // Button-Text zurücksetzen
-        const btn = document.querySelector('button[onclick="saveWork()"]');
-        if (btn) {
-            btn.innerText = "Senden";
-            btn.style.background = ""; // Zurück zu Standard-Grün
-        }
-        
-        loadHistory(); 
-    }
+    // Formular und Button zurücksetzen
+    resetForm();
+    loadHistory();
 }
     async function deleteWork(id) {
     // Sicherheitsabfrage, damit nichts aus Versehen verschwindet
@@ -1333,6 +1322,17 @@ function prepareEdit(id, date, duration, desc) {
     } else {
         alert("Eintrag abgelehnt und Begründung gespeichert.");
         loadAdmin(); // Admin-Ansicht aktualisieren
+    }
+}
+
+    function resetForm() {
+    currentEditId = null;
+    document.getElementById('description').value = '';
+    document.getElementById('hours').value = '';
+    const btn = document.querySelector('button[onclick="saveWork()"]');
+    if (btn) {
+        btn.innerText = "Senden";
+        btn.style.background = ""; // Zurück auf var(--primary)
     }
 }
     
