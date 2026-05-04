@@ -711,52 +711,140 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     }
 
     async function loadMileageHistory() {
-        const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
-        if(data) {
-            allMileage = data;
-            const now = new Date();
-            const monthSum = data.filter(m => new Date(m.date).getMonth() === now.getMonth()).reduce((s, m) => s + parseFloat(m.distance_total), 0);
-            document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${monthSum.toFixed(2)} km`;
-            document.getElementById('mileage-history-body').innerHTML = data.map(m => `
-                <tr>
-                    <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
-                    <td><strong>${m.purpose}</strong><br><small>${m.start_location} ➔ ${m.end_location}</small></td>
-                    <td>${parseFloat(m.distance_total).toFixed(2)} km</td>
-                    <td><button class="btn-small btn-edit" onclick="editMileage('${m.id}')">✏️</button></td>
-                </tr>`).join('');
-        }
+    const { data, error } = await sb.from('mileage_logs')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('date', {ascending: false});
+    
+    if (error) {
+        console.error("Fehler beim Laden der Fahrten:", error);
+        return;
     }
 
-    async function saveMileage() {
-        const id = document.getElementById('edit-ml-id').value;
-        const date = document.getElementById('ml-date').value, purpose = document.getElementById('ml-purpose').value;
-        const start = document.getElementById('ml-start').value, end = document.getElementById('ml-end').value, single = parseFloat(document.getElementById('ml-km-single').value);
-        if(!date || !purpose || !start || !end || !single) return alert("Bitte alle Felder ausfüllen!");
+    if (data) {
+        allMileage = data; // Wichtig für die editMileage Funktion
         
-        const total = calcTotalKm();
-        const payload = { user_id: currentUser.id, date, purpose, start_location: start, end_location: end, distance_single: single, is_round_trip: document.getElementById('ml-roundtrip').checked, distance_total: total };
+        const now = new Date();
+        const monthSum = data
+            .filter(m => new Date(m.date).getMonth() === now.getMonth() && new Date(m.date).getFullYear() === now.getFullYear())
+            .reduce((s, m) => s + (parseFloat(m.distance_total) || 0), 0);
         
-        const res = id ? await sb.from('mileage_logs').update(payload).eq('id', id) : await sb.from('mileage_logs').insert([payload]);
+        document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${monthSum.toFixed(2).replace('.', ',')} km`;
         
-        if(res.error) alert(res.error.message); 
-        else { 
-            // Automatisch als Vorschlag für später speichern
-            await sb.from('saved_routes').upsert({ 
-                user_id: currentUser.id, start_point: start, end_point: end, distance_single: single 
-            }, { onConflict: 'user_id,start_point,end_point' });
-            
-            resetMileageForm(); 
-            loadMileageHistory(); 
-            loadRouteSuggestions();
-        }
+        document.getElementById('mileage-history-body').innerHTML = data.map(m => `
+            <tr>
+                <td style="padding:10px;">${new Date(m.date).toLocaleDateString('de-DE')}</td>
+                <td style="padding:10px;">
+                    <strong>${m.purpose}</strong><br>
+                    <small style="color:#666;">${m.start_location} → ${m.end_location}</small>
+                </td>
+                <td style="padding:10px;">${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
+                <td style="padding:10px; white-space:nowrap; text-align:right;">
+                    <button onclick="editMileage('${m.id}')" 
+                            style="background:#f39c12; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;" title="Bearbeiten">
+                        ✏️
+                    </button>
+                    <button onclick="deleteMileage('${m.id}')" 
+                            style="background:#d32f2f; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; margin-left:5px;" title="Löschen">
+                        🗑️
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+}
+
+   async function saveMileage() {
+    const isRoundTrip = document.getElementById('mileage-roundtrip').checked;
+    const distanceSingle = parseFloat(document.getElementById('mileage-km').value) || 0;
+    
+    const payload = {
+        date: document.getElementById('mileage-date').value,
+        purpose: document.getElementById('mileage-purpose').value,
+        start_location: document.getElementById('mileage-from').value,
+        end_location: document.getElementById('mileage-to').value,
+        distance_single: distanceSingle,
+        distance_total: isRoundTrip ? distanceSingle * 2 : distanceSingle,
+        is_round_trip: isRoundTrip,
+        user_id: currentUser.id
+    };
+
+    if (currentMileageEditId) {
+        // Bearbeiten Modus
+        const { error } = await sb.from('mileage_logs').update(payload).eq('id', currentMileageEditId);
+        if (error) alert("Fehler beim Aktualisieren: " + error.message);
+        else alert("Fahrt wurde korrigiert!");
+    } else {
+        // Neu erstellen Modus
+        const { error } = await sb.from('mileage_logs').insert([payload]);
+        if (error) alert("Fehler beim Speichern: " + error.message);
+        else alert("Fahrt wurde gespeichert!");
     }
 
-    function resetMileageForm() {
-        document.getElementById('edit-ml-id').value = "";
-        document.getElementById('ml-purpose').value = "";
-        document.getElementById('ml-form-title').innerText = "Fahrt erfassen";
-        if(document.getElementById('ml-cancel-btn')) document.getElementById('ml-cancel-btn').style.display = "none";
+    resetMileageForm();
+    loadMileages(); // Deine Funktion zum Neuladen der Tabelle
+}
+
+function resetMileageForm() {
+    currentMileageEditId = null;
+    // Formular leeren
+    document.getElementById('mileage-purpose').value = '';
+    document.getElementById('mileage-from').value = '';
+    document.getElementById('mileage-to').value = '';
+    document.getElementById('mileage-km').value = '';
+    
+    const btn = document.querySelector('button[onclick="saveMileage()"]');
+    if (btn) {
+        btn.innerText = "Fahrt speichern";
+        btn.style.background = ""; 
     }
+}
+    let currentMileageEditId = null; // Globale Variable für den Bearbeitungs-Status
+
+// --- FAHRT ZUM BEARBEITEN LADEN ---
+async function editMileage(id) {
+    // 1. Daten aus Supabase holen (oder aus lokaler Liste, falls vorhanden)
+    const { data: record, error } = await sb.from('mileage_logs').select('*').eq('id', id).single();
+    
+    if (error || !record) return alert("Fahrt konnte nicht geladen werden.");
+
+    currentMileageEditId = id;
+
+    // 2. Formularfelder befüllen (IDs basierend auf deinem Screenshot)
+    document.getElementById('mileage-date').value = record.date;
+    document.getElementById('mileage-purpose').value = record.purpose;
+    document.getElementById('mileage-from').value = record.start_location;
+    document.getElementById('mileage-to').value = record.end_location;
+    document.getElementById('mileage-km').value = record.distance_single; // Falls du Einzel-KM speicherst
+    document.getElementById('mileage-roundtrip').checked = record.is_round_trip;
+
+    // 3. UI anpassen
+    const btn = document.querySelector('button[onclick="saveMileage()"]');
+    if (btn) {
+        btn.innerText = "Änderungen speichern";
+        btn.style.background = "#f39c12"; // Orange zur Signalisierung
+    }
+    
+    // Nach oben scrollen zum Erfassen-Bereich
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// --- FAHRT LÖSCHEN ---
+async function deleteMileage(id) {
+    if (!confirm("Diese Fahrt wirklich aus dem Fahrtenbuch löschen?")) return;
+
+    const { error } = await sb
+        .from('mileage_logs')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Fehler beim Löschen: " + error.message);
+    } else {
+        alert("Fahrt erfolgreich gelöscht.");
+        if (typeof loadMileages === 'function') loadMileages(); // Liste aktualisieren
+    }
+}
 
     // --- STUNDEN LOGIK ---
 
