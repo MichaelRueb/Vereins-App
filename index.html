@@ -306,35 +306,42 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
 }
 
     async function setupApp(user) {
-        currentUser = user; 
-        isAdmin = user.email === ADMIN_EMAIL;
+    // FIX: Das Anmeldefenster explizit verstecken
+    const authUI = document.getElementById('auth-ui');
+    if (authUI) authUI.style.display = 'none';
+
+    currentUser = user; 
+    isAdmin = user.email === ADMIN_EMAIL;
+    
+    const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    
+    if (p) {
+        userTeam = p.team || ""; 
+        isCaptain = p.is_captain || false; 
+        isOfficial = p.is_official || false;
         
-        const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        document.getElementById('prof-name').value = p.full_name || "";
         
-        if (p) {
-            userTeam = p.team || ""; 
-            isCaptain = p.is_captain || false; 
-            isOfficial = p.is_official || false;
-            
-            document.getElementById('prof-name').value = p.full_name || "";
-            
-            // Sichtbarkeit der Tabs
-            if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
-            if (isAdmin || isOfficial) document.getElementById('tab-mileage').style.display = 'block';
-            
-            // Wettkampf-Formular Anzeige
-            if (isAdmin || isCaptain) {
-                if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'block';
-                fillTeamSelect();
-            }
+        // Sichtbarkeit der Tabs
+        if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
+        if (isAdmin || isOfficial) document.getElementById('tab-mileage').style.display = 'block';
+        
+        // Wettkampf-Formular Anzeige
+        if (isAdmin || isCaptain) {
+            if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'block';
+            fillTeamSelect();
         }
-        
-        renderTeamCheckboxes(userTeam);
-        document.getElementById('loading-ui').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        loadHistory(); 
-        loadAllEvents();
     }
+    
+    renderTeamCheckboxes(userTeam);
+    
+    // UI umschalten
+    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    
+    loadHistory(); 
+    loadAllEvents();
+}
 
     function fillTeamSelect() {
         const sel = document.getElementById('event-team-select');
