@@ -571,18 +571,37 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         alert("Gesendet!"); loadHistory(); 
     }
 
-    async function loadHistory() { 
-        const { data } = await sb.from('work_hours').select('*').eq('user_id', currentUser.id).order('date', {descending:true}); 
-        const approved = data?.filter(x=>x.status==='approved').reduce((s,x)=> s + parseFloat(x.duration), 0) || 0; 
-        document.getElementById('my-progress-bar').style.width = Math.min(approved*10, 100) + "%"; 
-        document.getElementById('my-progress-label').innerText = approved + " / 10 h"; 
-        document.getElementById('history-body').innerHTML = data?.map(x=> `<tr><td>${new Date(x.date).toLocaleDateString('de-DE')}</td><td>${x.description}</td><td>${x.duration}h</td><td>${x.status==='approved'?'✅':'⏳'}</td></tr>`).join(''); 
+    async function loadHistory() {
+    const { data: hours, error } = await sb
+        .from('work_hours')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('date', { descending: true });
+
+    if (error) return console.error(error);
+
+    const list = document.getElementById('history-table-body'); // Prüfe, ob deine ID so heißt!
+    
+    list.innerHTML = hours.map(h => {
+        // --- DIESE LOGIK MUSS HIER INNEN STEHEN ---
         const isPending = h.status === 'pending';
+        
         const actionButtons = isPending ? `
-        <button onclick="prepareEdit('${h.id}', '${h.date}', '${h.duration}', '${h.description}')" title="Bearbeiten" style="background:none; border:none; cursor:pointer;">✏️</button>
-        <button onclick="deleteWork('${h.id}')" title="Löschen" style="background:none; border:none; cursor:pointer; color:#d32f2f; margin-left:10px;">🗑️</button>
-        ` : '<span style="color:gray;">✔️ Bestätigt</span>';
-    }
+            <button onclick="prepareEdit('${h.id}', '${h.date}', '${h.duration}', '${h.description}')" title="Bearbeiten" style="background:none; border:none; cursor:pointer;">✏️</button>
+            <button onclick="deleteWork('${h.id}')" title="Löschen" style="background:none; border:none; cursor:pointer; color:#d32f2f; margin-left:10px;">🗑️</button>
+        ` : '<span style="color:green;">✔️</span>';
+        // ------------------------------------------
+
+        return `
+            <tr>
+                <td>${new Date(h.date).toLocaleDateString('de-DE')}</td>
+                <td>${h.description}</td>
+                <td>${h.duration}h</td>
+                <td style="white-space: nowrap; text-align: right;">${actionButtons}</td>
+            </tr>
+        `;
+    }).join('');
+}
 
     // --- PROFIL & ADMIN ---
 
