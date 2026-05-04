@@ -672,52 +672,55 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         }
     }
 
-    // --- FAHRTENBUCH LOGIK ---
+    // --- FAHRTENBUCH LOGIK (AKTUALISIERT) ---
 
-    function calcTotalKm() {
-        const single = parseFloat(document.getElementById('ml-km-single').value) || 0;
-        const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
-        const resElem = document.getElementById('ml-result');
-        if(resElem) resElem.innerText = `Gesamtstrecke: ${total.toFixed(2)} km`;
-        return total;
+let currentMileageEditId = null; // Globale Variable für den Bearbeitungs-Status
+
+function calcTotalKm() {
+    // Geändert auf ID 'ml-km-single' und 'ml-roundtrip'
+    const single = parseFloat(document.getElementById('ml-km-single').value.replace(',', '.')) || 0;
+    const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
+    const resElem = document.getElementById('ml-result');
+    if(resElem) resElem.innerText = `Gesamtstrecke: ${total.toFixed(2).replace('.', ',')} km`;
+    return total;
+}
+
+async function loadRouteSuggestions() {
+    const { data: routeData } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
+    const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+
+    if (routeData) {
+        // Geändert auf ID 'start-suggestions' und 'end-suggestions'
+        document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
+        document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
+        window.mySavedRoutes = routeData;
     }
 
-    async function loadRouteSuggestions() {
-        const { data: routeData } = await sb.from('saved_routes').select('*').eq('user_id', currentUser.id);
-        const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
+    if (logData) {
+        const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
+        document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
+    }
+}
 
-        if (routeData) {
-            document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
-            document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
-            window.mySavedRoutes = routeData;
-        }
-
-        if (logData) {
-            const uniquePurposes = [...new Set(logData.map(l => l.purpose))];
-            document.getElementById('purpose-suggestions').innerHTML = uniquePurposes.map(p => `<option value="${p}">`).join('');
+function checkFavRoute() {
+    // Geändert auf ID 'ml-start' und 'ml-end'
+    const start = document.getElementById('ml-start').value;
+    const end = document.getElementById('ml-end').value;
+    if(window.mySavedRoutes) {
+        const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
+        if(found) { 
+            document.getElementById('ml-km-single').value = found.distance_single; 
+            calcTotalKm(); 
         }
     }
+}
 
-    function checkFavRoute() {
-        const start = document.getElementById('ml-start').value;
-        const end = document.getElementById('ml-end').value;
-        if(window.mySavedRoutes) {
-            const found = window.mySavedRoutes.find(r => r.start_point === start && r.end_point === end);
-            if(found) { 
-                document.getElementById('ml-km-single').value = found.distance_single; 
-                calcTotalKm(); 
-            }
-        }
-    }
-
-   async function loadMileageHistory() {
+async function loadMileageHistory() {
     const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
     
     if(data) {
-        allMileage = data;
         const now = new Date();
         
-        // Summe für aktuellen Monat und aktuelles Jahr
         const monthSum = data
             .filter(m => {
                 const d = new Date(m.date);
@@ -733,35 +736,30 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
                 <td><strong>${m.purpose}</strong><br><small>${m.start_location} → ${m.end_location}</small></td>
                 <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
                 <td style="white-space:nowrap; text-align:right;">
-                    <button onclick="editMileage('${m.id}')" style="background:#f39c12; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer;" title="Bearbeiten">
-                        ✏️
-                    </button>
-                    <button onclick="deleteMileage('${m.id}')" style="background:#d32f2f; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; margin-left:5px;" title="Löschen">
-                        🗑️
-                    </button>
+                    <button onclick="editMileage('${m.id}')" style="background:#f39c12; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer;" title="Bearbeiten">✏️</button>
+                    <button onclick="deleteMileage('${m.id}')" style="background:#d32f2f; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; margin-left:5px;" title="Löschen">🗑️</button>
                 </td>
             </tr>`).join('');
     }
 }
 
- async function saveMileage() {
+async function saveMileage() {
     console.log("Speichervorgang gestartet...");
 
-    // 1. Elemente gezielt suchen
+    // 1. Elemente anhand der korrekten IDs (ml-...) suchen
     const fields = {
-        date: document.getElementById('mileage-date'),
-        purpose: document.getElementById('mileage-purpose'),
-        from: document.getElementById('mileage-from'),
-        to: document.getElementById('mileage-to'),
-        km: document.getElementById('mileage-km'),
-        roundtrip: document.getElementById('mileage-roundtrip')
+        date: document.getElementById('ml-date'),
+        purpose: document.getElementById('ml-purpose'),
+        from: document.getElementById('ml-start'),
+        to: document.getElementById('ml-end'),
+        km: document.getElementById('ml-km-single'),
+        roundtrip: document.getElementById('ml-roundtrip')
     };
 
-    // 2. Debug-Check: Welches Feld fehlt?
+    // 2. Debug-Check
     for (const [key, el] of Object.entries(fields)) {
         if (!el) {
-            console.error(`Kritischer Fehler: Das Feld für "${key}" wurde im HTML nicht gefunden!`);
-            alert(`Strukturfehler: Das Eingabefeld für "${key}" fehlt im HTML-Code.`);
+            console.error(`Kritischer Fehler: Das Feld für "${key}" fehlt im HTML.`);
             return; 
         }
     }
@@ -771,16 +769,14 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const purpose = fields.purpose.value;
     const from = fields.from.value;
     const to = fields.to.value;
-    const kmSingle = parseFloat(fields.km.value.replace(',', '.')); // Erlaubt auch Komma-Eingabe
+    const kmSingle = parseFloat(fields.km.value.replace(',', '.'));
     const isRound = fields.roundtrip.checked;
 
-    // 4. Validierung
     if (!date || !purpose || isNaN(kmSingle)) {
         alert("Bitte fülle mindestens Datum, Zweck und Kilometer aus.");
         return;
     }
 
-    // 5. Datenpaket schnüren
     const payload = {
         date: date,
         purpose: purpose,
@@ -789,13 +785,8 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         distance_single: kmSingle,
         distance_total: isRound ? kmSingle * 2 : kmSingle,
         is_round_trip: isRound,
-        user_id: currentUser?.id // Sicherer Zugriff auf User-ID
+        user_id: currentUser?.id
     };
-
-    if (!payload.user_id) {
-        alert("Fehler: Du scheinst nicht eingeloggt zu sein.");
-        return;
-    }
 
     try {
         let error;
@@ -811,77 +802,118 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
 
         alert("Fahrt erfolgreich gespeichert!");
         resetMileageForm();
-        if (typeof loadHistory === "function") loadHistory(); // Deine Funktion zum Neuladen der Liste
+        loadMileageHistory(); // Liste neu laden
         
     } catch (err) {
         console.error("Datenbankfehler:", err);
         alert("Speichern fehlgeschlagen: " + err.message);
     }
 }
-    
+
 function resetMileageForm() {
     currentMileageEditId = null;
     
-    const fields = ['mileage-date', 'mileage-purpose', 'mileage-from', 'mileage-to', 'mileage-km'];
+    // IDs auf 'ml-...' angepasst
+    const fields = ['ml-date', 'ml-purpose', 'ml-start', 'ml-end', 'ml-km-single', 'edit-ml-id'];
     fields.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
 
-    const checkbox = document.getElementById('mileage-roundtrip');
-    if (checkbox) checkbox.checked = false;
+    const checkbox = document.getElementById('ml-roundtrip');
+    if (checkbox) checkbox.checked = true;
+
+    const resElem = document.getElementById('ml-result');
+    if(resElem) resElem.innerText = `Gesamtstrecke: 0,00 km`;
 
     const btn = document.querySelector('button[onclick="saveMileage()"]');
     if (btn) {
         btn.innerText = "Fahrt speichern";
-        btn.style.backgroundColor = ""; // Reset auf Standard
+        btn.style.backgroundColor = ""; 
     }
-}
     
-    let currentMileageEditId = null; // Globale Variable für den Bearbeitungs-Status
+    document.getElementById('ml-form-title').innerText = "Fahrt erfassen";
+    document.getElementById('ml-cancel-btn').style.display = "none";
+}
 
-// --- FAHRT ZUM BEARBEITEN LADEN ---
 async function editMileage(id) {
     try {
-        const { data: record, error } = await sb.from('mileage_logs')
-            .select('*')
-            .eq('id', id)
-            .single();
-
+        const { data: record, error } = await sb.from('mileage_logs').select('*').eq('id', id).single();
         if (error || !record) throw new Error("Eintrag nicht gefunden.");
 
         currentMileageEditId = id;
         
-        // Formular befüllen
-        document.getElementById('mileage-date').value = record.date;
-        document.getElementById('mileage-purpose').value = record.purpose;
-        document.getElementById('mileage-from').value = record.start_location;
-        document.getElementById('mileage-to').value = record.end_location;
-        document.getElementById('mileage-km').value = record.distance_single;
-        document.getElementById('mileage-roundtrip').checked = record.is_round_trip;
+        // Formular mit den 'ml-...' IDs befüllen
+        document.getElementById('ml-date').value = record.date;
+        document.getElementById('ml-purpose').value = record.purpose;
+        document.getElementById('ml-start').value = record.start_location;
+        document.getElementById('ml-end').value = record.end_location;
+        document.getElementById('ml-km-single').value = record.distance_single;
+        document.getElementById('ml-roundtrip').checked = record.is_round_trip;
 
-        // UI Feedback
+        // UI Updates
+        document.getElementById('ml-form-title').innerText = "Fahrt bearbeiten";
+        document.getElementById('ml-cancel-btn').style.display = "inline-block";
         const btn = document.querySelector('button[onclick="saveMileage()"]');
         if (btn) {
             btn.innerText = "Änderungen speichern";
-            btn.style.backgroundColor = "#f39c12"; // Orange für Edit-Modus
+            btn.style.backgroundColor = "#f39c12";
         }
         
+        calcTotalKm();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
         alert("Fehler beim Laden: " + err.message);
     }
 }
-// --- FAHRT LÖSCHEN ---
+
 async function deleteMileage(id) {
     if (!confirm("Möchtest du diese Fahrt wirklich löschen?")) return;
-
     const { error } = await sb.from('mileage_logs').delete().eq('id', id);
-    if (error) {
-        alert("Fehler beim Löschen: " + error.message);
-    } else {
-        if (typeof loadMileageHistory === "function") loadMileageHistory();
-    }
+    if (error) alert("Fehler beim Löschen: " + error.message);
+    else loadMileageHistory();
+}
+
+async function exportMileagePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
+    const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+    
+    if (!logs || logs.length === 0) return alert("Keine Fahrten zum Exportieren gefunden!");
+
+    doc.setFontSize(18);
+    doc.setTextColor(46, 125, 50);
+    doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
+    doc.setFontSize(11);
+    doc.setTextColor(80);
+    doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
+    doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
+
+    const tableRows = logs.map(l => [
+        new Date(l.date).toLocaleDateString('de-DE'),
+        l.purpose,
+        `${l.start_location} > ${l.end_location}`,
+        l.is_round_trip ? 'Ja' : 'Nein',
+        `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
+    ]);
+
+    const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
+    tableRows.push([
+        { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+    ]);
+
+    doc.autoTable({
+        head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
+        body: tableRows,
+        startY: 45,
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
+        styles: { fontSize: 9 },
+        columnStyles: { 4: { halign: 'right' } }
+    });
+    doc.save(`Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
 }
 
     // --- STUNDEN LOGIK ---
@@ -1163,47 +1195,6 @@ async function deleteMileage(id) {
         });
 
         doc.save(`Hubertus_Report_${dateString}.pdf`);
-    }
-
-async function exportMileagePDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
-        const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
-        if (!logs || logs.length === 0) return alert("Keine Fahrten zum Exportieren gefunden!");
-
-        doc.setFontSize(18);
-        doc.setTextColor(46, 125, 50);
-        doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
-        doc.setFontSize(11);
-        doc.setTextColor(80);
-        doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
-        doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
-
-        const tableRows = logs.map(l => [
-            new Date(l.date).toLocaleDateString('de-DE'),
-            l.purpose,
-            `${l.start_location} > ${l.end_location}`,
-            l.is_round_trip ? 'Ja' : 'Nein',
-            `${parseFloat(l.distance_total).toFixed(2).replace('.', ',')} km`
-        ]);
-
-        const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
-        tableRows.push([
-            { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
-            { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
-        ]);
-
-        doc.autoTable({
-            head: [['Datum', 'Zweck', 'Route', 'H+R', 'Distanz']],
-            body: tableRows,
-            startY: 45,
-            theme: 'grid',
-            headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
-            styles: { fontSize: 9 },
-            columnStyles: { 4: { halign: 'right' } }
-        });
-        doc.save(`Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
     }
 
     async function updatePassword() {
