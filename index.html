@@ -770,26 +770,28 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
 
     const list = document.getElementById('history-body');
     list.innerHTML = hours.map(h => {
-        let statusIcon = '';
-        let rowStyle = '';
-        let commentHtml = '';
+        const isRejected = h.status === 'rejected';
+        const isApproved = h.status === 'approved';
+        
+        // Hintergrundfarbe und Status-Icon bestimmen
+        let rowStyle = "";
+        let statusDisplay = "⏳";
+        let commentHtml = "";
 
-        if (h.status === 'approved') {
-            statusIcon = '<span style="color:green;">✔️</span>';
-        } else if (h.status === 'rejected') {
-            statusIcon = '<span style="color:red;" title="Abgelehnt">❌</span>';
-            rowStyle = 'background-color: #ffebee;'; // Leichter Rotschleier
-            commentHtml = `<br><small style="color:red;"><b>Grund:</b> ${h.admin_comment || 'Keine Angabe'}</small>`;
-        } else {
-            statusIcon = '<span title="Wartend">⏳</span>';
+        if (isApproved) {
+            statusDisplay = '<span style="color:green;">✔️</span>';
+        } else if (isRejected) {
+            statusDisplay = '<span style="color:red;" title="Abgelehnt">❌</span>';
+            rowStyle = "background-color: #fff1f0;"; // Zartes Rot
+            // Hier wird der Grund angezeigt:
+            commentHtml = `<br><small style="color:red;"><strong>Grund:</strong> ${h.admin_comment || 'Keine Begründung angegeben'}</small>`;
         }
 
-        // Bearbeiten-Button nur wenn NICHT approved
-        const canEdit = h.status !== 'approved';
-        const actionButtons = canEdit ? `
-            <button onclick="prepareEdit('${h.id}', '${h.date}', '${h.duration}', '${h.description.replace(/'/g, "\\'")}')" title="Bearbeiten" style="background:none; border:none; cursor:pointer;">✏️</button>
-            <button onclick="deleteWork('${h.id}')" title="Löschen" style="background:none; border:none; cursor:pointer; color:#d32f2f;">🗑️</button>
-        ` : statusIcon;
+        // Bearbeiten-Button (✏️) nur anzeigen, wenn NICHT genehmigt
+        const actionButtons = !isApproved ? `
+            <button class="btn-small btn-edit" onclick="prepareEdit('${h.id}', '${h.date}', '${h.duration}', '${h.description.replace(/'/g, "\\'")}')">✏️</button>
+            <button class="btn-small btn-del" onclick="deleteWork('${h.id}')">🗑️</button>
+        ` : statusDisplay;
 
         return `
             <tr style="${rowStyle}">
@@ -1219,7 +1221,6 @@ function prepareEdit(id, date, duration, desc) {
 }
 
    async function saveWork() {
-    // IDs abrufen
     const date = document.getElementById('date').value;
     const hours = document.getElementById('hours').value;
     const category = document.getElementById('work-category').value;
@@ -1228,27 +1229,47 @@ function prepareEdit(id, date, duration, desc) {
     if (!date || !hours) return alert("Bitte Datum und Stunden angeben!");
 
     const fullDescription = category + ": " + details;
+    
+    // Datenpaket für Supabase
     const payload = { 
-        user_id: currentUser.id, 
-        date, 
+        date: date, 
         duration: hours, 
         description: fullDescription, 
-        status: 'pending' 
+        status: 'pending',     // Status zurücksetzen für neue Prüfung
+        admin_comment: null    // Alten Ablehnungsgrund löschen
     };
 
     let result;
+
     if (currentEditId) {
-        result = await sb.from('work_hours').update(payload).eq('id', currentEditId);
+        // FALL: Bearbeitung eines bestehenden (z.B. abgelehnten) Eintrags
+        result = await sb.from('work_hours')
+            .update(payload)
+            .eq('id', currentEditId);
     } else {
-        result = await sb.from('work_hours').insert([payload]);
+        // FALL: Komplett neuer Eintrag
+        payload.user_id = currentUser.id; // User ID nur beim ersten Mal nötig
+        result = await sb.from('work_hours')
+            .insert([payload]);
     }
 
     if (result.error) {
-        alert("Fehler: " + result.error.message);
+        alert("Fehler beim Speichern: " + result.error.message);
     } else {
-        alert(currentEditId ? "Eintrag aktualisiert!" : "Stunden gemeldet!");
-        resetWorkForm();
-        loadHistory();
+        alert(currentEditId ? "Änderung gespeichert – wird neu geprüft!" : "Stunden gemeldet!");
+        
+        // WICHTIG: Formular komplett zurücksetzen
+        currentEditId = null; 
+        document.getElementById('description').value = '';
+        
+        // Button-Text zurücksetzen
+        const btn = document.querySelector('button[onclick="saveWork()"]');
+        if (btn) {
+            btn.innerText = "Senden";
+            btn.style.background = ""; // Zurück zu Standard-Grün
+        }
+        
+        loadHistory(); 
     }
 }
     async function deleteWork(id) {
