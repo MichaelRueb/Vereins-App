@@ -304,7 +304,7 @@
                 <option value="Sonstiges">Sonstiges</option>
             </select>
             <textarea id="description" placeholder="Details..."></textarea>
-            <button onclick="sendHours()">Senden</button>
+           <button onclick="saveWork()" id="submit-work-btn">Senden</button>
             <table><thead><tr><th>Datum</th><th>Tätigkeit</th><th>h</th><th>Status</th></tr></thead><tbody id="history-body"></tbody></table>
         </div>
 
@@ -1218,38 +1218,38 @@ function prepareEdit(id, date, duration, description) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-   async function saveWork() {
+  async function saveWork() {
     const date = document.getElementById('date').value;
     const hours = document.getElementById('hours').value;
     const category = document.getElementById('work-category').value;
     const details = document.getElementById('description').value;
 
-    if (!date || !hours) return alert("Bitte Felder ausfüllen!");
+    if (!date || !hours) return alert("Bitte Datum und Stunden angeben!");
 
     const fullDescription = details ? `${category}: ${details}` : `${category}:`;
     
+    // Daten-Objekt für Supabase
     const payload = { 
         date, 
         duration: hours, 
         description: fullDescription,
-        status: 'pending',     // Zurück auf Warteschlange
-        admin_comment: null    // Alten Grund löschen
+        status: 'pending',     // Bei Speicherung/Korrektur immer zurück auf Warteschlange
+        admin_comment: null    // Alten Ablehnungsgrund löschen
     };
 
     if (currentEditId) {
-        // UPDATE statt INSERT
+        // FALL: UPDATE eines bestehenden Eintrags (überschreibt den abgelehnten)
         const { error } = await sb.from('work_hours')
             .update(payload)
-            .eq('id', currentEditId); // Genau diesen einen Eintrag treffen
+            .eq('id', currentEditId);
 
         if (error) {
-            alert("Fehler beim Update: " + error.message);
+            alert("Fehler beim Aktualisieren: " + error.message);
         } else {
-            alert("Eintrag erfolgreich aktualisiert!");
-            currentEditId = null; // ID danach wieder leeren!
+            alert("Eintrag erfolgreich korrigiert!");
         }
     } else {
-        // NEUER EINTRAG
+        // FALL: NEUER EINTRAG
         payload.user_id = currentUser.id;
         const { error } = await sb.from('work_hours').insert([payload]);
         
@@ -1257,40 +1257,9 @@ function prepareEdit(id, date, duration, description) {
         else alert("Stunden erfolgreich eingereicht!");
     }
 
-    // Formular und Button zurücksetzen
+    // Formular und ID zurücksetzen
     resetForm();
     loadHistory();
-}
-    async function deleteWork(id) {
-    // Sicherheitsabfrage, damit nichts aus Versehen verschwindet
-    if (!confirm("Möchtest du diesen Eintrag wirklich unwiderruflich löschen?")) return;
-
-    try {
-        const { error } = await sb
-            .from('work_hours')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            throw error;
-        }
-
-        alert("Eintrag wurde gelöscht.");
-        
-        // Falls der User gerade diesen Eintrag im Edit-Modus hatte, Reset machen
-        if (currentEditId === id) {
-            currentEditId = null;
-            document.getElementById('submit-work-btn').innerText = "Stunden melden";
-            document.getElementById('submit-work-btn').style.background = "";
-            document.getElementById('work-desc').value = '';
-        }
-
-        // Liste aktualisieren
-        loadHistory();
-        
-    } catch (err) {
-        alert("Fehler beim Löschen: " + err.message);
-    }
 }
 
     function resetWorkForm() {
@@ -1325,14 +1294,16 @@ function prepareEdit(id, date, duration, description) {
     }
 }
 
-    function resetForm() {
-    currentEditId = null;
+   function resetForm() {
+    currentEditId = null; // Wichtig! Verhindert, dass das nächste "Senden" ein Update wird
     document.getElementById('description').value = '';
     document.getElementById('hours').value = '';
+    
+    // Button zurück auf Standard-Grün setzen
     const btn = document.querySelector('button[onclick="saveWork()"]');
     if (btn) {
         btn.innerText = "Senden";
-        btn.style.background = ""; // Zurück auf var(--primary)
+        btn.style.background = ""; 
     }
 }
     
