@@ -421,18 +421,19 @@
         📄 Stunden Report (PDF)
     </button>
     
-    <h4>⏳ Offene Anträge</h4>
-    <table style="width:100%; border-collapse: collapse; table-layout: fixed;">
-        <thead>
-            <tr style="background:#eee; text-align:left;">
-                <th style="padding:8px; width:25%;">Name/Datum</th>
-                <th style="padding:8px; width:45%;">Details</th>
-                <th style="padding:8px; width:10%;">Dauer</th>
-                <th style="padding:8px; width:20%; text-align:right;">Aktion</th>
-            </tr>
-        </thead>
-        <tbody id="admin-pending-body-real"></tbody>
-    </table>
+   <h4 style="margin-top:20px;">⏳ Offene Anträge</h4>
+<!-- Tabelle ohne fixed layout, damit sie sich kompakter verhält -->
+<table style="width:100%; border-collapse: collapse; max-width: 900px; border: 1px solid #ddd;">
+    <thead>
+        <tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;">
+            <th style="padding:12px; width:180px;">Name/Datum</th>
+            <th style="padding:12px;">Beschreibung</th>
+            <th style="padding:12px; width:60px;">Dauer</th>
+            <th style="padding:12px; width:120px; text-align:center;">Aktion</th>
+        </tr>
+    </thead>
+    <tbody id="admin-pending-body-real"></tbody>
+</table>
     
     <h4 style="margin-top:30px;">👥 Mitglieder-Verwaltung</h4>
     <table style="width:100%; border-collapse: collapse;">
@@ -851,15 +852,26 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     let hoursHtml = pendingHours.map(h => {
         const u = profs.find(p => p.id === h.user_id);
         return `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding:10px;"><strong>${u?.full_name || 'Gelöschter User'}</strong><br><small>${h.date}</small></td>
-                <td style="padding:10px;">${h.description}</td>
-                <td style="padding:10px;">${h.duration}h</td>
-                <td style="padding:10px; text-align:right; white-space:nowrap;">
-                    <button onclick="approveHours('${h.id}')" style="background:#2e7d32; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">OK</button>
-                    <button onclick="rejectHours('${h.id}')" style="background:#d32f2f; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; margin-left:5px;">❌</button>
-                </td>
-            </tr>`;
+    <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding:10px; vertical-align: top;">
+            <strong>${u?.full_name || 'Gelöschter User'}</strong><br>
+            <small style="color:#666;">${h.date}</small>
+        </td>
+        <td style="padding:10px; vertical-align: top;">${h.description}</td>
+        <td style="padding:10px; vertical-align: top; font-weight:bold;">${h.duration}h</td>
+        <td style="padding:10px; text-align:right; white-space:nowrap; vertical-align: middle;">
+            <div style="display: flex; gap: 5px; justify-content: flex-end;">
+                <button onclick="approveHours('${h.id}')" 
+                        style="background:#2e7d32; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    OK
+                </button>
+                <button onclick="rejectHours('${h.id}')" 
+                        style="background:#d32f2f; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">
+                    ❌
+                </button>
+            </div>
+        </td>
+    </tr>`;
     }).join('');
 
     const target = document.getElementById('admin-pending-body-real');
