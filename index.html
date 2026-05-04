@@ -999,14 +999,15 @@ async function exportMileagePDF() {
     }
 }
 
-  async function loadAdmin() {
-    const { data: profs, error: pErr } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours, error: hErr } = await sb.from('work_hours').select('*').order('date', {descending:true});
+ async function loadAdmin() {
+    // Daten von Supabase holen
+    const { data: profilesData, error: pErr } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hoursData, error: hErr } = await sb.from('work_hours').select('*').order('date', {descending:true});
     
-    if (pErr || !profs) return;
+    if (pErr || !profilesData) return console.error("Fehler beim Laden der Profile:", pErr);
 
-    // 1. NEUE REGISTRIERUNGEN
-    const unapproved = profs.filter(p => p.is_approved === false || p.is_approved === null);
+    // 1. NEUE REGISTRIERUNGEN (Unapproved)
+    const unapproved = profilesData.filter(p => p.is_approved === false || p.is_approved === null);
     let pendingHtml = unapproved.map(p => `
         <tr style="background: #fff3e0;">
             <td><strong>${p.full_name || 'Name fehlt'}</strong><br><small>Neu-Registrierung</small></td>
@@ -1018,9 +1019,9 @@ async function exportMileagePDF() {
     `).join('');
 
     // 2. OFFENE STUNDEN-ANTRÄGE
-    const pendingHours = hours ? hours.filter(h => h.status === 'pending') : [];
+    const pendingHours = hoursData ? hoursData.filter(h => h.status === 'pending') : [];
     let hoursHtml = pendingHours.map(h => {
-        const u = profs.find(p => p.id === h.user_id);
+        const u = profilesData.find(p => p.id === h.user_id);
         return `
         <tr>
             <td><strong>${u?.full_name || 'User'}</strong><br><small>${h.date}</small></td>
@@ -1039,6 +1040,26 @@ async function exportMileagePDF() {
     if (target) {
         target.innerHTML = (pendingHtml || hoursHtml) ? (pendingHtml + hoursHtml) : "<tr><td colspan='4' style='text-align:center;'>Keine Aufgaben</td></tr>";
     }
+
+    // --- MITGLIEDER-VERWALTUNG (Hier lag der Fehler) ---
+    const memberList = document.getElementById('admin-member-table-list');
+    if (memberList) {
+        // Wir nutzen profilesData (die Variable von oben) statt des undefinierten "profs"
+        memberList.innerHTML = profilesData.filter(p => p.is_approved === true).map(p => {
+            const sum = hoursData ? hoursData.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+            return `
+            <tr>
+                <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold;">${p.full_name || 'Kein Name'}</td>
+                <td>${sum}h</td>
+                <td>
+                    <small>Kapt:</small> <input type="checkbox" ${p.is_captain ? 'checked' : ''} onchange="updateRole('${p.id}','is_captain',this.checked)">
+                    <small>Funk:</small> <input type="checkbox" ${p.is_official ? 'checked' : ''} onchange="updateRole('${p.id}','is_official',this.checked)">
+                </td>
+            </tr>
+            <tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; font-size:0.85em;"></td></tr>`;
+        }).join('');
+    }
+}
 
     // MITGLIEDER-VERWALTUNG
     const memberList = document.getElementById('admin-member-table-list');
