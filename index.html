@@ -385,11 +385,12 @@
                     <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
                 </div>
                 <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">Gesamtstrecke: 0.00 km</div>
-                <button onclick="saveMileage()">Fahrt speichern</button>
-                <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none;">Abbrechen</button>
-            </div>
-            
-            <button onclick="exportMileagePDF()" style="background:var(--blue); margin-bottom:15px;">📄 Fahrtenbuch PDF exportieren</button>
+                <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
+<button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
+
+<div style="margin-top: 20px;">
+    <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
+</div>
             <div class="mileage-sum" id="mileage-sum-display">Gesamt diesen Monat: 0.00 km</div>
             <table><thead><tr><th>Datum</th><th>Zweck / Route</th><th>KM</th><th>Aktion</th></tr></thead><tbody id="mileage-history-body"></tbody></table>
         </div>
