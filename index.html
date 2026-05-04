@@ -1355,6 +1355,32 @@ function prepareEdit(id, date, duration, description) {
         btn.style.background = ""; 
     }
 }
+
+async function deleteWork(id) {
+    // Sicherheitsabfrage
+    if (!confirm("Möchtest du diesen Eintrag wirklich unwiderruflich löschen?")) {
+        return;
+    }
+
+    try {
+        const { error } = await sb
+            .from('work_hours')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            throw error;
+        }
+
+        alert("Eintrag wurde gelöscht.");
+        
+        // Ansicht aktualisieren
+        loadHistory(); 
+    } catch (error) {
+        console.error("Fehler beim Löschen:", error);
+        alert("Fehler beim Löschen: " + error.message);
+    }
+}
     
 </script>
     
