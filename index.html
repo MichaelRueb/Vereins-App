@@ -1474,6 +1474,25 @@ async function deleteWork(id) {
         alert("Fehler beim Löschen: " + error.message);
     }
 }
+
+    async function loadProfile() {
+    if (!currentUser) return;
+
+    // Profil des eingeloggten Users aus der Datenbank holen
+    const { data: profile, error } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+    
+    if (error) {
+        console.error("Fehler beim Laden des Profils:", error);
+        return;
+    }
+
+    // Name in das Input-Feld eintragen
+    const nameInput = document.getElementById('prof-name');
+    if (nameInput) nameInput.value = profile.full_name || '';
+
+    // Checkboxen mit den gespeicherten Teams rendern
+    renderTeamCheckboxes(profile.team);
+}
     
 </script>
     
