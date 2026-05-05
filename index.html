@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
-   <style>
+<style>
     :root { 
         --primary: #2e7d32; 
         --primary-dark: #1b5e20; 
@@ -63,6 +63,7 @@
         transform: scale(0.98);
     }
 
+    /* TABS */
     .tabs { 
         display: flex; 
         flex-wrap: wrap; 
@@ -88,7 +89,7 @@
         color: white; 
     }
 
-    /* Tabellen Styling */
+    /* TABELLEN */
     table { 
         width: 100%; 
         border-collapse: collapse; 
@@ -102,48 +103,61 @@
         text-align: left; 
     }
 
-    /* Admin spezifische Tabellen-Anpassungen */
+    /* AKTION-BUTTONS IN TABELLEN (FIX FÜR DAS BILD) */
+    .action-btn-container {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-start;
+        align-items: center;
+    }
+
+    .btn-edit, .btn-del { 
+        width: 34px !important;  /* Feste Breite gegen 100% Rule */
+        height: 34px !important; 
+        padding: 0 !important; 
+        margin: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        border-radius: 8px;
+    }
+
+    .btn-edit { background: var(--accent); }
+    .btn-del { background: var(--danger); }
+
+    /* ADMIN SPEZIFISCH */
     #admin-pending-body-real td {
         padding: 15px 10px;
         vertical-align: middle;
     }
 
-    .admin-member-info {
-        line-height: 1.4;
-    }
-
-    .admin-member-info strong {
-        display: block;
-        font-size: 1.05em;
-        color: #333;
-    }
-
-    .admin-member-info small {
-        color: #666;
-        font-size: 0.85em;
-    }
-
-    /* Admin Action Buttons */
-    .admin-actions {
-        display: flex;
-        gap: 8px;
-        justify-content: flex-end;
-        align-items: center;
-    }
-
     .btn-admin {
         padding: 8px 12px;
-        width: auto; /* Überschreibt die 100% Breite */
+        width: auto;
         margin: 0;
         min-width: 45px;
         border-radius: 6px;
         font-size: 13px;
     }
 
-    .btn-approve { background-color: var(--primary); }
-    .btn-reject { background-color: var(--danger); }
+    /* FORTSCHRITT & KALENDER */
+    .progress-container { 
+        background: #e9ecef; 
+        border-radius: 20px; 
+        height: 24px; 
+        position: relative; 
+        overflow: hidden; 
+        margin: 10px 0; 
+        border: 1px solid #ddd; 
+    }
 
-    /* Kalender Styling */
+    .progress-bar { 
+        background: var(--blue); 
+        height: 100%; 
+        transition: width 0.6s; 
+    }
+
     .calendar-grid { 
         display: grid; 
         grid-template-columns: repeat(7, 1fr); 
@@ -164,62 +178,12 @@
         cursor: pointer; 
     }
 
-    .calendar-day.today { 
-        background: #fff9c4; 
-        font-weight: bold; 
-    }
-
-    .event-dot-container { 
-        display: flex; 
-        flex-wrap: wrap; 
-        gap: 3px; 
-        justify-content: center; 
-        width: 100%; 
-        margin-top: 5px; 
-    }
-
-    .event-dot { 
-        width: 8px; 
-        height: 8px; 
-        border-radius: 50%; 
-        border: 1px solid rgba(0,0,0,0.1); 
-    }
-
+    /* TEAM FARBEN */
     .team-lg { background-color: #2e7d32 !important; } 
     .team-lp { background-color: #1565c0 !important; } 
     .team-verein { background-color: #FFD700 !important; }
 
-    /* Fortschrittsbalken */
-    .progress-container { 
-        background: #e9ecef; 
-        border-radius: 20px; 
-        height: 24px; 
-        position: relative; 
-        overflow: hidden; 
-        margin: 10px 0; 
-        border: 1px solid #ddd; 
-    }
-
-    .progress-bar { 
-        background: #1976d2; 
-        height: 100%; 
-        transition: width 0.6s; 
-    }
-
-    .progress-text { 
-        position: absolute; 
-        width: 100%; 
-        text-align: center; 
-        line-height: 24px; 
-        font-size: 13px; 
-        font-weight: bold; 
-    }
-
-    /* Hilfsklassen */
-    .btn-small { width: auto; padding: 4px 8px; margin: 2px; font-size: 12px; }
-    .btn-edit { background: #ffa000; }
-    .btn-del { background: #c62828; }
-
+    /* HILFSKLASSEN */
     .mileage-sum { 
         background: #e8f5e9; 
         padding: 10px; 
@@ -237,21 +201,6 @@
         gap: 8px; 
         margin: 4px 0; 
         font-size: 14px; 
-        text-align: left;
-    }
-
-    .checkbox-wrapper input { 
-        width: 18px; 
-        height: 18px; 
-        margin: 0; 
-        cursor: pointer; 
-    }
-
-    .admin-role-group { 
-        display: flex; 
-        flex-direction: column; 
-        gap: 8px; 
-        justify-content: center;
     }
 </style>
 </head>
