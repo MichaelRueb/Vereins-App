@@ -364,36 +364,66 @@
 </div>
         
 
-        <!-- FAHRTENBUCH VIEW -->
-        <div id="view-mileage" style="display:none;">
-            <h3>🚗 Fahrtenbuch</h3>
-            <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
-                <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
-                <input type="hidden" id="edit-ml-id">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="date" id="ml-date">
-                    <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
-                    <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
-                </div>
-                <datalist id="purpose-suggestions"></datalist><datalist id="start-suggestions"></datalist><datalist id="end-suggestions"></datalist>
-                
-                <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px;">
-                    <label class="checkbox-wrapper"><input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt</label>
-                    <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
-                </div>
-                <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">Gesamtstrecke: 0.00 km</div>
-                <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
-<button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
-
-<div style="margin-top: 20px;">
-    <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
-</div>
-            <div class="mileage-sum" id="mileage-sum-display">Gesamt diesen Monat: 0.00 km</div>
-            <table><thead><tr><th>Datum</th><th>Zweck / Route</th><th>KM</th><th>Aktion</th></tr></thead><tbody id="mileage-history-body"></tbody></table>
+       <!-- FAHRTENBUCH VIEW -->
+<div id="view-mileage" style="display:none;">
+    <h3>🚗 Fahrtenbuch</h3>
+    
+    <!-- Start der Karte für das Formular -->
+    <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
+        <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
+        <input type="hidden" id="edit-ml-id">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="date" id="ml-date">
+            <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
         </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
+            <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
+            <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
+        </div>
+        
+        <datalist id="purpose-suggestions"></datalist>
+        <datalist id="start-suggestions"></datalist>
+        <datalist id="end-suggestions"></datalist>
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
+            <label class="checkbox-wrapper">
+                <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt
+            </label>
+            <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
+        </div>
+        
+        <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">
+            Gesamtstrecke: 0,00 km
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
+            <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
+        </div>
+    </div> <!-- HIER fehlte das Ende der Card! -->
+
+    <div style="margin-top: 20px; margin-bottom: 20px;">
+        <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">
+            📄 Fahrtenbuch PDF exportieren
+        </button>
+    </div>
+
+    <div class="mileage-sum" id="mileage-sum-display">Gesamt diesen Monat: 0,00 km</div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Zweck / Route</th>
+                <th>KM</th>
+                <th>Aktion</th>
+            </tr>
+        </thead>
+        <tbody id="mileage-history-body"></tbody>
+    </table>
+    </div>
 
         <!-- PROFIL VIEW -->
         <div id="view-profile" style="display:none;">
@@ -1475,24 +1505,6 @@ async function deleteWork(id) {
     }
 }
 
-    async function loadProfile() {
-    if (!currentUser) return;
-
-    // Profil des eingeloggten Users aus der Datenbank holen
-    const { data: profile, error } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-    
-    if (error) {
-        console.error("Fehler beim Laden des Profils:", error);
-        return;
-    }
-
-    // Name in das Input-Feld eintragen
-    const nameInput = document.getElementById('prof-name');
-    if (nameInput) nameInput.value = profile.full_name || '';
-
-    // Checkboxen mit den gespeicherten Teams rendern
-    renderTeamCheckboxes(profile.team);
-}
     
 </script>
     
