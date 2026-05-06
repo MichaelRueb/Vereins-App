@@ -1216,17 +1216,17 @@ async function loadAdmin() {
         
         if (hours && hours.length > 0) {
             html += hours.map(h => {
-                // Status-Farbe für bessere Übersicht
                 const statusColor = h.status === 'approved' ? 'green' : (h.status === 'rejected' ? 'red' : 'orange');
                 
                 return `
-                    <li style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 4px 0;">
-                        <span>
+                    <li style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 8px 0;">
+                        <span style="flex: 1; padding-right: 10px;">
                             ${new Date(h.date).toLocaleDateString('de-DE')}: <strong>${h.duration}h</strong> - ${h.description} 
-                            <small style="color:${statusColor};">(${h.status})</small>
+                            <br><small style="color:${statusColor}; font-weight:bold;">(${h.status})</small>
                         </span>
                         <button onclick="adminDeleteWork('${h.id}', '${uid}')" 
-                                style="background:none; border:none; color:#d32f2f; cursor:pointer; font-size:1.1em;" 
+                                class="btn-del" 
+                                style="width: 34px !important; height: 34px !important; flex-shrink: 0;" 
                                 title="Eintrag löschen">
                             🗑️
                         </button>
