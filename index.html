@@ -221,6 +221,29 @@
         margin: 4px 0; 
         font-size: 14px; 
     }
+
+    /* Fix für versetzte Checkboxen in der Admin-Liste */
+.admin-role-wrapper {
+    display: flex;
+    justify-content: flex-end; /* Schiebt alles nach rechts */
+    align-items: center;       /* Zentriert Kästchen und Text vertikal */
+    gap: 10px;                 /* Abstand zwischen Text und Kästchen */
+    margin-bottom: 4px;        /* Abstand zwischen den Zeilen */
+}
+
+.admin-role-wrapper label {
+    font-size: 0.85em;
+    font-weight: bold;
+    margin: 0;
+}
+
+.admin-role-wrapper input[type="checkbox"] {
+    width: 18px !important;    /* Feste Größe für die Kästchen */
+    height: 18px !important;
+    margin: 0 !important;      /* Entfernt Standard-Abstände */
+    cursor: pointer;
+}
+    
 </style>
 </head>
 <body>
