@@ -1032,9 +1032,9 @@ async function exportMileagePDF() {
         `;
     }).join('');
 
-    // --- NEU: BERECHNUNG FÜR DIE PROGRESS BAR ---
+    // --- BERECHNUNG & FARB-LOGIK FÜR DIE PROGRESS BAR ---
     
-    // Wir zählen nur die genehmigten Stunden (approved)
+    // Summe der genehmigten Stunden
     const totalApproved = hours
         .filter(h => h.status === 'approved')
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
@@ -1042,19 +1042,24 @@ async function exportMileagePDF() {
     const maxHours = 10;
     const percentage = Math.min((totalApproved / maxHours) * 100, 100);
 
-    // Elemente im DOM ansprechen
     const progressBar = document.getElementById('my-progress-bar');
     const progressLabel = document.getElementById('my-progress-label');
 
     if (progressBar) {
         progressBar.style.width = percentage + '%';
-        // Farbe auf Grün wechseln, wenn Ziel erreicht
+        
+        // Farbe: Rot wenn unter 10h, Grün ab 10h
         if (totalApproved >= maxHours) {
-            progressBar.style.background = '#2ecc71';
+            progressBar.style.backgroundColor = '#2ecc71'; // Grün
         } else {
-            progressBar.style.background = 'var(--primary)';
+            progressBar.style.backgroundColor = '#e74c3c'; // Rot
         }
     }
+
+    if (progressLabel) {
+        progressLabel.innerText = `${totalApproved.toFixed(1)} / ${maxHours} h`;
+    }
+}
 
     if (progressLabel) {
         progressLabel.innerText = `${totalApproved.toFixed(1)} / ${maxHours} h`;
