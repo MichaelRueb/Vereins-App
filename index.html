@@ -254,33 +254,36 @@
   <div id="auth-ui" style="display:none;">
     <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
     
-    <!-- Felder für Neuregistrierung -->
-    <div id="reg-fields" style="display:none;">
-        <input type="text" id="reg-name" placeholder="Vollständiger Name">
-    </div>
-    
-    <input type="email" id="email" placeholder="E-Mail">
-    <input type="password" id="password" placeholder="Passwort">
-    
-    <div id="reg-confirm-fields" style="display:none;">
-        <input type="password" id="password-confirm" placeholder="Passwort bestätigen">
-        <p style="font-size: 11px; color: #666; margin: 0 5px;">Mind. 8 Zeichen, 3 von 4 (Groß, Klein, Zahl, Sonderzeichen)</p>
-    </div>
+   <!-- Felder für Neuregistrierung -->
+<div id="reg-fields" style="display:none;">
+    <input type="text" id="reg-name" placeholder="Vollständiger Name" style="width: 100%; margin-bottom: 10px;">
+</div>
 
-    <button id="auth-btn" onclick="handleAuth()">Einloggen</button>
-    
-    <p style="text-align:center; cursor:pointer; color:var(--blue); text-decoration:underline; font-size: 14px;" 
-       id="auth-toggle" onclick="toggleAuthMode()">Noch kein Konto? Hier registrieren</p>
+<input type="email" id="email" placeholder="E-Mail" style="width: 100%; margin-bottom: 10px;">
+<input type="password" id="password" placeholder="Passwort" style="width: 100%; margin-bottom: 10px;">
 
-      <button id="auth-btn" onclick="handleAuth()" class="btn-primary" style="width: 100%;">Einloggen</button>
+<div id="reg-confirm-fields" style="display:none;">
+    <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="width: 100%; margin-bottom: 5px;">
+    <p style="font-size: 11px; color: #666; margin: 0 5px 15px 5px;">
+        Mind. 8 Zeichen, 3 von 4 (Groß, Klein, Zahl, Sonderzeichen)
+    </p>
+</div>
 
-<div style="text-align: center; margin-top: 15px;">
+<!-- Nur EIN Button-Element lassen -->
+<button id="auth-btn" onclick="handleAuth()" class="btn-primary" style="width: 100%;">Einloggen</button>
+
+<!-- Passwort vergessen Link (Sichtbar im Login-Modus) -->
+<div id="reset-link-container" style="text-align: center; margin-top: 15px;">
     <a href="#" onclick="handleResetPassword()" 
        style="font-size: 0.85em; color: var(--primary); text-decoration: none; font-weight: bold; cursor: pointer;">
        Passwort vergessen?
     </a>
-
 </div>
+
+<p style="text-align:center; cursor:pointer; color:var(--blue); text-decoration:underline; font-size: 14px; margin-top: 20px;" 
+   id="auth-toggle" onclick="toggleAuthMode()">
+   Noch kein Konto? Hier registrieren
+</p>
     
     <div id="main-app" style="display:none;">
         <div class="tabs">
