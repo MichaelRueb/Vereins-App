@@ -1168,18 +1168,68 @@ async function loadAdmin() {
     }
 }   
 
-    async function viewUserDetail(uid) {
-        const row = document.getElementById(`details-${uid}`);
-        const content = document.getElementById(`content-${uid}`);
-        if (row.style.display === 'table-row') row.style.display = 'none';
-        else {
-            const { data: hours } = await sb.from('work_hours').select('*').eq('user_id', uid).order('date', { descending: true });
-            let html = '<strong>Letzte Tätigkeiten:</strong><br><ul>';
-            html += (hours && hours.length > 0) ? hours.map(h => `<li>${h.date}: ${h.duration}h - ${h.description} (${h.status})</li>`).join('') : '<li>Keine Einträge gefunden</li>';
-            content.innerHTML = html + '</ul>';
-            row.style.display = 'table-row';
+   async function viewUserDetail(uid) {
+    const row = document.getElementById(`details-${uid}`);
+    const content = document.getElementById(`content-${uid}`);
+    
+    if (row.style.display === 'table-row') {
+        row.style.display = 'none';
+    } else {
+        const { data: hours } = await sb.from('work_hours')
+            .select('*')
+            .eq('user_id', uid)
+            .order('date', { descending: true });
+
+        let html = '<strong>Letzte Tätigkeiten:</strong><br><ul style="list-style:none; padding-left:0; margin-top:5px;">';
+        
+        if (hours && hours.length > 0) {
+            html += hours.map(h => {
+                // Status-Farbe für bessere Übersicht
+                const statusColor = h.status === 'approved' ? 'green' : (h.status === 'rejected' ? 'red' : 'orange');
+                
+                return `
+                    <li style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 4px 0;">
+                        <span>
+                            ${new Date(h.date).toLocaleDateString('de-DE')}: <strong>${h.duration}h</strong> - ${h.description} 
+                            <small style="color:${statusColor};">(${h.status})</small>
+                        </span>
+                        <button onclick="adminDeleteWork('${h.id}', '${uid}')" 
+                                style="background:none; border:none; color:#d32f2f; cursor:pointer; font-size:1.1em;" 
+                                title="Eintrag löschen">
+                            🗑️
+                        </button>
+                    </li>`;
+            }).join('');
+        } else {
+            html += '<li>Keine Einträge gefunden</li>';
         }
+        
+        content.innerHTML = html + '</ul>';
+        row.style.display = 'table-row';
     }
+}
+
+    async function adminDeleteWork(hourId, userId) {
+    if (!confirm("Möchtest du diesen Eintrag wirklich unwiderruflich löschen?")) return;
+
+    try {
+        const { error } = await sb.from('work_hours').delete().eq('id', hourId);
+        
+        if (error) throw error;
+
+        alert("Eintrag erfolgreich entfernt.");
+        
+        // 1. Admin-Hauptliste neu laden (aktualisiert die Summen in der Zeile)
+        await loadAdmin(); 
+        
+        // 2. Details für diesen User sofort wieder öffnen
+        viewUserDetail(userId); 
+
+    } catch (err) {
+        console.error("Löschfehler:", err);
+        alert("Fehler beim Löschen: " + err.message);
+    }
+}
 
    function renderCalendar() {
     const container = document.getElementById('calendar-container'); 
