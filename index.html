@@ -510,11 +510,11 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         document.getElementById('prof-name').value = p.full_name || "";
         
         // Sichtbarkeit der Tabs
-        if (isAdmin || isOfficial || isCaptain) document.getElementById('tab-admin').style.display = 'block';
+        if (isAdmin || isOfficial) document.getElementById('tab-admin').style.display = 'block';
         if (isAdmin || isOfficial) document.getElementById('tab-mileage').style.display = 'block';
         
         // Wettkampf-Formular Anzeige
-        if (isAdmin || isCaptain) {
+        if (isAdmin || isOfficial || isCaptain) {
             if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'block';
             fillTeamSelect();
         }
@@ -531,12 +531,23 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
 }
 
     function fillTeamSelect() {
-        const sel = document.getElementById('event-team-select');
-        if (!sel) return;
-        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
-        const allowedTeams = isAdmin ? ALL_TEAMS.filter(t => t !== "Passiv / Sonstige") : myTeams;
-        sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+    const sel = document.getElementById('event-team-select');
+    if (!sel) return;
+
+    const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+    
+    let allowedTeams = [];
+
+    if (isAdmin || isOfficial) {
+        // Admins und Funktionäre dürfen alle sportlichen Mannschaften wählen
+        allowedTeams = ALL_TEAMS.filter(t => t !== "Passiv / Sonstige");
+    } else if (isCaptain) {
+        // Kapitäne sehen nur ihre zugeordneten Teams
+        allowedTeams = myTeams;
     }
+
+    sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+}
 
     // --- KALENDER & WETTKAMPF LOGIK ---
 
