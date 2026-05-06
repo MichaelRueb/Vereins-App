@@ -984,7 +984,7 @@ async function exportMileagePDF() {
         alert("Gesendet!"); loadHistory(); 
     }
 
-    async function loadHistory() {
+   async function loadHistory() {
     const { data: hours, error } = await sb.from('work_hours')
         .select('*')
         .eq('user_id', currentUser.id)
@@ -992,12 +992,12 @@ async function exportMileagePDF() {
 
     if (error) return console.error(error);
 
+    // 1. Tabelle rendern
     const list = document.getElementById('history-body');
     list.innerHTML = hours.map(h => {
         const isRejected = h.status === 'rejected';
         const isApproved = h.status === 'approved';
         
-        // Hintergrundfarbe und Status-Icon bestimmen
         let rowStyle = "";
         let statusDisplay = "⏳";
         let commentHtml = "";
@@ -1006,12 +1006,10 @@ async function exportMileagePDF() {
             statusDisplay = '<span style="color:green;">✔️</span>';
         } else if (isRejected) {
             statusDisplay = '<span style="color:red;" title="Abgelehnt">❌</span>';
-            rowStyle = "background-color: #fff1f0;"; // Zartes Rot
-            // Hier wird der Grund angezeigt:
+            rowStyle = "background-color: #fff1f0;";
             commentHtml = `<br><small style="color:red;"><strong>Grund:</strong> ${h.admin_comment || 'Keine Begründung angegeben'}</small>`;
         }
 
-        // Bearbeiten-Button (✏️) nur anzeigen, wenn NICHT genehmigt
         const actionButtons = !isApproved ? `
             <button class="btn-small btn-edit" onclick="prepareEdit('${h.id}', '${h.date}', '${h.duration}', '${h.description.replace(/'/g, "\\'")}')">✏️</button>
             <button class="btn-small btn-del" onclick="deleteWork('${h.id}')">🗑️</button>
@@ -1026,6 +1024,34 @@ async function exportMileagePDF() {
             </tr>
         `;
     }).join('');
+
+    // --- NEU: BERECHNUNG FÜR DIE PROGRESS BAR ---
+    
+    // Wir zählen nur die genehmigten Stunden (approved)
+    const totalApproved = hours
+        .filter(h => h.status === 'approved')
+        .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
+
+    const maxHours = 10;
+    const percentage = Math.min((totalApproved / maxHours) * 100, 100);
+
+    // Elemente im DOM ansprechen
+    const progressBar = document.getElementById('my-progress-bar');
+    const progressLabel = document.getElementById('my-progress-label');
+
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+        // Farbe auf Grün wechseln, wenn Ziel erreicht
+        if (totalApproved >= maxHours) {
+            progressBar.style.background = '#2ecc71';
+        } else {
+            progressBar.style.background = 'var(--primary)';
+        }
+    }
+
+    if (progressLabel) {
+        progressLabel.innerText = `${totalApproved.toFixed(1)} / ${maxHours} h`;
+    }
 }
 
     // --- PROFIL & ADMIN ---
