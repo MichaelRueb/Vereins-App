@@ -177,11 +177,24 @@
         align-items: center; 
         cursor: pointer; 
     }
+    
+/* Grundstyling für die Punkte */
+.event-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 1px;
+}
 
-    /* TEAM FARBEN */
-    .team-lg { background-color: #2e7d32 !important; } 
-    .team-lp { background-color: #1565c0 !important; } 
-    .team-verein { background-color: #FFD700 !important; }
+   /* Farben für die Mannschaften & Verein */
+.team-verein { background-color: #FFD700 !important; } /* Gold */
+.team-lg-1 { background-color: #3498db !important; }    /* Blau */
+.team-lg-2 { background-color: #2980b9 !important; }    /* Dunkelblau */
+.team-lp-1 { background-color: #e74c3c !important; }    /* Rot */
+.team-lp-2 { background-color: #c0392b !important; }    /* Dunkelrot */
+.team-jugend { background-color: #2ecc71 !important; }  /* Grün */
+.team-auflage { background-color: #9b59b6 !important; } /* Lila */
 
     /* HILFSKLASSEN */
     .mileage-sum { 
@@ -1099,7 +1112,22 @@ async function loadAdmin() {
         if(!filterSelect.value) filterSelect.value = "my_relevant";
     }
 
-    function getTeamClass(t) { if(t==='Verein') return 'team-verein'; if(t?.toLowerCase().includes('gewehr')) return 'team-lg'; if(t?.toLowerCase().includes('pistole')) return 'team-lp'; return ''; }
+  function getTeamClass(t) {
+    if (!t) return '';
+    if (t === 'Verein') return 'team-verein';
+    
+    // Mapping der Mannschaften auf CSS-Klassen
+    const teamMap = {
+        'Luftgewehr 1': 'team-lg-1',
+        'Luftgewehr 2': 'team-lg-2',
+        'Luftpistole 1': 'team-lp-1',
+        'Luftpistole 2': 'team-lp-2',
+        'Jugend': 'team-jugend',
+        'Auflage': 'team-auflage'
+    };
+
+    return teamMap[t] || 'team-default'; 
+}
     function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
     async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
     async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
