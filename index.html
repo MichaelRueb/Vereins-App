@@ -490,14 +490,25 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     let allMileage = [];
     let currentWorkEditId = null;
 
-    window.onload = async () => {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) setupApp(session.user);
-        else { 
-            document.getElementById('loading-ui').style.display='none'; 
-            document.getElementById('auth-ui').style.display='block'; 
-        }
-    };
+   window.onload = async () => {
+    // 1. Prüfen, ob wir im Passwort-Update-Modus sind
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('view') === 'update-password') {
+        showUpdatePasswordUI();
+        return; 
+    }
+
+    // 2. Normaler Login-Check (dein bestehender Code)
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+        // currentUser global setzen, falls noch nicht geschehen
+        currentUser = session.user; 
+        setupApp(session.user);
+    } else { 
+        document.getElementById('loading-ui').style.display='none'; 
+        document.getElementById('auth-ui').style.display='block'; 
+    }
+};
 
    async function handleAuth() {
     const email = document.getElementById('email').value;
@@ -1729,6 +1740,62 @@ async function deleteWork(id) {
     }
 }
 
+   async function handleResetPassword() {
+    const email = prompt("Bitte gib deine registrierte E-Mail-Adresse ein:");
+    if (!email) return;
+
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+        // Nutzt die aktuelle URL und hängt den view-Parameter an
+        redirectTo: window.location.origin + window.location.pathname + '?view=update-password',
+    });
+
+    if (error) {
+        alert("Fehler: " + error.message);
+    } else {
+        alert("Eine E-Mail zum Zurücksetzen des Passworts wurde versendet. Bitte prüfe deinen Posteingang.");
+    }
+}
+
+    function showUpdatePasswordUI() {
+    document.getElementById('loading-ui').style.display = 'none';
+    if(document.getElementById('auth-ui')) document.getElementById('auth-ui').style.display = 'none';
+    
+    const resetContainer = document.createElement('div');
+    resetContainer.className = 'card';
+    resetContainer.style = 'max-width: 400px; margin: 50px auto; padding: 20px;';
+    resetContainer.innerHTML = `
+        <h2 style="color:var(--primary); margin-top:0;">Neues Passwort vergeben</h2>
+        <p style="font-size:0.9em; color:#666; margin-bottom:20px;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
+        
+        <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; margin-bottom:10px;">
+        <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; margin-bottom:20px;">
+        
+        <button class="btn-primary" onclick="executePasswordUpdate()" style="width:100%;">Passwort speichern</button>
+    `;
+    document.body.appendChild(resetContainer);
+}
+
+async function executePasswordUpdate() {
+    const p1 = document.getElementById('reset-pass-1').value;
+    const p2 = document.getElementById('reset-pass-2').value;
+
+    // Validierung (analog zu deiner updatePassword Funktion)
+    if (p1 !== p2) return alert("Passwörter stimmen nicht überein!");
+    if (p1.length < 8) return alert("Passwort muss mindestens 8 Zeichen lang sein!");
+
+    let criteria = (/[A-Z]/.test(p1)) + (/[a-z]/.test(p1)) + (/[0-9]/.test(p1)) + (/[^A-Za-z0-9]/.test(p1));
+    if (criteria < 3) return alert("Das Passwort erfüllt nicht die Sicherheitskriterien (3 von 4 erforderlich).");
+
+    const { error } = await sb.auth.updateUser({ password: p1 });
+
+    if (error) {
+        alert("Fehler: " + error.message);
+    } else {
+        alert("Passwort erfolgreich geändert! Du wirst jetzt zum Login weitergeleitet.");
+        // URL säubern und neu laden
+        window.location.href = window.location.origin + window.location.pathname;
+    }
+}
     
 </script>
     
