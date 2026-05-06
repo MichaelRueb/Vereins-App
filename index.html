@@ -271,6 +271,15 @@
     
     <p style="text-align:center; cursor:pointer; color:var(--blue); text-decoration:underline; font-size: 14px;" 
        id="auth-toggle" onclick="toggleAuthMode()">Noch kein Konto? Hier registrieren</p>
+
+      <button id="auth-btn" onclick="handleAuth()" class="btn-primary" style="width: 100%;">Einloggen</button>
+
+<div style="text-align: center; margin-top: 15px;">
+    <a href="#" onclick="handleResetPassword()" 
+       style="font-size: 0.85em; color: var(--primary); text-decoration: none; font-weight: bold; cursor: pointer;">
+       Passwort vergessen?
+    </a>
+
 </div>
     
     <div id="main-app" style="display:none;">
