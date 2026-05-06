@@ -1032,34 +1032,45 @@ async function exportMileagePDF() {
         `;
     }).join('');
 
-    // --- BERECHNUNG & FARB-LOGIK FÜR DIE PROGRESS BAR ---
+   // --- BERECHNUNG & FARB-LOGIK FÜR DIE PROGRESS BAR ---
     
-    // Summe der genehmigten Stunden
     const totalApproved = hours
         .filter(h => h.status === 'approved')
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
 
     const maxHours = 10;
-    const percentage = Math.min((totalApproved / maxHours) * 100, 100);
+    // Die Prozentanzeige für die Breite des Balkens darf maximal 100% sein
+    const barPercentage = Math.min((totalApproved / maxHours) * 100, 100);
 
     const progressBar = document.getElementById('my-progress-bar');
     const progressLabel = document.getElementById('my-progress-label');
 
     if (progressBar) {
-        progressBar.style.width = percentage + '%';
+        progressBar.style.width = barPercentage + '%';
         
-        // Farbe: Rot wenn unter 10h, Grün ab 10h
         if (totalApproved >= maxHours) {
-            progressBar.style.backgroundColor = '#2ecc71'; // Grün
+            // Wenn genau 10 oder mehr: Grün
+            progressBar.style.backgroundColor = '#2ecc71'; 
+            
+            // OPTIONAL: Wenn deutlich mehr gemacht wurde (z.B. ab 12h), 
+            // bekommt der Balken einen speziellen Effekt (Gold oder Leuchten)
+            if (totalApproved > maxHours) {
+                progressBar.style.boxShadow = "0 0 10px #f1c40f"; // Goldener Schimmer
+            }
         } else {
             progressBar.style.backgroundColor = '#e74c3c'; // Rot
+            progressBar.style.boxShadow = "none";
         }
     }
 
     if (progressLabel) {
-        progressLabel.innerText = `${totalApproved.toFixed(1)} / ${maxHours} h`;
+        // Das Label zeigt immer die echte Zahl an, auch wenn es 15 / 10 h sind
+        if (totalApproved > maxHours) {
+            progressLabel.innerHTML = `<strong>${totalApproved.toFixed(1)}</strong> / ${maxHours} h 🔥`;
+        } else {
+            progressLabel.innerText = `${totalApproved.toFixed(1)} / ${maxHours} h`;
+        }
     }
-}
 
     // --- PROFIL & ADMIN ---
 
