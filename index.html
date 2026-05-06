@@ -251,40 +251,40 @@
 <div class="card">
     <div id="loading-ui" style="text-align:center; padding:40px;">Hubertus Pro lädt...</div>
 
-  <div id="auth-ui" style="display:none;">
-    <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
-    
-   <!-- Felder für Neuregistrierung -->
-<div id="reg-fields" style="display:none;">
-    <input type="text" id="reg-name" placeholder="Vollständiger Name" style="width: 100%; margin-bottom: 10px;">
-</div>
+    <!-- AUTH BEREICH -->
+    <div id="auth-ui" style="display:none;">
+        <h2 id="auth-title" style="text-align:center;">Anmelden</h2>
+        
+        <div id="reg-fields" style="display:none;">
+            <input type="text" id="reg-name" placeholder="Vollständiger Name" style="width: 100%; margin-bottom: 10px;">
+        </div>
 
-<input type="email" id="email" placeholder="E-Mail" style="width: 100%; margin-bottom: 10px;">
-<input type="password" id="password" placeholder="Passwort" style="width: 100%; margin-bottom: 10px;">
+        <input type="email" id="email" placeholder="E-Mail" style="width: 100%; margin-bottom: 10px;">
+        <input type="password" id="password" placeholder="Passwort" style="width: 100%; margin-bottom: 10px;">
 
-<div id="reg-confirm-fields" style="display:none;">
-    <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="width: 100%; margin-bottom: 5px;">
-    <p style="font-size: 11px; color: #666; margin: 0 5px 15px 5px;">
-        Mind. 8 Zeichen, 3 von 4 (Groß, Klein, Zahl, Sonderzeichen)
-    </p>
-</div>
+        <div id="reg-confirm-fields" style="display:none;">
+            <input type="password" id="password-confirm" placeholder="Passwort bestätigen" style="width: 100%; margin-bottom: 5px;">
+            <p style="font-size: 11px; color: #666; margin: 0 5px 15px 5px;">
+                Mind. 8 Zeichen, 3 von 4 (Groß, Klein, Zahl, Sonderzeichen)
+            </p>
+        </div>
 
-<!-- Nur EIN Button-Element lassen -->
-<button id="auth-btn" onclick="handleAuth()" class="btn-primary" style="width: 100%;">Einloggen</button>
+        <button id="auth-btn" onclick="handleAuth()" class="btn-primary" style="width: 100%;">Einloggen</button>
 
-<!-- Passwort vergessen Link (Sichtbar im Login-Modus) -->
-<div id="reset-link-container" style="text-align: center; margin-top: 15px;">
-    <a href="#" onclick="handleResetPassword()" 
-       style="font-size: 0.85em; color: var(--primary); text-decoration: none; font-weight: bold; cursor: pointer;">
-       Passwort vergessen?
-    </a>
-</div>
+        <div id="reset-link-container" style="text-align: center; margin-top: 15px;">
+            <a href="#" onclick="handleResetPassword()" 
+               style="font-size: 0.85em; color: var(--primary); text-decoration: none; font-weight: bold; cursor: pointer;">
+               Passwort vergessen?
+            </a>
+        </div>
 
-<p style="text-align:center; cursor:pointer; color:var(--blue); text-decoration:underline; font-size: 14px; margin-top: 20px;" 
-   id="auth-toggle" onclick="toggleAuthMode()">
-   Noch kein Konto? Hier registrieren
-</p>
-    
+        <p style="text-align:center; cursor:pointer; color:var(--blue); text-decoration:underline; font-size: 14px; margin-top: 20px;" 
+           id="auth-toggle" onclick="toggleAuthMode()">
+           Noch kein Konto? Hier registrieren
+        </p>
+    </div> <!-- ENDE AUTH-UI -->
+
+    <!-- HAUPT APP BEREICH (Muss AUSSERHALB von auth-ui liegen) -->
     <div id="main-app" style="display:none;">
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
@@ -307,132 +307,90 @@
                 <option value="Sonstiges">Sonstiges</option>
             </select>
             <textarea id="description" placeholder="Details..."></textarea>
-           <button onclick="saveWork()" id="submit-work-btn">Senden</button>
+            <button onclick="saveWork()" id="submit-work-btn">Senden</button>
             <table><thead><tr><th>Datum</th><th>Tätigkeit</th><th>h</th><th>Status</th></tr></thead><tbody id="history-body"></tbody></table>
         </div>
 
-       <!-- KALENDER VIEW -->
-<div id="view-events" style="display:none;">
- 
-    <!-- KALENDER NAVIGATION -->
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
-        <h3 id="current-month-display"></h3>
-        <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
-    </div>
-    
-    <div id="calendar-container" class="calendar-grid"></div>
-    
-    <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
-        <h4 id="selection-date-label" style="margin:0"></h4>
-        <div id="selection-content"></div>
-    </div>
-    
-    <h4 style="margin-top:25px;">Terminliste</h4>
-    <select id="event-view-filter" onchange="renderTournamentList()" style="margin-bottom: 10px;"></select>
-    
-    <div style="overflow-x: auto;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Zeit</th>
-                    <th>Team</th>
-                    <th>Gegner</th>
-                    <th>Ort</th>
-                    <th>Aktion</th>
-                </tr>
-            </thead>
-            <tbody id="tournament-list-body"></tbody>
-        </table>
-    </div>
-       <!-- EINGABEFENSTER (Jetzt oben platziert für bessere Usability beim Editieren) -->
-    <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
-        <h4 id="event-form-title" style="margin-top:0;">Neuen Wettkampf anlegen</h4>
-        <input type="hidden" id="edit-event-id"> <!-- Wichtig für die Bearbeitung -->
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <input type="date" id="event-date">
-            <input type="time" id="event-time">
+        <!-- KALENDER VIEW -->
+        <div id="view-events" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <button onclick="changeMonth(-1)" style="width:40px;">&lt;</button>
+                <h3 id="current-month-display"></h3>
+                <button onclick="changeMonth(1)" style="width:40px;">&gt;</button>
+            </div>
+            <div id="calendar-container" class="calendar-grid"></div>
+            <div id="calendar-selection-details" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-top:15px;">
+                <h4 id="selection-date-label" style="margin:0"></h4>
+                <div id="selection-content"></div>
+            </div>
+            <h4 style="margin-top:25px;">Terminliste</h4>
+            <select id="event-view-filter" onchange="renderTournamentList()" style="margin-bottom: 10px;"></select>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead><tr><th>Datum</th><th>Zeit</th><th>Team</th><th>Gegner</th><th>Ort</th><th>Aktion</th></tr></thead>
+                    <tbody id="tournament-list-body"></tbody>
+                </table>
+            </div>
+            <div id="captain-event-form" style="display:none; background:#f0f4f0; padding:15px; border-radius:8px; border:1px solid var(--primary); margin-bottom:25px;">
+                <h4 id="event-form-title" style="margin-top:0;">Neuen Wettkampf anlegen</h4>
+                <input type="hidden" id="edit-event-id">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <input type="date" id="event-date">
+                    <input type="time" id="event-time">
+                </div>
+                <select id="event-team-select" style="width: 100%; margin-bottom: 10px;"></select>
+                <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name" style="width: 100%; margin-bottom: 10px;">
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="event-is-home" style="width: auto; margin: 0;">
+                    <label for="event-is-home" style="font-weight: bold; cursor: pointer;">Heimwettkampf</label>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-save-event" onclick="saveNewEvent()" style="background:var(--primary-dark); flex: 2;">Termin speichern</button>
+                    <button id="btn-cancel-event" onclick="resetEventForm()" style="background:#777; flex: 1; display: none;">Abbrechen</button>
+                </div>
+            </div>
         </div>
-        
-        <select id="event-team-select" style="width: 100%; margin-bottom: 10px;"></select>
-        <input type="text" id="event-opponent" placeholder="Gegner / Wettkampf-Name" style="width: 100%; margin-bottom: 10px;">
 
-        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-    <input type="checkbox" id="event-is-home" style="width: auto; margin: 0;">
-    <label for="event-is-home" style="font-weight: bold; cursor: pointer;">Heimwettkampf</label>
-</div>
-        
-        <div style="display: flex; gap: 10px;">
-            <button id="btn-save-event" onclick="saveNewEvent()" style="background:var(--primary-dark); flex: 2;">Termin speichern</button>
-            <button id="btn-cancel-event" onclick="resetEventForm()" style="background:#777; flex: 1; display: none;">Abbrechen</button>
+        <!-- FAHRTENBUCH VIEW -->
+        <div id="view-mileage" style="display:none;">
+            <h3>🚗 Fahrtenbuch</h3>
+            <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
+                <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
+                <input type="hidden" id="edit-ml-id">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="ml-date">
+                    <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
+                    <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
+                    <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
+                </div>
+                <datalist id="purpose-suggestions"></datalist>
+                <datalist id="start-suggestions"></datalist>
+                <datalist id="end-suggestions"></datalist>
+                <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
+                    <label class="checkbox-wrapper">
+                        <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt
+                    </label>
+                    <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
+                </div>
+                <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">
+                    Gesamtstrecke: 0,00 km
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
+                    <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
+                </div>
+            </div>
+            <div style="margin-top: 20px; margin-bottom: 20px;">
+                <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
+            </div>
+            <div class="mileage-sum" id="mileage-sum-display">Gesamt diesen Monat: 0,00 km</div>
+            <table>
+                <thead><tr><th>Datum</th><th>Zweck / Route</th><th>KM</th><th>Aktion</th></tr></thead>
+                <tbody id="mileage-history-body"></tbody>
+            </table>
         </div>
-    </div>
-
-</div>
-        
-
-       <!-- FAHRTENBUCH VIEW -->
-<div id="view-mileage" style="display:none;">
-    <h3>🚗 Fahrtenbuch</h3>
-    
-    <!-- Start der Karte für das Formular -->
-    <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
-        <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
-        <input type="hidden" id="edit-ml-id">
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="date" id="ml-date">
-            <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
-            <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
-            <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
-        </div>
-        
-        <datalist id="purpose-suggestions"></datalist>
-        <datalist id="start-suggestions"></datalist>
-        <datalist id="end-suggestions"></datalist>
-        
-        <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
-            <label class="checkbox-wrapper">
-                <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt
-            </label>
-            <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
-        </div>
-        
-        <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">
-            Gesamtstrecke: 0,00 km
-        </div>
-        
-        <div style="display: flex; gap: 10px;">
-            <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
-            <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
-        </div>
-    </div> <!-- HIER fehlte das Ende der Card! -->
-
-    <div style="margin-top: 20px; margin-bottom: 20px;">
-        <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">
-            📄 Fahrtenbuch PDF exportieren
-        </button>
-    </div>
-
-    <div class="mileage-sum" id="mileage-sum-display">Gesamt diesen Monat: 0,00 km</div>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Datum</th>
-                <th>Zweck / Route</th>
-                <th>KM</th>
-                <th>Aktion</th>
-            </tr>
-        </thead>
-        <tbody id="mileage-history-body"></tbody>
-    </table>
-    </div>
 
         <!-- PROFIL VIEW -->
         <div id="view-profile" style="display:none;">
@@ -448,47 +406,26 @@
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
-       <!-- ADMIN VIEW -->
-<div id="view-admin" style="display:none;">
-    <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32;">
-        <h3 style="margin-top:0; color:#2e7d32;">Datensicherung</h3>
-        <p style="font-size: 0.9em;">Lade einmal pro Woche alle Vereinsdaten (Mitglieder, Stunden, Fahrten) als Sicherungsdatei herunter.</p>
-        <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%;">
-            📦 Vollständiges Backup erstellen (.json)
-        </button>
-    </div>
-    <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; margin-top:10px;">
-        📄 Stunden Report (PDF)
-    </button>
-    
-   <h4 style="margin-top:20px;">⏳ Offene Anträge</h4>
-<!-- Tabelle ohne fixed layout, damit sie sich kompakter verhält -->
-<table style="width:100%; border-collapse: collapse; max-width: 900px; border: 1px solid #ddd;">
-    <thead>
-        <tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;">
-            <th style="padding:12px; width:180px;">Name/Datum</th>
-            <th style="padding:12px;">Beschreibung</th>
-            <th style="padding:12px; width:60px;">Dauer</th>
-            <th style="padding:12px; width:120px; text-align:center;">Aktion</th>
-        </tr>
-    </thead>
-    <tbody id="admin-pending-body-real"></tbody>
-</table>
-    
-    <h4 style="margin-top:30px;">👥 Mitglieder-Verwaltung</h4>
-    <table style="width:100%; border-collapse: collapse;">
-        <thead>
-            <tr style="background:#eee; text-align:left;">
-                <th style="padding:8px;">Name</th>
-                <th style="padding:8px; width:60px;">h</th>
-                <th style="padding:8px; width:140px;">Rollen</th>
-            </tr>
-        </thead>
-        <tbody id="admin-member-table-list"></tbody>
-    </table>
-</div>
-    </div>
-</div>
+        <!-- ADMIN VIEW -->
+        <div id="view-admin" style="display:none;">
+            <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32;">
+                <h3 style="margin-top:0; color:#2e7d32;">Datensicherung</h3>
+                <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%;">📦 Vollständiges Backup erstellen (.json)</button>
+            </div>
+            <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; margin-top:10px;">📄 Stunden Report (PDF)</button>
+            <h4 style="margin-top:20px;">⏳ Offene Anträge</h4>
+            <table style="width:100%; border-collapse: collapse; max-width: 900px; border: 1px solid #ddd;">
+                <thead><tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;"><th style="padding:12px; width:180px;">Name/Datum</th><th style="padding:12px;">Beschreibung</th><th style="padding:12px; width:60px;">Dauer</th><th style="padding:12px; width:120px; text-align:center;">Aktion</th></tr></thead>
+                <tbody id="admin-pending-body-real"></tbody>
+            </table>
+            <h4 style="margin-top:30px;">👥 Mitglieder-Verwaltung</h4>
+            <table>
+                <thead><tr style="background:#eee; text-align:left;"><th style="padding:8px;">Name</th><th style="padding:8px; width:60px;">h</th><th style="padding:8px; width:140px;">Rollen</th></tr></thead>
+                <tbody id="admin-member-table-list"></tbody>
+            </table>
+        </div>
+    </div> <!-- ENDE MAIN-APP -->
+</div> <!-- ENDE CARD -->
 
 <script>
 
