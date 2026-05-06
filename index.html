@@ -298,6 +298,7 @@
                     <th>Zeit</th>
                     <th>Team</th>
                     <th>Gegner</th>
+                    <th>Ort</th>
                     <th>Aktion</th>
                 </tr>
             </thead>
@@ -652,39 +653,61 @@ function resetEventForm() {
         renderTournamentList();
     }
 
-    function renderTournamentList() {
-        const filter = document.getElementById('event-view-filter').value;
-        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
-        const filtered = allEvents.filter(e => {
-            if (filter === 'all_teams') return true;
-            if (filter === 'Verein') return e.team === 'Verein';
-            if (filter === 'only_sports') return e.team !== 'Verein';
-            if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
-            return e.team === filter;
-        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+   function renderTournamentList() {
+    const filter = document.getElementById('event-view-filter').value;
+    const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+    const filtered = allEvents.filter(e => {
+        if (filter === 'all_teams') return true;
+        if (filter === 'Verein') return e.team === 'Verein';
+        if (filter === 'only_sports') return e.team !== 'Verein';
+        if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
+        return e.team === filter;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        let html = '';
-        const sports = filtered.filter(e => e.team !== 'Verein');
-        const club = filtered.filter(e => e.team === 'Verein');
+    let html = '';
+    const sports = filtered.filter(e => e.team !== 'Verein');
+    const club = filtered.filter(e => e.team === 'Verein');
 
-        if (sports.length > 0) {
-            html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>🎯 Wettkampftermine</b></td></tr>`;
-            sports.forEach(e => html += renderEventRow(e));
-        }
-        if (club.length > 0) {
-            html += `<tr style="background:#f0f0f0;"><td colspan="5"><b>📅 Vereinstermine</b></td></tr>`;
-            club.forEach(e => html += renderEventRow(e));
-        }
-        document.getElementById('tournament-list-body').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Keine Termine gefunden</td></tr>';
+    // colspan auf 6 erhöht für die neue Spalte "Ort"
+    if (sports.length > 0) {
+        html += `<tr style="background:#f0f0f0;"><td colspan="6"><b>🎯 Wettkampftermine</b></td></tr>`;
+        sports.forEach(e => html += renderEventRow(e));
+    }
+    if (club.length > 0) {
+        html += `<tr style="background:#f0f0f0;"><td colspan="6"><b>📅 Vereinstermine</b></td></tr>`;
+        club.forEach(e => html += renderEventRow(e));
+    }
+    
+    const listBody = document.getElementById('tournament-list-body');
+    if (listBody) {
+        listBody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;">Keine Termine gefunden</td></tr>';
+    }
+}
+
+   function renderEventRow(e) {
+    const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+    const isMyTeam = myTeams.includes(e.team);
+    const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
+    
+    // Logik für die Spalte "Ort"
+    let ortLabel = "-";
+    if (e.team !== 'Verein') {
+        ortLabel = e.is_home ? "🏠 Heim" : "🚗 Auswärts";
     }
 
-    function renderEventRow(e) {
-        const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
-        const isMyTeam = myTeams.includes(e.team);
-        const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
-        const editBtn = (canEdit && e.team !== 'Verein') ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}')">✏️</button>` : '-';
-        return `<tr><td>${new Date(e.date).toLocaleDateString('de-DE')}</td><td>${e.time?.substring(0, 5) || '--:--'}</td><td>${e.team}</td><td>${e.opponent || e.title || '-'}</td><td>${editBtn}</td></tr>`;
-    }
+    const editBtn = (canEdit && e.team !== 'Verein') 
+        ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}')">✏️</button>` 
+        : '-';
+
+    return `<tr>
+        <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+        <td>${e.time?.substring(0, 5) || '--:--'}</td>
+        <td>${e.team}</td>
+        <td>${e.opponent || e.title || '-'}</td>
+        <td>${ortLabel}</td> <!-- Neue Spalte -->
+        <td>${editBtn}</td>
+    </tr>`;
+}
 
     // --- TABS & NAVIGATION ---
 
@@ -1143,13 +1166,39 @@ async function loadAdmin() {
     }
 }
 
-    function showDay(ds) { 
-        const evs = allEvents.filter(e => e.date === ds); 
-        if(!evs.length) return; 
-        document.getElementById('selection-content').innerHTML = evs.map(e => `<strong>${e.team}</strong>: ${e.opponent}`).join('<br>');
-        document.getElementById('selection-date-label').innerText = "Termine am " + new Date(ds).toLocaleDateString('de-DE');
-        document.getElementById('calendar-selection-details').style.display = 'block'; 
+   function showDay(ds) { 
+    const evs = allEvents.filter(e => e.date === ds); 
+    
+    // Falls keine Termine an dem Tag sind, Anzeige optional verstecken oder leeren
+    if(!evs.length) {
+        document.getElementById('calendar-selection-details').style.display = 'none';
+        return; 
     }
+
+    // Erstellung der detaillierten Liste
+    const detailsHtml = evs.map(e => {
+        const zeit = e.time ? ` um ${e.time.substring(0, 5)} Uhr` : "";
+        const gegner = e.opponent ? ` gegen <strong>${e.opponent}</strong>` : "";
+        
+        // Ort-Logik: Nur für Wettkämpfe (nicht für "Verein")
+        let ort = "";
+        if (e.team !== 'Verein') {
+            ort = e.is_home ? " (Heimwettkampf 🏠)" : " (Auswärts 🚗)";
+        }
+
+        return `• <strong>${e.team}</strong>${zeit}${gegner}${ort}`;
+    }).join('<br>');
+
+    // Inhalt in die blauen Infobox-Elemente schreiben
+    document.getElementById('selection-content').innerHTML = detailsHtml;
+    document.getElementById('selection-date-label').innerText = "Termine am " + new Date(ds).toLocaleDateString('de-DE');
+    
+    // Box sichtbar machen
+    document.getElementById('calendar-selection-details').style.display = 'block'; 
+    
+    // Kleiner Bonus: Sanft zur Info-Box scrollen, damit man sie auf dem Handy sofort sieht
+    document.getElementById('calendar-selection-details').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
     function renderEventFilter() {
         const filterSelect = document.getElementById('event-view-filter');
