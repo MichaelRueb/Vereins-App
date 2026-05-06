@@ -1166,37 +1166,33 @@ async function loadAdmin() {
     }
 }
 
-   function showDay(ds) { 
+  function showDay(ds) { 
     const evs = allEvents.filter(e => e.date === ds); 
     
-    // Falls keine Termine an dem Tag sind, Anzeige optional verstecken oder leeren
     if(!evs.length) {
         document.getElementById('calendar-selection-details').style.display = 'none';
         return; 
     }
 
-    // Erstellung der detaillierten Liste
     const detailsHtml = evs.map(e => {
         const zeit = e.time ? ` um ${e.time.substring(0, 5)} Uhr` : "";
-        const gegner = e.opponent ? ` gegen <strong>${e.opponent}</strong>` : "";
         
-        // Ort-Logik: Nur für Wettkämpfe (nicht für "Verein")
-        let ort = "";
-        if (e.team !== 'Verein') {
-            ort = e.is_home ? " (Heimwettkampf 🏠)" : " (Auswärts 🚗)";
+        // Unterscheidung zwischen Verein und Wettkampf
+        if (e.team === 'Verein') {
+            // Vereinstermine: Nur Event-Name + Uhrzeit
+            return `• <strong>${e.opponent || e.title}</strong>${zeit}`;
+        } else {
+            // Wettkämpfe: Mannschaft + Uhrzeit + Gegner + Ort
+            const gegner = e.opponent ? ` gegen <strong>${e.opponent}</strong>` : "";
+            const ort = e.is_home ? " (Heimwettkampf 🏠)" : " (Auswärts 🚗)";
+            return `• <strong>${e.team}</strong>${zeit}${gegner}${ort}`;
         }
-
-        return `• <strong>${e.team}</strong>${zeit}${gegner}${ort}`;
     }).join('<br>');
 
-    // Inhalt in die blauen Infobox-Elemente schreiben
     document.getElementById('selection-content').innerHTML = detailsHtml;
     document.getElementById('selection-date-label').innerText = "Termine am " + new Date(ds).toLocaleDateString('de-DE');
     
-    // Box sichtbar machen
     document.getElementById('calendar-selection-details').style.display = 'block'; 
-    
-    // Kleiner Bonus: Sanft zur Info-Box scrollen, damit man sie auf dem Handy sofort sieht
     document.getElementById('calendar-selection-details').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
