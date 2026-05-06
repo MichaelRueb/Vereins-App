@@ -591,19 +591,31 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         }
     }
 
-    function editEvent(id) {
-        const ev = allEvents.find(x => x.id === id);
-        if (!ev) return;
-        document.getElementById('view-events').scrollIntoView({ behavior: 'smooth' });
-        document.getElementById('edit-event-id').value = id;
-        document.getElementById('event-date').value = ev.date;
-        document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
-        document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
-        document.getElementById('event-team-select').value = ev.team;
-        document.getElementById('event-form-title').innerText = "Wettkampf bearbeiten";
-        document.getElementById('btn-save-event').innerText = "Änderungen speichern";
-        document.getElementById('btn-cancel-event').style.display = "block";
+   function editEvent(id) {
+    const ev = allEvents.find(x => x.id === id);
+    if (!ev) return;
+
+    // 1. Daten in die Felder füllen
+    document.getElementById('edit-event-id').value = id;
+    document.getElementById('event-date').value = ev.date;
+    document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
+    document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
+    document.getElementById('event-team-select').value = ev.team;
+
+    // 2. UI-Texte für den Bearbeitungsmodus anpassen
+    document.getElementById('event-form-title').innerText = "Wettkampf bearbeiten";
+    document.getElementById('btn-save-event').innerText = "Änderungen speichern";
+    document.getElementById('btn-cancel-event').style.display = "block";
+
+    // 3. Scrollen zum Formular (jetzt nach unten)
+    const formElement = document.getElementById('captain-event-form');
+    if (formElement) {
+        formElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
     }
+}
 
     function resetEventForm() {
         if(document.getElementById('edit-event-id')) document.getElementById('edit-event-id').value = "";
