@@ -1032,14 +1032,15 @@ async function exportMileagePDF() {
         `;
     }).join('');
 
-   // --- BERECHNUNG & FARB-LOGIK FÜR DIE PROGRESS BAR ---
+// --- BERECHNUNG & FARB-LOGIK FÜR DIE PROGRESS BAR ---
     
+    // Summe aller bestätigten Stunden
     const totalApproved = hours
         .filter(h => h.status === 'approved')
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
 
     const maxHours = 10;
-    // Die Prozentanzeige für die Breite des Balkens darf maximal 100% sein
+    // Der Balken füllt sich visuell nur bis 100%
     const barPercentage = Math.min((totalApproved / maxHours) * 100, 100);
 
     const progressBar = document.getElementById('my-progress-bar');
@@ -1049,24 +1050,30 @@ async function exportMileagePDF() {
         progressBar.style.width = barPercentage + '%';
         
         if (totalApproved >= maxHours) {
-            // Wenn genau 10 oder mehr: Grün
+            // Ziel erreicht oder überschritten: Grün
             progressBar.style.backgroundColor = '#2ecc71'; 
             
-            // OPTIONAL: Wenn deutlich mehr gemacht wurde (z.B. ab 12h), 
-            // bekommt der Balken einen speziellen Effekt (Gold oder Leuchten)
+            // Visuelles Feedback für "Überstunden"
             if (totalApproved > maxHours) {
-                progressBar.style.boxShadow = "0 0 10px #f1c40f"; // Goldener Schimmer
+                progressBar.style.boxShadow = "0 0 15px rgba(241, 196, 15, 0.6)"; // Goldener Glanz
+                progressBar.style.border = "1px solid #f1c40f"; // Goldener Rand
+            } else {
+                progressBar.style.boxShadow = "none";
+                progressBar.style.border = "none";
             }
         } else {
-            progressBar.style.backgroundColor = '#e74c3c'; // Rot
+            // Ziel noch nicht erreicht: Rot
+            progressBar.style.backgroundColor = '#e74c3c'; 
             progressBar.style.boxShadow = "none";
+            progressBar.style.border = "none";
         }
     }
 
     if (progressLabel) {
-        // Das Label zeigt immer die echte Zahl an, auch wenn es 15 / 10 h sind
         if (totalApproved > maxHours) {
-            progressLabel.innerHTML = `<strong>${totalApproved.toFixed(1)}</strong> / ${maxHours} h 🔥`;
+            // Zeigt die echte Zahl an, auch wenn sie > 10 ist
+            const overtime = (totalApproved - maxHours).toFixed(1);
+            progressLabel.innerHTML = `<strong>${totalApproved.toFixed(1)}</strong> / ${maxHours} h <span style="color: #f1c40f;">(+${overtime}!)</span> 🔥`;
         } else {
             progressLabel.innerText = `${totalApproved.toFixed(1)} / ${maxHours} h`;
         }
