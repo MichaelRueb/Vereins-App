@@ -701,9 +701,11 @@ function resetEventForm() {
     }
 }
 
-   function renderEventRow(e) {
+  function renderEventRow(e) {
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
     const isMyTeam = myTeams.includes(e.team);
+    
+    // Berechtigung prüfen: Admin, Funktionär oder Kapitän des eigenen Teams
     const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
     
     // Logik für die Spalte "Ort"
@@ -712,18 +714,43 @@ function resetEventForm() {
         ortLabel = e.is_home ? "🏠 Heim" : "🚗 Auswärts";
     }
 
-    const editBtn = (canEdit && e.team !== 'Verein') 
-        ? `<button class="btn-small btn-edit" onclick="editEvent('${e.id}')">✏️</button>` 
-        : '-';
+    // Buttons für Bearbeiten und Löschen (nur wenn Berechtigung vorhanden)
+    let actionButtons = '-';
+    if (canEdit && e.team !== 'Verein') {
+        actionButtons = `
+            <div style="display: flex; gap: 5px;">
+                <button class="btn-small btn-edit" onclick="editEvent('${e.id}')" title="Bearbeiten">✏️</button>
+                <button class="btn-small btn-delete" onclick="deleteEvent('${e.id}')" title="Löschen" style="background-color: #e74c3c; border: none; cursor: pointer;">🗑️</button>
+            </div>
+        `;
+    }
 
     return `<tr>
         <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
         <td>${e.time?.substring(0, 5) || '--:--'}</td>
         <td>${e.team}</td>
         <td>${e.opponent || e.title || '-'}</td>
-        <td>${ortLabel}</td> <!-- Neue Spalte -->
-        <td>${editBtn}</td>
+        <td>${ortLabel}</td>
+        <td>${actionButtons}</td>
     </tr>`;
+}
+
+// Die dazugehörige Lösch-Funktion für den Button
+async function deleteEvent(id) {
+    if (confirm('Möchtest du diesen Wettkampf wirklich löschen?')) {
+        try {
+            // Hier dein API-Aufruf zum Löschen einfügen
+            const response = await fetch(`/api/delete-event.php?id=${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                // Seite neu laden oder Zeile aus DOM entfernen
+                location.reload(); 
+            } else {
+                alert('Fehler beim Löschen.');
+            }
+        } catch (error) {
+            console.error('Fehler:', error);
+        }
+    }
 }
 
     // --- TABS & NAVIGATION ---
