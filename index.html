@@ -780,19 +780,30 @@ function resetEventForm() {
 
 // Die dazugehörige Lösch-Funktion für den Button
 async function deleteEvent(id) {
-    if (confirm('Möchtest du diesen Wettkampf wirklich löschen?')) {
-        try {
-            // Hier dein API-Aufruf zum Löschen einfügen
-            const response = await fetch(`/api/delete-event.php?id=${id}`, { method: 'DELETE' });
-            if (response.ok) {
-                // Seite neu laden oder Zeile aus DOM entfernen
-                location.reload(); 
-            } else {
-                alert('Fehler beim Löschen.');
+    if (!confirm('Möchtest du diesen Wettkampf wirklich löschen?')) return;
+
+    try {
+        // Nutze Supabase statt fetch, damit es zum Rest des Codes passt
+        const { error } = await sb
+            .from('tournaments')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert("Fehler beim Löschen: " + error.message);
+        } else {
+            // WICHTIG: Das Formular leeren, damit die gelöschte ID verschwindet
+            if (typeof resetEventForm === "function") {
+                resetEventForm();
             }
-        } catch (error) {
-            console.error('Fehler:', error);
+            
+            // Seite aktualisieren oder Liste neu laden
+            alert("Wettkampf gelöscht.");
+            loadAllEvents(); 
         }
+    } catch (error) {
+        console.error('Kritischer Fehler beim Löschen:', error);
+        alert('Verbindung zum Server fehlgeschlagen.');
     }
 }
 
