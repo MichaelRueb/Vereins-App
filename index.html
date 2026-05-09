@@ -246,6 +246,31 @@
     margin: 0 !important;      /* Entfernt Standard-Abstände */
     cursor: pointer;
 }
+
+/* Verhindert, dass die Tabellen-Buttons die 100% Breite der globalen Buttons erben */
+td .action-btn-container {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-start;
+}
+
+td button.btn-edit, 
+td button.btn-del {
+    width: 32px !important;   /* Feste quadratische Größe */
+    height: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border-radius: 6px;
+}
+
+/* Die Farben bleiben wie von dir definiert */
+.btn-edit { background: var(--accent) !important; }
+.btn-del { background: var(--danger) !important; }
     
 </style>
 </head>
@@ -701,29 +726,36 @@ function resetEventForm() {
     }
 }
 
-  function renderEventRow(e) {
+ function renderEventRow(e) {
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
     const isMyTeam = myTeams.includes(e.team);
-    
-    // Berechtigung prüfen: Admin, Funktionär oder Kapitän des eigenen Teams
     const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
     
-    // Logik für die Spalte "Ort"
     let ortLabel = "-";
     if (e.team !== 'Verein') {
         ortLabel = e.is_home ? "🏠 Heim" : "🚗 Auswärts";
     }
 
-    // Buttons für Bearbeiten und Löschen (nur wenn Berechtigung vorhanden)
+    // Nur wenn Berechtigung da ist, Buttons anzeigen
     let actionButtons = '-';
     if (canEdit && e.team !== 'Verein') {
         actionButtons = `
-            <div style="display: flex; gap: 5px;">
-                <button class="btn-small btn-edit" onclick="editEvent('${e.id}')" title="Bearbeiten">✏️</button>
-                <button class="btn-small btn-delete" onclick="deleteEvent('${e.id}')" title="Löschen">🗑️</button>
+            <div class="action-btn-container">
+                <button class="btn-edit" onclick="editEvent('${e.id}')" title="Bearbeiten">✏️</button>
+                <button class="btn-del" onclick="deleteEvent('${e.id}')" title="Löschen">🗑️</button>
             </div>
         `;
     }
+
+    return `<tr>
+        <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
+        <td>${e.time?.substring(0, 5) || '--:--'}</td>
+        <td>${e.team}</td>
+        <td>${e.opponent || e.title || '-'}</td>
+        <td>${ortLabel}</td>
+        <td>${actionButtons}</td>
+    </tr>`;
+}
 
     return `<tr>
         <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
