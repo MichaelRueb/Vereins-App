@@ -351,8 +351,8 @@
             </div>
         </div>
 
-        <!-- FAHRTENBUCH VIEW -->
-       <div id="view-mileage" style="display:none;">
+      <!-- FAHRTENBUCH VIEW -->
+<div id="view-mileage" style="display:none;">
     <h3>🚗 Fahrtenbuch</h3>
     <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
         <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
@@ -387,7 +387,7 @@
         <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
     </div>
 
-    <!-- Die Summen-Anzeige nebeneinander für eine bessere mobile Ansicht -->
+    <!-- Die Summen-Anzeige nebeneinander -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
         <div class="mileage-sum" id="mileage-sum-display" style="margin:0;">Monat: 0,00 km</div>
         <div class="mileage-sum" id="mileage-year-display" style="margin:0; background: #e3f2fd; color: #0277bd;">Jahr: 0,00 km</div>
@@ -402,7 +402,7 @@
                 <th>Aktion</th>
             </tr>
         </thead>
-        <tbody id="mileage-history-body"></tbody>
+        <tbody id="mileage-history-body"></tbody> <!-- Hier war vorher nur "-history-body" -->
     </table>
 </div>
 
