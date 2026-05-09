@@ -1803,20 +1803,20 @@ async function executePasswordUpdate() {
 }
 
 async function importICSPlan(icsText) {
-    const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber"];
-    
+    // 1. "Unfolding": ICS bricht lange Zeilen um. Das müssen wir rückgängig machen.
     const unfoldedText = icsText.replace(/\r?\n[ \t]+/g, '');
     const lines = unfoldedText.split(/\r?\n/);
     
     const events = [];
     let currentEvent = null;
 
+    // 2. Parsen der Events
     lines.forEach(line => {
         const trimmedLine = line.trim();
         if (trimmedLine.startsWith('BEGIN:VEVENT')) {
             currentEvent = {};
         } else if (trimmedLine.startsWith('END:VEVENT')) {
-            // Suchen nach "Strullendorf" oder "Hubertus Strullendorf"
+            // Nur Termine von Strullendorf berücksichtigen
             if (currentEvent && currentEvent.summary && /Strullendorf/i.test(currentEvent.summary)) {
                 events.push(currentEvent);
             }
@@ -1828,111 +1828,95 @@ async function importICSPlan(icsText) {
                 const value = trimmedLine.substring(colonIndex + 1).trim();
                 if (key.startsWith('SUMMARY')) currentEvent.summary = value;
                 if (key.startsWith('DTSTART')) currentEvent.start = value;
-                if (key.startsWith('DESCRIPTION')) currentEvent.description = value.replace(/\\n/g, ' ');
+                if (key.startsWith('DESCRIPTION')) currentEvent.description = value;
             }
         }
     });
-
-    if (events.length === 0) {
-        alert("Keine Wettkämpfe für 'Strullendorf' in der Datei gefunden.");
-        return;
-    }
 
     let count = 0;
     let skipped = 0;
 
     for (const e of events) {
+        // --- DISZIPLIN-ERKENNUNG (KERNSTÜCK) ---
+        // Wir suchen in der Description nach den exakten Begriffen aus deinen Dateien
+        const desc = (e.description || "").replace(/\\n/g, '\n');
+        const firstDescLine = desc.split('\n')[0].toLowerCase();
+        
+        let detectedDiscipline = "";
+        
+        if (firstDescLine.includes("gk pist/rev")) {
+            detectedDiscipline = "Großkaliber";
+        } else if (firstDescLine.includes("sportpistole")) {
+            detectedDiscipline = "Sportpistole";
+        } else if (firstDescLine.includes("auflage")) {
+            detectedDiscipline = "Luftgewehr Auflage";
+        } else if (firstDescLine.includes("luftpistole")) {
+            detectedDiscipline = "Luftpistole";
+        } else if (firstDescLine.includes("luftgewehr")) {
+            detectedDiscipline = "Luftgewehr";
+        }
+
+        if (!detectedDiscipline) {
+            console.warn("Disziplin nicht erkannt für:", e.summary);
+            skipped++;
+            continue;
+        }
+
+        // --- TEAM-NUMMER ERMITTELN ---
+        // Wir suchen die Zahl hinter "Strullendorf" im SUMMARY (z.B. "Strullendorf 2")
+        const teamMatch = e.summary.match(/Strullendorf\s*(\d)/i);
+        const teamNum = teamMatch ? teamMatch[1] : "1";
+        
+        // Finaler Teamname für dein Dropdown
+        let finalTeamName = (detectedDiscipline === "Luftgewehr Auflage" || detectedDiscipline === "Großkaliber" || detectedDiscipline === "Sportpistole")
+            ? detectedDiscipline 
+            : `${detectedDiscipline} ${teamNum}`;
+
+        // --- DATUM & GEGNER ---
         const startStr = e.start || "";
-        const dateMatch = startStr.match(/(\d{4})(\d{2})(\d{2})/);
-        const timeMatch = startStr.match(/T(\d{2})(\d{2})/i);
-        
-        if (!dateMatch) continue;
-        
-        const formattedDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
-        const formattedTime = timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : "19:00";
+        const formattedDate = `${startStr.substring(0,4)}-${startStr.substring(4,6)}-${startStr.substring(6,8)}`;
+        const formattedTime = `${startStr.substring(9,11)}:${startStr.substring(11,13)}`;
 
-        // --- HOCHPRÄZISE TEAM-ERKENNUNG ---
-        let detectedTeam = "";
-        const desc = (e.description || "").toLowerCase();
-        const summ = (e.summary || "").toLowerCase();
-        
-        // 1. Großkaliber (GK)
-        if (desc.includes("gk ") || desc.includes("gk-") || desc.includes("pist/rev") || desc.includes("großkaliber")) {
-            detectedTeam = "Großkaliber";
-        } 
-        // 2. Sportpistole
-        else if (desc.includes("sportpistole") || desc.includes("spopi")) {
-            detectedTeam = "Sportpistole";
-        }
-        // 3. Auflage
-        else if (desc.includes("auflage")) {
-            detectedTeam = "Luftgewehr Auflage";
-        } 
-        // 4. Luftpistole (LP)
-        else if (desc.includes("luftpistole") || desc.includes(" lp ")) {
-            const teamMatch = summ.match(/strullendorf\s*(\d)/i);
-            detectedTeam = teamMatch ? `Luftpistole ${teamMatch[1]}` : "Luftpistole 1";
-        } 
-        // 5. Luftgewehr (LG) - Nur wenn explizit LG drin steht
-        else if (desc.includes("luftgewehr") || desc.includes(" lg ")) {
-            const teamMatch = summ.match(/strullendorf\s*(\d)/i);
-            detectedTeam = teamMatch ? `Luftgewehr ${teamMatch[1]}` : "Luftgewehr 1";
-        }
-
-        // --- GEGNER & HEIMRECHT ---
         let opponent = "Unbekannt";
         let isHome = false;
-        const parts = e.summary.split(/\s*:\s*/);
-        if (parts.length >= 2) {
-            isHome = parts[0].toLowerCase().includes("strullendorf");
-            if (isHome) {
-                opponent = parts[1].trim();
-            } else {
-                const leftSide = parts[0];
-                const dashIndex = leftSide.indexOf('-');
-                opponent = dashIndex !== -1 ? leftSide.substring(dashIndex + 1).trim() : leftSide.trim();
-            }
+        const summaryParts = e.summary.split(/RWK \d+ - /i);
+        const pairing = summaryParts.length > 1 ? summaryParts[1] : e.summary;
+        const teams = pairing.split(/\s*:\s*/);
+
+        if (teams.length === 2) {
+            isHome = teams[0].toLowerCase().includes("strullendorf");
+            opponent = isHome ? teams[1].trim() : teams[0].trim();
         }
 
-        // Formular-Elemente
-        const dateInput = document.getElementById('event-date');
-        const timeInput = document.getElementById('event-time');
-        const oppInput = document.getElementById('event-opponent');
-        const homeCheck = document.getElementById('event-is-home');
+        // --- IN FORMULAR EINTRAGEN & SPEICHERN ---
         const teamSelect = document.getElementById('event-team-select');
+        let optionFound = false;
 
-        // Dropdown-Abgleich
-        let teamFound = false;
-        if (teamSelect && detectedTeam !== "") {
+        if (teamSelect) {
             for (let i = 0; i < teamSelect.options.length; i++) {
-                if (teamSelect.options[i].text.trim() === detectedTeam) {
+                if (teamSelect.options[i].text.trim() === finalTeamName) {
                     teamSelect.selectedIndex = i;
-                    teamFound = true;
+                    optionFound = true;
                     break;
                 }
             }
         }
 
-        // Nur speichern, wenn Team erkannt und im Dropdown vorhanden
-        if (teamFound) {
-            if (dateInput) dateInput.value = formattedDate;
-            if (timeInput) timeInput.value = formattedTime;
-            if (oppInput) oppInput.value = opponent;
-            if (homeCheck) homeCheck.checked = isHome;
-
-            try {
-                await saveNewEvent();
-                count++;
-            } catch (err) {
-                console.error("Speicherfehler:", err);
-            }
+        if (optionFound) {
+            document.getElementById('event-date').value = formattedDate;
+            document.getElementById('event-time').value = formattedTime;
+            document.getElementById('event-opponent').value = opponent;
+            document.getElementById('event-is-home').checked = isHome;
+            
+            await saveNewEvent();
+            count++;
         } else {
+            console.error(`Team "${finalTeamName}" nicht im Dropdown gefunden.`);
             skipped++;
-            console.warn(`Übersprungen: Team für "${e.summary}" nicht eindeutig erkannt.`);
         }
     }
-    
-    alert(`Import fertig!\n- ${count} Wettkämpfe gespeichert\n- ${skipped} übersprungen (Team unklar)`);
+
+    alert(`Import abgeschlossen!\n${count} Termine importiert.\n${skipped} übersprungen.`);
 }
 
     function handleICSUpload(event) {
