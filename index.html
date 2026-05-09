@@ -731,12 +731,8 @@ function resetEventForm() {
     const isMyTeam = myTeams.includes(e.team);
     const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
     
-    let ortLabel = "-";
-    if (e.team !== 'Verein') {
-        ortLabel = e.is_home ? "🏠 Heim" : "🚗 Auswärts";
-    }
+    let ortLabel = e.team !== 'Verein' ? (e.is_home ? "🏠 Heim" : "🚗 Auswärts") : "-";
 
-    // Nur wenn Berechtigung da ist, Buttons anzeigen
     let actionButtons = '-';
     if (canEdit && e.team !== 'Verein') {
         actionButtons = `
@@ -746,16 +742,6 @@ function resetEventForm() {
             </div>
         `;
     }
-
-    return `<tr>
-        <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
-        <td>${e.time?.substring(0, 5) || '--:--'}</td>
-        <td>${e.team}</td>
-        <td>${e.opponent || e.title || '-'}</td>
-        <td>${ortLabel}</td>
-        <td>${actionButtons}</td>
-    </tr>`;
-}
 
     return `<tr>
         <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
