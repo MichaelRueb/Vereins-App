@@ -818,11 +818,11 @@ async function loadMileageHistory() {
             .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
             
         // Anzeige aktualisieren (Stelle sicher, dass du das HTML wie zuvor besprochen angepasst hast)
-        document.getElementById('mileage-sum-display').innerText = `Monat: ${monthSum.toFixed(2).replace('.', ',')} km`;
+        document.getElementById('mileage-sum-display').innerText = `Gesamt aktueller Monat: ${monthSum.toFixed(2).replace('.', ',')} km`;
         
         const yearDisplay = document.getElementById('mileage-year-display');
         if (yearDisplay) {
-            yearDisplay.innerText = `Jahr: ${yearSum.toFixed(2).replace('.', ',')} km`;
+            yearDisplay.innerText = `Gesamt aktuelles Jahr: ${yearSum.toFixed(2).replace('.', ',')} km`;
         }
         
         // Tabelle rendern
