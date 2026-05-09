@@ -194,13 +194,16 @@
 }
 
    /* Farben für die Mannschaften & Verein */
-.team-verein { background-color: #FFD700 !important; } /* Gold */
-.team-lg-1 { background-color: #3498db !important; }    /* Blau */
-.team-lg-2 { background-color: #2980b9 !important; }    /* Dunkelblau */
-.team-lp-1 { background-color: #e74c3c !important; }    /* Rot */
-.team-lp-2 { background-color: #c0392b !important; }    /* Dunkelrot */
-.team-jugend { background-color: #2ecc71 !important; }  /* Grün */
-.team-auflage { background-color: #9b59b6 !important; } /* Lila */
+/* Bestehende Farben */
+.team-verein { background-color: #FFD700 !important; } 
+.team-lg-1 { background-color: #3498db !important; }    
+.team-lg-2 { background-color: #2980b9 !important; }    
+.team-lp-1 { background-color: #e74c3c !important; }    
+.team-lp-2 { background-color: #c0392b !important; }    
+.team-auflage { background-color: #9b59b6 !important; } 
+.team-gk { background-color: #7f8c8d !important; }    /* Grau für Großkaliber */
+.team-spopi { background-color: #e67e22 !important; } /* Orange für Sportpistole */
+.team-default { background-color: #bdc3c7 !important; } /* Standard-Grau für den Rest */
 
     /* HILFSKLASSEN */
     .mileage-sum { 
@@ -1360,18 +1363,21 @@ async function loadAdmin() {
         if(!filterSelect.value) filterSelect.value = "my_relevant";
     }
 
-  function getTeamClass(t) {
+ function getTeamClass(t) {
     if (!t) return '';
     if (t === 'Verein') return 'team-verein';
     
     // Mapping der Mannschaften auf CSS-Klassen
+    // WICHTIG: Die Texte links müssen exakt den Namen im Dropdown entsprechen!
     const teamMap = {
         'Luftgewehr 1': 'team-lg-1',
         'Luftgewehr 2': 'team-lg-2',
+        'Luftgewehr 3': 'team-lg-2', // Falls LG 3 die gleiche Farbe wie LG 2 haben soll
         'Luftpistole 1': 'team-lp-1',
         'Luftpistole 2': 'team-lp-2',
-        'Jugend': 'team-jugend',
-        'Auflage': 'team-auflage'
+        'Luftgewehr Auflage': 'team-auflage', // Vorher stand hier nur 'Auflage'
+        'Großkaliber': 'team-gk',             // Neue Klasse für GK
+        'Sportpistole': 'team-spopi',         // Neue Klasse für SpoPi
     };
 
     return teamMap[t] || 'team-default'; 
