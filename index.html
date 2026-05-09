@@ -1803,22 +1803,25 @@ async function executePasswordUpdate() {
 }
 
 async function importICSPlan(icsText) {
+    // Liste der erlaubten Teams (muss exakt mit deinen Datenbank-Einträgen/Dropdowns übereinstimmen)
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber"];
     
-    // 1. Line Folding & Normalisierung
+    // 1. ICS Line Folding beheben (Fortsetzungszeilen zusammenfügen)
     const unfoldedText = icsText.replace(/\r?\n[ \t]+/g, '');
     const lines = unfoldedText.split(/\r?\n/);
     
     const events = [];
     let currentEvent = null;
 
+    // 2. ICS Parser
     lines.forEach(line => {
-        const trimmedLine = line.trim();
+        const trimmedLine = line.trim(); // Wichtig gegen versteckte Leerzeichen
+        
         if (trimmedLine.startsWith('BEGIN:VEVENT')) {
             currentEvent = {};
         } else if (trimmedLine.startsWith('END:VEVENT')) {
-            // PRÜFUNG: Hier war der Fehler – wir prüfen, ob Strullendorf im Summary steht
-            if (currentEvent && currentEvent.summary && currentEvent.summary.toLowerCase().includes("strullendorf")) {
+            // Prüfung: Nur Events übernehmen, die "Strullendorf" enthalten (Case Insensitive)
+            if (currentEvent && currentEvent.summary && /Strullendorf/i.test(currentEvent.summary)) {
                 events.push(currentEvent);
             }
             currentEvent = null;
@@ -1828,39 +1831,39 @@ async function importICSPlan(icsText) {
                 const key = trimmedLine.substring(0, colonIndex).toUpperCase();
                 const value = trimmedLine.substring(colonIndex + 1).trim();
                 
-                // Wir nutzen startsWith, falls Parameter wie SUMMARY;LANGUAGE=de existieren
+                // Keys extrahieren (berücksichtigt auch Parameter wie SUMMARY;LANGUAGE=de)
                 if (key.startsWith('SUMMARY')) currentEvent.summary = value;
                 if (key.startsWith('DTSTART')) currentEvent.start = value;
                 if (key.startsWith('DESCRIPTION')) currentEvent.description = value.replace(/\\n/g, ' ');
+                if (key.startsWith('LOCATION')) currentEvent.location = value;
             }
         }
     });
 
-    // --- AB HIER BLEIBT DEINE LOGIK FAST GLEICH, ABER MIT KLEINEN FIXES ---
-
+    // 3. Validierung: Wurde überhaupt etwas gefunden?
     if (events.length === 0) {
-        alert("Keine Wettkämpfe für 'Strullendorf' gefunden!\n\nCheck: Steht in der Datei wirklich 'Strullendorf' oder evtl. 'SV Hub. Strullendorf'?");
+        alert("Keine Wettkämpfe für 'Strullendorf' in dieser Datei gefunden!\n\nBitte prüfen, ob die Datei korrekt ist.");
         return;
     }
 
     let count = 0;
     for (const e of events) {
-        // A. Datum/Zeit
+        // A. Datum und Zeit extrahieren
         const startStr = e.start || "";
         const dateMatch = startStr.match(/(\d{4})(\d{2})(\d{2})/);
         const timeMatch = startStr.match(/T(\d{2})(\d{2})/i);
         
         if (!dateMatch) continue;
         
-        const formattedDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+        const formattedDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`; // Format YYYY-MM-DD
         const formattedTime = timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : "19:00";
 
-        // B. Team Erkennung (verbessert)
+        // B. Team Erkennung
         let detectedTeam = "";
         const desc = (e.description || "").toLowerCase();
         const summ = (e.summary || "").toLowerCase();
         
-        if (desc.includes("gk") || desc.includes("großkaliber")) {
+        if (desc.includes("gk") || desc.includes("großkaliber") || desc.includes("pist/rev")) {
             detectedTeam = "Großkaliber";
         } else if (desc.includes("auflage")) {
             detectedTeam = "Luftgewehr Auflage";
@@ -1869,38 +1872,73 @@ async function importICSPlan(icsText) {
         } else {
             let discBase = "";
             if (desc.includes("luftpistole")) discBase = "Luftpistole";
-            else discBase = "Luftgewehr"; // Default
+            else if (desc.includes("luftgewehr")) discBase = "Luftgewehr";
+            else discBase = "Luftgewehr"; // Standardfall
 
+            // Versuche Teamnummer aus dem Summary zu fischen (z.B. "Strullendorf 2")
             const teamMatch = summ.match(/strullendorf\s*(\d)/i);
             const teamNum = teamMatch ? teamMatch[1] : "1";
             detectedTeam = `${discBase} ${teamNum}`;
         }
 
-        // C. Gegner / Heim (Dein Code war hier schon gut)
+        // C. Gegner und Heimrecht
         let opponent = "Unbekannt";
-        const parts = e.summary.split(/\s*:\s*/);
         let isHome = false;
-
+        
+        // Teilt den String bei " : " auf (Beispiel: "RWK 01 - Team A : Team B")
+        const parts = e.summary.split(/\s*:\s*/);
         if (parts.length >= 2) {
             isHome = parts[0].toLowerCase().includes("strullendorf");
             if (isHome) {
                 opponent = parts[1].trim();
             } else {
-                const dashIndex = parts[0].indexOf('-');
-                opponent = dashIndex !== -1 ? parts[0].substring(dashIndex + 1).trim() : parts[0].trim();
+                // Linke Seite säubern (entfernt "RWK 01 - ")
+                const leftSide = parts[0];
+                const dashIndex = leftSide.indexOf('-');
+                opponent = dashIndex !== -1 ? leftSide.substring(dashIndex + 1).trim() : leftSide.trim();
             }
         }
 
-        // D. Formular & Speichern (wie gehabt)
-        // ... (Dein restlicher Code zum befüllen der document.getElements...)
-        
-        // WICHTIG: Stelle sicher, dass saveNewEvent() ein Promise zurückgibt (async), 
-        // damit await funktioniert.
-        
-        count++;
+        // D. Formular befüllen & Speichern
+        const dateInput = document.getElementById('event-date');
+        const timeInput = document.getElementById('event-time');
+        const oppInput = document.getElementById('event-opponent');
+        const homeCheck = document.getElementById('event-is-home');
+        const teamSelect = document.getElementById('event-team-select');
+
+        if (dateInput) dateInput.value = formattedDate;
+        if (timeInput) timeInput.value = formattedTime;
+        if (oppInput) oppInput.value = opponent;
+        if (homeCheck) homeCheck.checked = isHome;
+
+        // Dropdown Auswahl setzen
+        let teamFound = false;
+        if (teamSelect) {
+            for (let i = 0; i < teamSelect.options.length; i++) {
+                const optText = teamSelect.options[i].text.trim();
+                if (optText === detectedTeam) {
+                    teamSelect.selectedIndex = i;
+                    teamFound = true;
+                    break;
+                }
+            }
+        }
+
+        // E. Speichern (Triggert deine bestehende Logik für die Datenbank)
+        if (teamFound) {
+            try {
+                // Voraussetzung: saveNewEvent() ist als async function definiert
+                await saveNewEvent(); 
+                count++;
+            } catch (err) {
+                console.error("Fehler beim Datenbank-Eintrag:", err);
+            }
+        } else {
+            console.warn("Team nicht im Dropdown gefunden:", detectedTeam);
+        }
     }
     
-    alert(`Erfolg! ${count} Wettkämpfe für Strullendorf importiert.`);
+    alert(`Import erfolgreich! ${count} Wettkämpfe für Strullendorf wurden angelegt.`);
 }
 
     function handleICSUpload(event) {
