@@ -612,20 +612,20 @@ if (isAdmin || isOfficial) {
 
     // --- KALENDER & WETTKAMPF LOGIK ---
 
-   async function saveNewEvent() {
+  async function saveNewEvent() {
     const id = document.getElementById('edit-event-id').value;
     const date = document.getElementById('event-date').value;
     const time = document.getElementById('event-time').value;
     const team = document.getElementById('event-team-select').value;
     const opponent = document.getElementById('event-opponent').value;
-    const isHome = document.getElementById('event-is-home').checked; // NEU: Checkbox-Status abfragen
+    const isHome = document.getElementById('event-is-home').checked;
 
     if (!date || !opponent || !team) return alert("Bitte Datum, Team und Gegner angeben!");
 
-    // Payload um is_home erweitern
     const payload = { date, time, team, opponent, is_home: isHome }; 
     let res;
 
+    // Wenn eine ID da ist -> UPDATE, sonst -> INSERT
     if (id) {
         res = await sb.from('tournaments').update(payload).eq('id', id);
     } else {
@@ -633,10 +633,18 @@ if (isAdmin || isOfficial) {
     }
 
     if (res.error) {
-        alert("Fehler: " + res.error.message);
+        // Falls die ID nicht mehr existiert (weil gelöscht), 
+        // wird hier der Fehler ausgegeben.
+        alert("Fehler beim Speichern: " + res.error.message);
     } else {
         alert(id ? "Termin aktualisiert!" : "Wettkampf erfolgreich gespeichert!");
+        
+        // WICHTIG: Formular leeren (inkl. der ID!)
         resetEventForm();
+        
+        // Modal schließen (falls vorhanden)
+        if (typeof closeModal === "function") closeModal();
+        
         loadAllEvents();
     }
 }
@@ -672,20 +680,37 @@ if (isAdmin || isOfficial) {
 }
 
 function resetEventForm() {
-    if(document.getElementById('edit-event-id')) document.getElementById('edit-event-id').value = "";
+    // 1. Versteckte ID unbedingt leeren (wichtig für den Wechsel zwischen Update und Insert)
+    const idField = document.getElementById('edit-event-id');
+    if (idField) idField.value = "";
+
+    // 2. Textfelder leeren
     document.getElementById('event-date').value = "";
-    document.getElementById('event-time').value = "";
+    document.getElementById('event-time').value = "19:00"; // Standardzeit setzen
     document.getElementById('event-opponent').value = "";
     
-    // NEU: Checkbox zurücksetzen
+    // 3. Dropdown zurücksetzen (wichtig für Importe!)
+    const teamSelect = document.getElementById('event-team-select');
+    if (teamSelect) teamSelect.selectedIndex = 0;
+
+    // 4. Checkbox zurücksetzen
     const homeCb = document.getElementById('event-is-home');
     if (homeCb) homeCb.checked = false;
 
-    document.getElementById('event-form-title').innerText = "Neuen Wettkampf anlegen";
-    document.getElementById('btn-save-event').innerText = "Termin speichern";
-    document.getElementById('btn-cancel-event').style.display = "none";
-}
+    // 5. Texte und Buttons im Modal zurücksetzen
+    const title = document.getElementById('event-form-title');
+    if (title) title.innerText = "Neuen Wettkampf anlegen";
 
+    const saveBtn = document.getElementById('btn-save-event');
+    if (saveBtn) saveBtn.innerText = "Termin speichern";
+
+    const cancelBtn = document.getElementById('btn-cancel-event');
+    if (cancelBtn) cancelBtn.style.display = "none";
+    
+    // Optional: Den Löschen-Button im Modal verstecken (falls du ihn dort eingebaut hast)
+    const delBtn = document.getElementById('delete-event-btn');
+    if (delBtn) delBtn.style.display = "none";
+}
     async function loadAllEvents() {
         const { data: t } = await sb.from('tournaments').select('*');
         const { data: c } = await sb.from('club_events').select('*');
