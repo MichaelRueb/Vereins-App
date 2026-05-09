@@ -1780,107 +1780,76 @@ async function deleteWork(id) {
     document.body.appendChild(resetContainer);
 }
 
-async function executePasswordUpdate() {
-    const p1 = document.getElementById('reset-pass-1').value;
-    const p2 = document.getElementById('reset-pass-2').value;
-
-    // Validierung (analog zu deiner updatePassword Funktion)
-    if (p1 !== p2) return alert("Passwörter stimmen nicht überein!");
-    if (p1.length < 8) return alert("Passwort muss mindestens 8 Zeichen lang sein!");
-
-    let criteria = (/[A-Z]/.test(p1)) + (/[a-z]/.test(p1)) + (/[0-9]/.test(p1)) + (/[^A-Za-z0-9]/.test(p1));
-    if (criteria < 3) return alert("Das Passwort erfüllt nicht die Sicherheitskriterien (3 von 4 erforderlich).");
-
-    const { error } = await sb.auth.updateUser({ password: p1 });
-
-    if (error) {
-        alert("Fehler: " + error.message);
-    } else {
-        alert("Passwort erfolgreich geändert! Du wirst jetzt zum Login weitergeleitet.");
-        // URL säubern und neu laden
-        window.location.href = window.location.origin + window.location.pathname;
-    }
-}
-
 async function importICSPlan(icsText) {
-    // 1. "Unfolding": ICS bricht lange Zeilen um. Das müssen wir rückgängig machen.
+    // 1. ICS-Zeilenumbrüche korrigieren (Wichtig für DESCRIPTION)
     const unfoldedText = icsText.replace(/\r?\n[ \t]+/g, '');
     const lines = unfoldedText.split(/\r?\n/);
     
+    // 2. DISZIPLIN ERKENNEN (Bevor wir die Termine laden)
+    // Wir suchen in der gesamten Datei nach den Schlüsselwörtern
+    let detectedDiscipline = null;
+    
+    if (/GK Pist\/Rev/i.test(unfoldedText)) {
+        detectedDiscipline = "Großkaliber";
+    } else if (/Sportpistole/i.test(unfoldedText)) {
+        detectedDiscipline = "Sportpistole";
+    } else if (/Auflage Luftgewehr/i.test(unfoldedText)) {
+        detectedDiscipline = "Luftgewehr Auflage";
+    } else if (/Luftpistole/i.test(unfoldedText)) {
+        detectedDiscipline = "Luftpistole";
+    } else if (/Luftgewehr/i.test(unfoldedText)) {
+        detectedDiscipline = "Luftgewehr";
+    }
+
+    if (!detectedDiscipline) {
+        alert("Fehler: Disziplin konnte nicht eindeutig erkannt werden. Import abgebrochen.");
+        return;
+    }
+
+    // 3. EVENTS PARSEN
     const events = [];
     let currentEvent = null;
 
-    // 2. Parsen der Events
     lines.forEach(line => {
-        const trimmedLine = line.trim();
-        if (trimmedLine.startsWith('BEGIN:VEVENT')) {
+        if (line.startsWith('BEGIN:VEVENT')) {
             currentEvent = {};
-        } else if (trimmedLine.startsWith('END:VEVENT')) {
-            // Nur Termine von Strullendorf berücksichtigen
-            if (currentEvent && currentEvent.summary && /Strullendorf/i.test(currentEvent.summary)) {
+        } else if (line.startsWith('END:VEVENT')) {
+            if (currentEvent?.summary && /Strullendorf/i.test(currentEvent.summary)) {
                 events.push(currentEvent);
             }
             currentEvent = null;
         } else if (currentEvent) {
-            const colonIndex = trimmedLine.indexOf(':');
-            if (colonIndex !== -1) {
-                const key = trimmedLine.substring(0, colonIndex).toUpperCase();
-                const value = trimmedLine.substring(colonIndex + 1).trim();
+            const splitAt = line.indexOf(':');
+            if (splitAt !== -1) {
+                const key = line.substring(0, splitAt).toUpperCase();
+                const value = line.substring(splitAt + 1).trim();
                 if (key.startsWith('SUMMARY')) currentEvent.summary = value;
                 if (key.startsWith('DTSTART')) currentEvent.start = value;
-                if (key.startsWith('DESCRIPTION')) currentEvent.description = value;
             }
         }
     });
 
+    // 4. VERARBEITUNG
     let count = 0;
-    let skipped = 0;
-
     for (const e of events) {
-        // --- DISZIPLIN-ERKENNUNG (KERNSTÜCK) ---
-        // Wir suchen in der Description nach den exakten Begriffen aus deinen Dateien
-        const desc = (e.description || "").replace(/\\n/g, '\n');
-        const firstDescLine = desc.split('\n')[0].toLowerCase();
-        
-        let detectedDiscipline = "";
-        
-        if (firstDescLine.includes("gk pist/rev")) {
-            detectedDiscipline = "Großkaliber";
-        } else if (firstDescLine.includes("sportpistole")) {
-            detectedDiscipline = "Sportpistole";
-        } else if (firstDescLine.includes("auflage")) {
-            detectedDiscipline = "Luftgewehr Auflage";
-        } else if (firstDescLine.includes("luftpistole")) {
-            detectedDiscipline = "Luftpistole";
-        } else if (firstDescLine.includes("luftgewehr")) {
-            detectedDiscipline = "Luftgewehr";
-        }
-
-        if (!detectedDiscipline) {
-            console.warn("Disziplin nicht erkannt für:", e.summary);
-            skipped++;
-            continue;
-        }
-
-        // --- TEAM-NUMMER ERMITTELN ---
-        // Wir suchen die Zahl hinter "Strullendorf" im SUMMARY (z.B. "Strullendorf 2")
+        // Teamnummer aus Summary extrahieren (z.B. "Strullendorf 2")
         const teamMatch = e.summary.match(/Strullendorf\s*(\d)/i);
         const teamNum = teamMatch ? teamMatch[1] : "1";
-        
-        // Finaler Teamname für dein Dropdown
-        let finalTeamName = (detectedDiscipline === "Luftgewehr Auflage" || detectedDiscipline === "Großkaliber" || detectedDiscipline === "Sportpistole")
-            ? detectedDiscipline 
-            : `${detectedDiscipline} ${teamNum}`;
 
-        // --- DATUM & GEGNER ---
-        const startStr = e.start || "";
-        const formattedDate = `${startStr.substring(0,4)}-${startStr.substring(4,6)}-${startStr.substring(6,8)}`;
-        const formattedTime = `${startStr.substring(9,11)}:${startStr.substring(11,13)}`;
+        // Teamname zusammenbauen
+        let finalTeamName = detectedDiscipline;
+        if (detectedDiscipline === "Luftgewehr" || detectedDiscipline === "Luftpistole") {
+            finalTeamName = `${detectedDiscipline} ${teamNum}`;
+        }
+
+        // Datum & Gegner
+        const start = e.start || "";
+        const formattedDate = `${start.substring(0,4)}-${start.substring(4,6)}-${start.substring(6,8)}`;
+        const formattedTime = `${start.substring(9,11)}:${start.substring(11,13)}`;
 
         let opponent = "Unbekannt";
         let isHome = false;
-        const summaryParts = e.summary.split(/RWK \d+ - /i);
-        const pairing = summaryParts.length > 1 ? summaryParts[1] : e.summary;
+        const pairing = e.summary.split(/RWK \d+ - /i)[1] || e.summary;
         const teams = pairing.split(/\s*:\s*/);
 
         if (teams.length === 2) {
@@ -1888,21 +1857,20 @@ async function importICSPlan(icsText) {
             opponent = isHome ? teams[1].trim() : teams[0].trim();
         }
 
-        // --- IN FORMULAR EINTRAGEN & SPEICHERN ---
+        // Dropdown Auswahl
         const teamSelect = document.getElementById('event-team-select');
-        let optionFound = false;
-
+        let foundInDropdown = false;
         if (teamSelect) {
             for (let i = 0; i < teamSelect.options.length; i++) {
                 if (teamSelect.options[i].text.trim() === finalTeamName) {
                     teamSelect.selectedIndex = i;
-                    optionFound = true;
+                    foundInDropdown = true;
                     break;
                 }
             }
         }
 
-        if (optionFound) {
+        if (foundInDropdown) {
             document.getElementById('event-date').value = formattedDate;
             document.getElementById('event-time').value = formattedTime;
             document.getElementById('event-opponent').value = opponent;
@@ -1910,13 +1878,10 @@ async function importICSPlan(icsText) {
             
             await saveNewEvent();
             count++;
-        } else {
-            console.error(`Team "${finalTeamName}" nicht im Dropdown gefunden.`);
-            skipped++;
         }
     }
 
-    alert(`Import abgeschlossen!\n${count} Termine importiert.\n${skipped} übersprungen.`);
+    alert(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`);
 }
 
     function handleICSUpload(event) {
