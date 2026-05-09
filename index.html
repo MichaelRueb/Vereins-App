@@ -203,7 +203,7 @@
 .team-auflage { background-color: #9b59b6 !important; } /* Lila */
 
     /* HILFSKLASSEN */
-    .mileage-sum { 
+    .-sum { 
         background: #e8f5e9; 
         padding: 10px; 
         border-radius: 8px; 
@@ -289,7 +289,7 @@
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
             <div id="tab-events" class="tab" onclick="switchTab('events')">Kalender</div>
-            <div id="tab-mileage" class="tab" style="display:none;" onclick="switchTab('mileage')">Fahrten</div>
+            <div id="tab-" class="tab" style="display:none;" onclick="switchTab('')">Fahrten</div>
             <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
         </div>
@@ -352,45 +352,59 @@
         </div>
 
         <!-- FAHRTENBUCH VIEW -->
-        <div id="view-mileage" style="display:none;">
-            <h3>🚗 Fahrtenbuch</h3>
-            <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
-                <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
-                <input type="hidden" id="edit-ml-id">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="date" id="ml-date">
-                    <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
-                    <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
-                    <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
-                </div>
-                <datalist id="purpose-suggestions"></datalist>
-                <datalist id="start-suggestions"></datalist>
-                <datalist id="end-suggestions"></datalist>
-                <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
-                    <label class="checkbox-wrapper">
-                        <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt
-                    </label>
-                    <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
-                </div>
-                <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">
-                    Gesamtstrecke: 0,00 km
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
-                    <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
-                </div>
-            </div>
-            <div style="margin-top: 20px; margin-bottom: 20px;">
-                <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
-            </div>
-            <div class="mileage-sum" id="mileage-sum-display">Gesamt diesen Monat: 0,00 km</div>
-            <table>
-                <thead><tr><th>Datum</th><th>Zweck / Route</th><th>KM</th><th>Aktion</th></tr></thead>
-                <tbody id="mileage-history-body"></tbody>
-            </table>
+       <div id="view-mileage" style="display:none;">
+    <h3>🚗 Fahrtenbuch</h3>
+    <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
+        <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
+        <input type="hidden" id="edit-ml-id">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="date" id="ml-date">
+            <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
         </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
+            <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
+            <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
+        </div>
+        <datalist id="purpose-suggestions"></datalist>
+        <datalist id="start-suggestions"></datalist>
+        <datalist id="end-suggestions"></datalist>
+        <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
+            <label class="checkbox-wrapper">
+                <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt
+            </label>
+            <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
+        </div>
+        <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">
+            Gesamtstrecke: 0,00 km
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
+            <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; margin-bottom: 20px;">
+        <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
+    </div>
+
+    <!-- Die Summen-Anzeige nebeneinander für eine bessere mobile Ansicht -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+        <div class="mileage-sum" id="mileage-sum-display" style="margin:0;">Monat: 0,00 km</div>
+        <div class="mileage-sum" id="mileage-year-display" style="margin:0; background: #e3f2fd; color: #0277bd;">Jahr: 0,00 km</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Zweck / Route</th>
+                <th>KM</th>
+                <th>Aktion</th>
+            </tr>
+        </thead>
+        <tbody id="mileage-history-body"></tbody>
+    </table>
+</div>
 
         <!-- PROFIL VIEW -->
         <div id="view-profile" style="display:none;">
@@ -436,7 +450,7 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
 
     let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
-    let allMileage = [];
+    let all = [];
     let currentWorkEditId = null;
 
    window.onload = async () => {
@@ -520,7 +534,7 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         
         // Sichtbarkeit der Tabs
         if (isAdmin || isOfficial) document.getElementById('tab-admin').style.display = 'block';
-        if (isAdmin || isOfficial) document.getElementById('tab-mileage').style.display = 'block';
+        if (isAdmin || isOfficial) document.getElementById('tab-').style.display = 'block';
         
         // Wettkampf-Formular Anzeige
         if (isAdmin || isOfficial || isCaptain) {
@@ -702,15 +716,15 @@ function resetEventForm() {
     // --- TABS & NAVIGATION ---
 
     function switchTab(t) { 
-        ['home','events','profile','admin','mileage'].forEach(v => { 
+        ['home','events','profile','admin',''].forEach(v => { 
             const view = document.getElementById('view-'+v);
             const tab = document.getElementById('tab-'+v);
             if(view) view.style.display = (v===t)?'block':'none'; 
             if(tab) tab.className = (v===t)?'tab active':'tab'; 
         }); 
         if(t==='admin') loadAdmin(); 
-        if(t==='mileage') {
-            resetMileageForm();
+        if(t==='') {
+            resetForm();
             loadMileageHistory();
             loadRouteSuggestions(); // Fehlerbehebung: Lädt Vorschläge beim Tab-Wechsel
             if(document.getElementById('ml-date')) document.getElementById('ml-date').valueAsDate = new Date();
@@ -765,22 +779,40 @@ async function loadMileageHistory() {
     
     if(data) {
         const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        // 1. Monatssumme berechnen
         const monthSum = data
             .filter(m => {
                 const d = new Date(m.date);
-                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            })
+            .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
+
+        // 2. Jahressumme berechnen
+        const yearSum = data
+            .filter(m => {
+                const d = new Date(m.date);
+                return d.getFullYear() === currentYear;
             })
             .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
             
-        document.getElementById('mileage-sum-display').innerText = `Gesamt diesen Monat: ${monthSum.toFixed(2).replace('.', ',')} km`;
+        // Anzeige aktualisieren (Stelle sicher, dass du das HTML wie zuvor besprochen angepasst hast)
+        document.getElementById('mileage-sum-display').innerText = `Monat: ${monthSum.toFixed(2).replace('.', ',')} km`;
         
+        const yearDisplay = document.getElementById('mileage-year-display');
+        if (yearDisplay) {
+            yearDisplay.innerText = `Jahr: ${yearSum.toFixed(2).replace('.', ',')} km`;
+        }
+        
+        // Tabelle rendern
         document.getElementById('mileage-history-body').innerHTML = data.map(m => `
             <tr>
                 <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
                 <td><strong>${m.purpose}</strong><br><small>${m.start_location} → ${m.end_location}</small></td>
                 <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
                 <td style="white-space:nowrap;">
-                    <!-- Buttons jetzt mit Standard-Klassen und ohne feste Rechtsbündigung -->
                     <button class="btn-edit" onclick="editMileage('${m.id}')" title="Bearbeiten">✏️</button>
                     <button class="btn-del" onclick="deleteMileage('${m.id}')" title="Löschen">🗑️</button>
                 </td>
@@ -1506,7 +1538,7 @@ async function exportFullBackup() {
     const tablesToExport = [
         'profiles', 
         'work_hours', 
-        'mileage_logs', 
+        '_logs', 
         'club_events', 
         'competitions', 
         'tournaments'
