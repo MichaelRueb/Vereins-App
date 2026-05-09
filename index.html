@@ -1801,65 +1801,100 @@ async function executePasswordUpdate() {
     }
 }
 
-    async function importICSPlan(icsText) {
+  async function importICSPlan(icsText) {
+    const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber"];
     const events = [];
     const lines = icsText.split(/\r?\n/);
     let currentEvent = null;
 
-    // Einfacher ICS-Parser
+    // 1. Robuster ICS-Parser
     lines.forEach(line => {
         if (line.startsWith('BEGIN:VEVENT')) currentEvent = {};
         if (line.startsWith('SUMMARY:')) currentEvent.summary = line.replace('SUMMARY:', '').trim();
         if (line.startsWith('DTSTART:')) currentEvent.start = line.replace('DTSTART:', '').trim();
         if (line.startsWith('LOCATION:')) currentEvent.location = line.replace('LOCATION:', '').trim();
-        if (line.startsWith('DESCRIPTION:')) currentEvent.description = line.replace('DESCRIPTION:', '').trim();
+        // Bereinigung der Description von Newlines
+        if (line.startsWith('DESCRIPTION:')) currentEvent.description = line.replace('DESCRIPTION:', '').replace(/\\n/g, ' ').trim();
         if (line.startsWith('END:VEVENT')) {
-            events.push(currentEvent);
+            if (currentEvent.summary && currentEvent.summary.includes("Strullendorf")) {
+                events.push(currentEvent);
+            }
             currentEvent = null;
         }
     });
 
-    // Filtern auf Hubertus Strullendorf 1
-    const myEvents = events.filter(e => e.summary.includes("Hubertus Strullendorf 1"));
-
-    for (const e of myEvents) {
-        // 1. Datum und Zeit extrahieren (Format: YYYYMMDDTHHMMSS)
+    let count = 0;
+    for (const e of events) {
+        // A. Datum und Zeit extrahieren
         const datePart = e.start.substring(0, 8);
         const timePart = e.start.substring(9, 13);
         const formattedDate = `${datePart.substring(0, 4)}-${datePart.substring(4, 6)}-${datePart.substring(6, 8)}`;
         const formattedTime = `${timePart.substring(0, 2)}:${timePart.substring(2, 4)}`;
 
-        // 2. Disziplin erkennen (aus DESCRIPTION)
-        // Beispiel: "RWK Luftpistole 2025/26" -> Ziel: "Luftpistole 1"
-        let discipline = "Luftpistole 1"; 
-        if (e.description.includes("Luftpistole")) discipline = "Luftpistole 1";
-        if (e.description.includes("Luftgewehr")) discipline = "Luftgewehr 1";
+        // B. Intelligente Team-Erkennung basierend auf deinen Dateien
+        let detectedTeam = "";
+        
+        // 1. Nummer extrahieren (Strullendorf 1, 2 oder 3)
+        const matchNumber = e.summary.match(/Strullendorf (\d)/);
+        const teamNum = matchNumber ? matchNumber[1] : "";
 
-        // 3. Gegner und Heimrecht ermitteln
-        // Beispiel SUMMARY: "RWK 01 - Hubertus Strullendorf 1 : Bav. Langensendelbach 2"
-        const parts = e.summary.split(':');
-        const isHome = e.summary.indexOf("Hubertus Strullendorf 1") < e.summary.indexOf(":");
-        const opponent = isHome ? parts[1].trim() : parts[0].split('-')[1].trim();
+        // 2. Disziplin aus DESCRIPTION bestimmen
+        let disc = "";
+        const desc = e.description.toLowerCase();
+        if (desc.includes("luftpistole")) disc = "Luftpistole";
+        else if (desc.includes("auflage")) disc = "Luftgewehr Auflage";
+        else if (desc.includes("sportpistole")) disc = "Sportpistole";
+        else if (desc.includes("gk pist") || desc.includes("großkaliber")) disc = "Großkaliber";
+        else if (desc.includes("luftgewehr")) disc = "Luftgewehr";
 
-        // 4. Formularfelder befüllen und speichern
+        // 3. Zusammenfügen und mit ALL_TEAMS abgleichen
+        if (disc === "Luftgewehr Auflage" || disc === "Sportpistole" || disc === "Großkaliber") {
+            detectedTeam = disc; // Diese haben meist keine Nummer in deiner Liste
+        } else {
+            detectedTeam = `${disc} ${teamNum}`.trim();
+        }
+
+        // Validierung gegen deine ALL_TEAMS Liste
+        if (!ALL_TEAMS.includes(detectedTeam)) continue;
+
+        // C. Gegner und Heimrecht ermitteln [cite: 10, 13]
+        // Erwartet Format: "RWK XX - Team A : Team B"
+        const parts = e.summary.split(' : ');
+        if (parts.length < 2) continue;
+
+        const isHome = parts[0].includes("Strullendorf");
+        let opponent = "";
+        
+        if (isHome) {
+            opponent = parts[1].trim();
+        } else {
+            // Extrahiert den Gegner aus dem Teil vor dem Doppelpunkt
+            const homePart = parts[0].split(' - ');
+            opponent = homePart.length > 1 ? homePart[1].trim() : homePart[0].trim();
+        }
+
+        // D. Formular befüllen und speichern
         document.getElementById('event-date').value = formattedDate;
         document.getElementById('event-time').value = formattedTime;
         document.getElementById('event-opponent').value = opponent;
         document.getElementById('event-is-home').checked = isHome;
         
-        // Team-Selektor auf die erkannte Disziplin setzen
         const teamSelect = document.getElementById('event-team-select');
+        let teamFound = false;
         for (let i = 0; i < teamSelect.options.length; i++) {
-            if (teamSelect.options[i].text === discipline) {
+            if (teamSelect.options[i].text === detectedTeam) {
                 teamSelect.selectedIndex = i;
+                teamFound = true;
                 break;
             }
         }
 
-        // Speichern-Funktion aufrufen
-        await saveNewEvent();
+        if (teamFound) {
+            await saveNewEvent();
+            count++;
+        }
     }
-    alert(myEvents.length + " Wettkämpfe für Hubertus Strullendorf 1 wurden angelegt!");
+    alert(`Import abgeschlossen! ${count} Wettkämpfe wurden für Hubertus Strullendorf angelegt.`);
 }
 
     function handleICSUpload(event) {
