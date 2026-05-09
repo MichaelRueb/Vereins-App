@@ -532,9 +532,14 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         
         document.getElementById('prof-name').value = p.full_name || "";
         
-        // Sichtbarkeit der Tabs
-        if (isAdmin || isOfficial) document.getElementById('tab-admin').style.display = 'block';
-        if (isAdmin || isOfficial) document.getElementById('tab-').style.display = 'block';
+       // Sichtbarkeit der Tabs
+if (isAdmin || isOfficial) {
+    const tabAdmin = document.getElementById('tab-admin');
+    const tabMileage = document.getElementById('tab-mileage'); // WICHTIG: Hier 'tab-mileage' nutzen
+    
+    if (tabAdmin) tabAdmin.style.display = 'block';
+    if (tabMileage) tabMileage.style.display = 'block';
+}
         
         // Wettkampf-Formular Anzeige
         if (isAdmin || isOfficial || isCaptain) {
