@@ -1805,72 +1805,73 @@ async function executePasswordUpdate() {
  async function importICSPlan(icsText) {
     const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber"];
     const events = [];
-    const lines = icsText.split(/\r?\n/);
+    
+    // 1. ICS-Dateien haben oft "Line Folding" (Zeilen werden nach 75 Zeichen umgebrochen)
+    // Das machen wir hier rückgängig, damit Begriffe wie "Strullendorf" nicht zerschnitten werden.
+    const unfoldedText = icsText.replace(/\r?\n /g, '');
+    const lines = unfoldedText.split(/\r?\n/);
+    
     let currentEvent = null;
 
-    // 1. ICS-Parser: Extrahiert Termine, die "Strullendorf" im Titel haben
+    // 2. Parser: Wir suchen alles, was mit Strullendorf zu tun hat
     lines.forEach(line => {
         if (line.startsWith('BEGIN:VEVENT')) currentEvent = {};
         if (line.startsWith('SUMMARY:')) currentEvent.summary = line.replace('SUMMARY:', '').trim();
         if (line.startsWith('DTSTART:')) currentEvent.start = line.replace('DTSTART:', '').trim();
         if (line.startsWith('LOCATION:')) currentEvent.location = line.replace('LOCATION:', '').trim();
-        // Bereinigt die Description von Newlines für einfachere Suche
         if (line.startsWith('DESCRIPTION:')) currentEvent.description = line.replace('DESCRIPTION:', '').replace(/\\n/g, ' ').trim();
+        
         if (line.startsWith('END:VEVENT')) {
-            if (currentEvent.summary && currentEvent.summary.includes("Strullendorf")) {
+            // Wir prüfen, ob "Strullendorf" irgendwo im Titel vorkommt
+            if (currentEvent && currentEvent.summary && currentEvent.summary.includes("Strullendorf")) {
                 events.push(currentEvent);
             }
             currentEvent = null;
         }
     });
 
+    if (events.length === 0) {
+        alert("Keine Wettkämpfe für 'Strullendorf' in dieser Datei gefunden!");
+        return;
+    }
+
     let count = 0;
     for (const e of events) {
-        // A. Datum und Zeit extrahieren (Format: YYYYMMDDTHHMMSS)
-        const datePart = e.start.substring(0, 8);
-        const timePart = e.start.substring(9, 13);
+        // A. Datum und Zeit
+        const datePart = e.start.substring(0, 8); // YYYYMMDD
+        const timePart = e.start.substring(9, 13); // HHMM
         const formattedDate = `${datePart.substring(0, 4)}-${datePart.substring(4, 6)}-${datePart.substring(6, 8)}`;
         const formattedTime = `${timePart.substring(0, 2)}:${timePart.substring(2, 4)}`;
 
-        // B. Verbesserte Team-Erkennung mit Priorisierung
+        // B. Team-Erkennung
         let detectedTeam = "";
         const desc = e.description.toLowerCase();
-        const summary = e.summary.toLowerCase();
-
-        // 1. Zuerst Spezialdisziplinen prüfen (verhindert Fehlzuordnung durch Nummern)
-        if (desc.includes("gk pist") || desc.includes("großkaliber")) {
-            detectedTeam = "Großkaliber"; // [cite: 3]
+        
+        // Spezial-Checks (Großkaliber, Auflage, Sportpistole)
+        if (desc.includes("gk pist") || desc.includes("großkaliber") || desc.includes("pist/rev")) {
+            detectedTeam = "Großkaliber";
         } 
         else if (desc.includes("auflage")) {
-            detectedTeam = "Luftgewehr Auflage"; // [cite: 5]
+            detectedTeam = "Luftgewehr Auflage";
         } 
         else if (desc.includes("sportpistole")) {
-            detectedTeam = "Sportpistole"; // [cite: 4]
+            detectedTeam = "Sportpistole";
         } 
-        // 2. Dann Standarddisziplinen mit Nummern-Erkennung (LG 1-3, LP 1-2)
         else {
-            let discBase = "";
-            if (desc.includes("luftpistole")) {
-                discBase = "Luftpistole"; // [cite: 2, 11]
-            } else if (desc.includes("luftgewehr")) {
-                discBase = "Luftgewehr"; // [cite: 7, 8, 10]
-            }
-
-            if (discBase !== "") {
-                // Suche nach der Nummer (1, 2 oder 3) hinter dem Wort "Strullendorf"
+            // Standard: LG oder LP + Nummer
+            let discBase = desc.includes("luftpistole") ? "Luftpistole" : (desc.includes("luftgewehr") ? "Luftgewehr" : "");
+            
+            if (discBase) {
                 const matchNumber = e.summary.match(/Strullendorf (\d)/i);
-                const teamNum = matchNumber ? matchNumber[1] : "1"; 
+                const teamNum = matchNumber ? matchNumber[1] : "1";
                 detectedTeam = `${discBase} ${teamNum}`;
             }
         }
 
-        // Validierung gegen deine Team-Liste
-        if (!ALL_TEAMS.includes(detectedTeam)) {
-            console.log("Übersprungen: " + detectedTeam + " entspricht keiner Mannschafts-ID.");
-            continue;
-        }
+        // Falls wir kein Team aus deiner Liste finden -> überspringen
+        if (!detectedTeam || !ALL_TEAMS.includes(detectedTeam)) continue;
 
-        // C. Gegner und Heimrecht ermitteln
+        // C. Gegner und Heimrecht
         const parts = e.summary.split(' : ');
         if (parts.length < 2) continue;
 
@@ -1878,12 +1879,11 @@ async function executePasswordUpdate() {
         let opponent = "";
         
         if (isHome) {
-            // Strullendorf ist Heimteam -> Gegner steht nach dem Doppelpunkt
             opponent = parts[1].trim();
         } else {
-            // Strullendorf ist Gast -> Gegner steht vor dem Doppelpunkt (hinter dem RWK-Präfix)
-            const homePart = parts[0].split(' - ');
-            opponent = homePart.length > 1 ? homePart[1].trim() : homePart[0].trim();
+            // Gegner steht links vom Doppelpunkt, nach dem "RWK XX - "
+            const leftSide = parts[0].split(' - ');
+            opponent = leftSide.length > 1 ? leftSide[1].trim() : leftSide[0].trim();
         }
 
         // D. Formular befüllen
@@ -1892,7 +1892,6 @@ async function executePasswordUpdate() {
         document.getElementById('event-opponent').value = opponent;
         document.getElementById('event-is-home').checked = isHome;
         
-        // Den passenden Eintrag im Team-Dropdown auswählen
         const teamSelect = document.getElementById('event-team-select');
         let teamFound = false;
         for (let i = 0; i < teamSelect.options.length; i++) {
@@ -1903,13 +1902,12 @@ async function executePasswordUpdate() {
             }
         }
 
-        // E. Speichern des Wettkampfs über deine bestehende Funktion
         if (teamFound) {
             await saveNewEvent();
             count++;
         }
     }
-    alert(`Import abgeschlossen! Es wurden ${count} Wettkämpfe erfolgreich erkannt und angelegt.`);
+    alert(`Erfolg! ${count} Wettkämpfe wurden importiert.`);
 }
 
     function handleICSUpload(event) {
