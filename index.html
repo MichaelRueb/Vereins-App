@@ -715,21 +715,35 @@ function resetEventForm() {
 
     // --- TABS & NAVIGATION ---
 
-    function switchTab(t) { 
-        ['home','events','profile','admin',''].forEach(v => { 
-            const view = document.getElementById('view-'+v);
-            const tab = document.getElementById('tab-'+v);
-            if(view) view.style.display = (v===t)?'block':'none'; 
-            if(tab) tab.className = (v===t)?'tab active':'tab'; 
-        }); 
-        if(t==='admin') loadAdmin(); 
-        if(t==='') {
-            resetForm();
-            loadMileageHistory();
-            loadRouteSuggestions(); // Fehlerbehebung: Lädt Vorschläge beim Tab-Wechsel
-            if(document.getElementById('ml-date')) document.getElementById('ml-date').valueAsDate = new Date();
-        }
+   function switchTab(t) { 
+    // Hier stehen die Namen deiner Tabs/Views
+    ['home', 'events', 'profile', 'admin', 'mileage'].forEach(v => { 
+        const view = document.getElementById('view-' + v);
+        const tab = document.getElementById('tab-' + v);
+        
+        // Zeige nur den View an, der dem gewählten Tab entspricht
+        if(view) view.style.display = (v === t) ? 'block' : 'none'; 
+        
+        // Setze nur beim gewählten Tab die Klasse "active"
+        if(tab) tab.className = (v === t) ? 'tab active' : 'tab'; 
+    }); 
+
+    // Spezial-Aktionen beim Wechsel
+    if(t === 'admin') {
+        loadAdmin(); 
     }
+    
+    if(t === 'mileage') {
+        // Formular zurücksetzen & Daten laden
+        if(typeof resetMileageForm === "function") resetMileageForm(); 
+        loadMileageHistory();
+        loadRouteSuggestions(); 
+        
+        // Datum auf heute setzen
+        const dateInput = document.getElementById('ml-date');
+        if(dateInput) dateInput.valueAsDate = new Date();
+    }
+}
 
     // --- FAHRTENBUCH LOGIK (AKTUALISIERT) ---
 
