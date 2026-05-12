@@ -1469,7 +1469,7 @@ async function loadAdmin() {
 
     // --- EXPORT FUNKTIONEN ---
 
-   async function exportToPDF() {
+  async function exportToPDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
         alert("PDF-Bibliothek fehlt. Bitte Seite neu laden.");
         return;
@@ -1478,13 +1478,15 @@ async function loadAdmin() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
+    // Konfiguration
     const SOLL_STUNDEN = 10;
     const EURO_PRO_STUNDE = 15;
+    const STUNDEN_PRO_GETRAENK = 3; // Regel: Alle 3 Mehrstunden ein Getränk
 
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
-    // Header & Styling (wie zuvor)
+    // Header & Design
     doc.setFontSize(22);
     doc.setTextColor(46, 125, 50);
     doc.setFont("helvetica", "bold");
@@ -1508,25 +1510,23 @@ async function loadAdmin() {
         const diff = total - SOLL_STUNDEN;
 
         if (diff >= 0) {
-            // SOLL ERFÜLLT ODER ÜBERSCHRITTEN
+            // SOLL ERFÜLLT
             isBonus = true;
-            let bonusLabel = "";
             
-            // Bonus Staffelung
-            if (total >= 25) {
-                bonusLabel = "Top-Helfer: 10 Freigetränke";
-            } else if (total >= 15) {
-                bonusLabel = "Bonus: 5 Freigetränke";
-            } else {
-                bonusLabel = "Bonus: 3 Freigetränk";
-            }
+            // Dynamische Berechnung: Alle 3h ein Getränk (abgerundet)
+            const anzahlGetraenke = Math.floor(diff / STUNDEN_PRO_GETRAENK);
+            
+            let bonusInfo = anzahlGetraenke > 0 
+                ? `Bonus: ${anzahlGetraenke} Freigetränk${anzahlGetraenke > 1 ? 'e' : ''}`
+                : "Soll erfüllt";
 
-            statusText = `Erfüllt (+${diff.toFixed(1)}h)\n${bonusLabel}`;
+            statusText = `Erfüllt (+${diff.toFixed(1)}h)\n${bonusInfo}`;
         } else {
             // SOLL NICHT ERFÜLLT
             isBonus = false;
-            const strafBetrag = Math.abs(diff) * EURO_PRO_STUNDE;
-            statusText = `Offen: ${Math.abs(diff).toFixed(1)}h\nStrafe: ${strafBetrag.toFixed(2)} €`;
+            const fehlstunden = Math.abs(diff);
+            const strafBetrag = fehlstunden * EURO_PRO_STUNDE;
+            statusText = `Offen: ${fehlstunden.toFixed(1)}h\nStrafe: ${strafBetrag.toFixed(2)} €`;
         }
 
         tableRows.push([
@@ -1560,10 +1560,15 @@ async function loadAdmin() {
         body: tableRows,
         theme: 'grid',
         headStyles: { fillColor: [46, 125, 50] },
-        columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 30 }, 2: { cellWidth: 20 }, 3: { cellWidth: 50 } }
+        columnStyles: { 
+            0: { cellWidth: 'auto' }, 
+            1: { cellWidth: 30 }, 
+            2: { cellWidth: 20 }, 
+            3: { cellWidth: 50 } 
+        }
     });
 
-    doc.save(`Hubertus_Bonus_Report_${dateString}.pdf`);
+    doc.save(`Hubertus_Abrechnung_${dateString}.pdf`);
 }
 
     async function updatePassword() {
