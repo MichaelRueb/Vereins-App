@@ -1469,25 +1469,22 @@ async function loadAdmin() {
 
     // --- EXPORT FUNKTIONEN ---
 
-    async function exportToPDF() {
-    // Prüfen ob Bibliotheken geladen sind
+   async function exportToPDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("PDF-Bibliothek wird noch geladen oder fehlt. Bitte Seite neu laden.");
+        alert("PDF-Bibliothek fehlt. Bitte Seite neu laden.");
         return;
     }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Konfiguration für Soll-Stunden
     const SOLL_STUNDEN = 10;
     const EURO_PRO_STUNDE = 15;
 
-    // Daten von Supabase laden
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
 
-    // Header Styling
+    // Header & Styling (wie zuvor)
     doc.setFontSize(22);
     doc.setTextColor(46, 125, 50);
     doc.setFont("helvetica", "bold");
@@ -1497,11 +1494,7 @@ async function loadAdmin() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
     const dateString = new Date().toLocaleDateString('de-DE');
-    doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
-
-    // Trennlinie
-    doc.setDrawColor(46, 125, 50);
-    doc.setLineWidth(0.5);
+    doc.text(`Tätigkeitsbericht & Bonus-Check - Stand: ${dateString}`, 105, 28, { align: "center" });
     doc.line(14, 35, 196, 35);
 
     const tableRows = [];
@@ -1510,16 +1503,32 @@ async function loadAdmin() {
         const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
         const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
         
-        // Berechnung der Strafe
-        const diff = SOLL_STUNDEN - total;
-        const hatSollErreicht = diff <= 0;
-        const strafBetrag = hatSollErreicht ? 0 : diff * EURO_PRO_STUNDE;
-        
-        const statusText = hatSollErreicht 
-            ? "Erfüllt" 
-            : `Fehlt: ${diff.toFixed(1)}h / Strafe: ${strafBetrag.toFixed(2)} €`;
+        let statusText = "";
+        let isBonus = false;
+        const diff = total - SOLL_STUNDEN;
 
-        // Hauptzeile Mitglied
+        if (diff >= 0) {
+            // SOLL ERFÜLLT ODER ÜBERSCHRITTEN
+            isBonus = true;
+            let bonusLabel = "";
+            
+            // Bonus Staffelung
+            if (total >= 25) {
+                bonusLabel = "Top-Helfer: 10 Freigetränke";
+            } else if (total >= 15) {
+                bonusLabel = "Bonus: 5 Freigetränke";
+            } else {
+                bonusLabel = "Bonus: 3 Freigetränk";
+            }
+
+            statusText = `Erfüllt (+${diff.toFixed(1)}h)\n${bonusLabel}`;
+        } else {
+            // SOLL NICHT ERFÜLLT
+            isBonus = false;
+            const strafBetrag = Math.abs(diff) * EURO_PRO_STUNDE;
+            statusText = `Offen: ${Math.abs(diff).toFixed(1)}h\nStrafe: ${strafBetrag.toFixed(2)} €`;
+        }
+
         tableRows.push([
             { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
             { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
@@ -1527,40 +1536,34 @@ async function loadAdmin() {
             { 
                 content: statusText, 
                 styles: { 
+                    fontSize: 9,
                     fontStyle: 'bold', 
-                    halign: 'right', 
-                    fillColor: hatSollErreicht ? [232, 245, 233] : [255, 235, 238], // Hellgrün vs Hellrot
-                    textColor: hatSollErreicht ? [56, 142, 60] : [211, 47, 47]      // Dunkelgrün vs Dunkelrot
+                    halign: 'center', 
+                    fillColor: isBonus ? [232, 245, 233] : [255, 235, 238],
+                    textColor: isBonus ? [46, 125, 50] : [211, 47, 47]
                 } 
             }
         ]);
         
-        // Detailzeilen (colSpan auf 4 erhöht, da wir nun 4 Spalten haben)
+        // Detailzeilen
         if (memberHours.length > 0) {
             let detailText = memberHours.map(h => `  • ${new Date(h.date).toLocaleDateString('de-DE')}: ${h.description} (${h.duration}h)`).join('\n');
-            tableRows.push([{ content: detailText, colSpan: 4, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
+            tableRows.push([{ content: detailText, colSpan: 4, styles: { fontSize: 8, textColor: 80 } }]);
         } else {
-            tableRows.push([{ content: "    Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 4, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+            tableRows.push([{ content: "   Keine Stunden erfasst", colSpan: 4, styles: { fontSize: 8, fontStyle: 'italic' } }]);
         }
     });
 
-    // Tabelle generieren
     doc.autoTable({
         startY: 40,
-        head: [['Mitglied / Details', 'Mannschaft', 'Ist', 'Status / Strafe']],
+        head: [['Mitglied', 'Mannschaft', 'Ist', 'Status / Bonus']],
         body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
-        styles: { font: "helvetica", overflow: 'linebreak' },
-        columnStyles: { 
-            0: { cellWidth: 'auto' }, 
-            1: { cellWidth: 30 }, 
-            2: { cellWidth: 20 },
-            3: { cellWidth: 55 } 
-        }
+        headStyles: { fillColor: [46, 125, 50] },
+        columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 30 }, 2: { cellWidth: 20 }, 3: { cellWidth: 50 } }
     });
 
-    doc.save(`Hubertus_Report_${dateString}.pdf`);
+    doc.save(`Hubertus_Bonus_Report_${dateString}.pdf`);
 }
 
     async function updatePassword() {
