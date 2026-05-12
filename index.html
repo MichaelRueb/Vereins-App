@@ -1470,70 +1470,98 @@ async function loadAdmin() {
     // --- EXPORT FUNKTIONEN ---
 
     async function exportToPDF() {
-        // Prüfen ob Bibliotheken geladen sind
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            alert("PDF-Bibliothek wird noch geladen oder fehlt. Bitte Seite neu laden.");
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Daten von Supabase laden
-        const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-        const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-
-        // Header Styling
-        doc.setFontSize(22);
-        doc.setTextColor(46, 125, 50);
-        doc.setFont("helvetica", "bold");
-        doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-        
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100);
-        const dateString = new Date().toLocaleDateString('de-DE');
-        doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
-
-        // Trennlinie
-        doc.setDrawColor(46, 125, 50);
-        doc.setLineWidth(0.5);
-        doc.line(14, 35, 196, 35);
-
-        const tableRows = [];
-        profs.forEach(p => {
-            const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
-            const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-            
-            // Hauptzeile Mitglied
-            tableRows.push([
-                { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
-                { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
-                { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } }
-            ]);
-            
-            // Detailzeilen
-            if (memberHours.length > 0) {
-                let detailText = memberHours.map(h => `  • ${new Date(h.date).toLocaleDateString('de-DE')}: ${h.description} (${h.duration}h)`).join('\n');
-                tableRows.push([{ content: detailText, colSpan: 3, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
-            } else {
-                tableRows.push([{ content: "    Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 3, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
-            }
-        });
-
-        // Tabelle generieren
-        doc.autoTable({
-            startY: 40,
-            head: [['Mitglied / Details', 'Mannschaft', 'Summe']],
-            body: tableRows,
-            theme: 'grid',
-            headStyles: { fillColor: [46, 125, 50], fontSize: 11 },
-            styles: { font: "helvetica", overflow: 'linebreak' },
-            columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 40 }, 2: { cellWidth: 25 } }
-        });
-
-        doc.save(`Hubertus_Report_${dateString}.pdf`);
+    // Prüfen ob Bibliotheken geladen sind
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert("PDF-Bibliothek wird noch geladen oder fehlt. Bitte Seite neu laden.");
+        return;
     }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Konfiguration für Soll-Stunden
+    const SOLL_STUNDEN = 10;
+    const EURO_PRO_STUNDE = 15;
+
+    // Daten von Supabase laden
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+
+    // Header Styling
+    doc.setFontSize(22);
+    doc.setTextColor(46, 125, 50);
+    doc.setFont("helvetica", "bold");
+    doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    const dateString = new Date().toLocaleDateString('de-DE');
+    doc.text(`Tätigkeitsbericht Arbeitsstunden - Stand: ${dateString}`, 105, 28, { align: "center" });
+
+    // Trennlinie
+    doc.setDrawColor(46, 125, 50);
+    doc.setLineWidth(0.5);
+    doc.line(14, 35, 196, 35);
+
+    const tableRows = [];
+    
+    profs.forEach(p => {
+        const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
+        const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+        
+        // Berechnung der Strafe
+        const diff = SOLL_STUNDEN - total;
+        const hatSollErreicht = diff <= 0;
+        const strafBetrag = hatSollErreicht ? 0 : diff * EURO_PRO_STUNDE;
+        
+        const statusText = hatSollErreicht 
+            ? "Erfüllt" 
+            : `Fehlt: ${diff.toFixed(1)}h / Strafe: ${strafBetrag.toFixed(2)} €`;
+
+        // Hauptzeile Mitglied
+        tableRows.push([
+            { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+            { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
+            { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } },
+            { 
+                content: statusText, 
+                styles: { 
+                    fontStyle: 'bold', 
+                    halign: 'right', 
+                    fillColor: hatSollErreicht ? [232, 245, 233] : [255, 235, 238], // Hellgrün vs Hellrot
+                    textColor: hatSollErreicht ? [56, 142, 60] : [211, 47, 47]      // Dunkelgrün vs Dunkelrot
+                } 
+            }
+        ]);
+        
+        // Detailzeilen (colSpan auf 4 erhöht, da wir nun 4 Spalten haben)
+        if (memberHours.length > 0) {
+            let detailText = memberHours.map(h => `  • ${new Date(h.date).toLocaleDateString('de-DE')}: ${h.description} (${h.duration}h)`).join('\n');
+            tableRows.push([{ content: detailText, colSpan: 4, styles: { fontSize: 8, textColor: 80, cellPadding: {left: 10, top: 2, bottom: 2} } }]);
+        } else {
+            tableRows.push([{ content: "    Keine Arbeitsstunden im Zeitraum erfasst", colSpan: 4, styles: { fontSize: 8, textColor: 150, fontStyle: 'italic' } }]);
+        }
+    });
+
+    // Tabelle generieren
+    doc.autoTable({
+        startY: 40,
+        head: [['Mitglied / Details', 'Mannschaft', 'Ist', 'Status / Strafe']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
+        styles: { font: "helvetica", overflow: 'linebreak' },
+        columnStyles: { 
+            0: { cellWidth: 'auto' }, 
+            1: { cellWidth: 30 }, 
+            2: { cellWidth: 20 },
+            3: { cellWidth: 55 } 
+        }
+    });
+
+    doc.save(`Hubertus_Report_${dateString}.pdf`);
+}
 
     async function updatePassword() {
     const p1 = document.getElementById('new-pass').value;
