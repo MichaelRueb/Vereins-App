@@ -1892,7 +1892,7 @@ async function deleteWork(id) {
     }
 }
 
-    function showUpdatePasswordUI() {
+   function showUpdatePasswordUI() {
     document.getElementById('loading-ui').style.display = 'none';
     if(document.getElementById('auth-ui')) document.getElementById('auth-ui').style.display = 'none';
     
@@ -1903,12 +1903,67 @@ async function deleteWork(id) {
         <h2 style="color:var(--primary); margin-top:0;">Neues Passwort vergeben</h2>
         <p style="font-size:0.9em; color:#666; margin-bottom:20px;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
         
-        <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; margin-bottom:10px;">
-        <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; margin-bottom:20px;">
+        <div style="position: relative; margin-bottom: 10px;">
+            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; padding-right: 40px; box-sizing: border-box;">
+            <button type="button" onclick="togglePasswordVisibility('reset-pass-1', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2em; padding: 0;">👁️</button>
+        </div>
+
+        <div style="position: relative; margin-bottom: 20px;">
+            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; padding-right: 40px; box-sizing: border-box;">
+            <button type="button" onclick="togglePasswordVisibility('reset-pass-2', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2em; padding: 0;">👁️</button>
+        </div>
         
         <button class="btn-primary" onclick="executePasswordUpdate()" style="width:100%;">Passwort speichern</button>
     `;
     document.body.appendChild(resetContainer);
+}
+
+// Diese Hilfsfunktion direkt darunter oder irgendwo im Skript einfügen:
+function togglePasswordVisibility(inputId, btnElement) {
+    const inputField = document.getElementById(inputId);
+    if (!inputField) return;
+
+    if (inputField.type === "password") {
+        inputField.type = "text";
+        btnElement.innerText = "🙈"; // Wechselt zum Affen beim Anzeigen
+    } else {
+        inputField.type = "password";
+        btnElement.innerText = "👁️"; // Zurück zum Auge beim Verstecken
+    }
+}
+
+    async function executePasswordUpdate() {
+    const p1 = document.getElementById('reset-pass-1').value;
+    const p2 = document.getElementById('reset-pass-2').value;
+
+    if (!p1 || !p2) return alert("Bitte beide Felder ausfüllen!");
+    if (p1 !== p2) return alert("Passwörter stimmen nicht überein!");
+    if (p1.length < 8) return alert("Das Passwort muss mindestens 8 Zeichen lang sein!");
+
+    // 3 von 4 Kriterien prüfen
+    let criteria = 0;
+    if (/[A-Z]/.test(p1)) criteria++;         // Großbuchstabe
+    if (/[a-z]/.test(p1)) criteria++;         // Kleinbuchstabe
+    if (/[0-9]/.test(p1)) criteria++;         // Zahl
+    if (/[^A-Za-z0-9]/.test(p1)) criteria++;  // Sonderzeichen
+
+    if (criteria < 3) {
+        return alert("Das Passwort muss mindestens 3 der folgenden 4 Kriterien erfüllen:\n" +
+                     "Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen.");
+    }
+
+    try {
+        const { error } = await sb.auth.updateUser({ password: p1 });
+        if (error) throw error;
+
+        alert("Passwort erfolgreich aktualisiert! Du wirst jetzt eingeloggt.");
+        
+        // Weiterleitung zur sauberen Hauptansicht ohne URL-Parameter
+        window.location.href = window.location.origin + window.location.pathname;
+    } catch (err) {
+        console.error("Fehler beim Passwort-Update:", err);
+        alert("Fehler: " + err.message);
+    }
 }
 
 async function importICSPlan(icsText) {
