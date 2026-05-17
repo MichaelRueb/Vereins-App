@@ -565,19 +565,27 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
         
         document.getElementById('prof-name').value = p.full_name || "";
         
-       // Sichtbarkeit der Tabs
-if (isAdmin || isOfficial) {
-    const tabAdmin = document.getElementById('tab-admin');
-    const tabMileage = document.getElementById('tab-mileage'); // WICHTIG: Hier 'tab-mileage' nutzen
-    
-    if (tabAdmin) tabAdmin.style.display = 'block';
-    if (tabMileage) tabMileage.style.display = 'block';
-}
+        // --- SICHTBARKEIT DER TABS (ADMIN & FAHRTEN) ---
+        const tabAdmin = document.getElementById('tab-admin');
+        const tabMileage = document.getElementById('tab-mileage');
+
+        if (isAdmin || isOfficial) {
+            // Einblenden für privilegierte Rollen
+            if (tabAdmin) tabAdmin.style.display = 'block';
+            if (tabMileage) tabMileage.style.display = 'block';
+        } else {
+            // WICHTIG: Explizit ausblenden für normale Mitglieder!
+            if (tabAdmin) tabAdmin.style.display = 'none';
+            if (tabMileage) tabMileage.style.display = 'none';
+        }
         
         // Wettkampf-Formular Anzeige
         if (isAdmin || isOfficial || isCaptain) {
             if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'block';
             fillTeamSelect();
+        } else {
+            // Auch hier zur Sicherheit: Formular verstecken, wenn man keines von beidem ist
+            if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'none';
         }
     }
     
