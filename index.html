@@ -476,44 +476,67 @@ td button.btn-del {
 
 <script>
 
+// ==========================================
+// 1. MOBILER LIVE-DEBUGGER (Muss ganz oben stehen!)
+// ==========================================
+window.onerror = function(message, source, lineno, colno, error) {
+    alert("🚨 JS-FEHLER AUF DEM HANDY:\n" + message + "\nZeile: " + lineno);
+    return false;
+};
+
+// ==========================================
+// 2. CONFIG & INITIALISIERUNG
+// ==========================================
 const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
-    const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
-    const sb = supabase.createClient(S_URL, S_KEY);
-    const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
-    const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
+const S_KEY = 'sb_publishable_rz_QtyYZcDoY5LcNzgZk1Q_o2HbDO7m';
 
-    let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
-    let all = [];
-    let currentWorkEditId = null;
+let sb;
+try {
+    sb = supabase.createClient(S_URL, S_KEY);
+} catch (e) {
+    alert("🚨 Supabase konnte nicht geladen werden: " + e.message);
+}
 
-   window.onload = async () => {
-    // 1. Extrem robuster Check für Passwort-Update (Desktop & Mobil)
+const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
+const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
+
+let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
+let all = [];
+let currentWorkEditId = null;
+
+// ==========================================
+// 3. ROBUSTES ROUTING (REAGIERT SOFORT)
+// ==========================================
+document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const aktuelleURL = window.location.href;
     
-    // Prüft, ob Supabase-Token in der Raute (#) oder Parameter in der URL stecken
+    // Prüft alle Eventualitäten für den Passwort-Reset
     const hatHashToken = window.location.hash.includes('access_token=');
     const istRecoveryMode = aktuelleURL.includes('type=recovery') || urlParams.get('view') === 'update-password';
 
     if (hatHashToken || istRecoveryMode) {
-        // Temporärer Alarm für dich zum Testen – zeigt sofort, ob das Handy anschlägt!
-        alert("Reset-Modus erfolgreich auf dem Handy erkannt!"); 
-        
+        alert("🎉 Reset-Modus erfolgreich auf dem Handy erkannt!"); 
         showUpdatePasswordUI();
-        return; // Stoppt hier, damit nicht der normale Login-Check ausgeführt wird
+        return; // Verhindert den normalen Login-Check
     }
 
-    // 2. Normaler Login-Check (dein bestehender Code)
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-        // currentUser global setzen, falls noch nicht geschehen
-        currentUser = session.user; 
-        setupApp(session.user);
-    } else { 
-        document.getElementById('loading-ui').style.display='none'; 
-        document.getElementById('auth-ui').style.display='block'; 
+    // 2. Normaler Login-Check
+    if (sb) {
+        try {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                currentUser = session.user; 
+                setupApp(session.user);
+            } else { 
+                if(document.getElementById('loading-ui')) document.getElementById('loading-ui').style.display='none'; 
+                if(document.getElementById('auth-ui')) document.getElementById('auth-ui').style.display='block'; 
+            }
+        } catch (sessionErr) {
+            console.error(sessionErr);
+        }
     }
-};
+});
 
    async function handleAuth() {
     const email = document.getElementById('email').value;
@@ -1902,14 +1925,13 @@ async function deleteWork(id) {
 }
 
 function showUpdatePasswordUI() {
-    alert("SYSTEM-CHECK: Funktion wird ausgeführt!"); // <-- Das temporär ganz oben einbauen!
-    // Sicherstellen, dass die Lade-UIs existieren, bevor wir sie manipulieren
+    alert("SYSTEM-CHECK: Funktion wird ausgeführt!");
+
     const loadingUI = document.getElementById('loading-ui');
     const authUI = document.getElementById('auth-ui');
     if (loadingUI) loadingUI.style.display = 'none';
     if (authUI) authUI.style.display = 'none';
     
-    // Falls der Container schon existiert, nicht doppelt erstellen
     if (document.getElementById('password-reset-card')) return;
     
     const resetContainer = document.createElement('div');
@@ -1941,36 +1963,43 @@ function showUpdatePasswordUI() {
     
     document.body.appendChild(resetContainer);
 
-    // --- LIVE-SYNCHRONISATION BEIM TIPPEN ---
     const p1 = document.getElementById('reset-pass-1');
     const p1T = document.getElementById('reset-pass-1-text');
     const p2 = document.getElementById('reset-pass-2');
     const p2T = document.getElementById('reset-pass-2-text');
 
-    p1.addEventListener('input', () => p1T.value = p1.value);
-    p1T.addEventListener('input', () => p1.value = p1T.value);
-    p2.addEventListener('input', () => p2T.value = p2.value);
-    p2T.addEventListener('input', () => p2.value = p2T.value);
+    if(p1 && p1T && p2 && p2T) {
+        p1.addEventListener('input', () => p1T.value = p1.value);
+        p1T.addEventListener('input', () => p1.value = p1T.value);
+        p2.addEventListener('input', () => p2T.value = p2.value);
+        p2T.addEventListener('input', () => p2.value = p2T.value);
+    }
 
-    // Checkbox Umschaltung
-    document.getElementById('chk-show-pass').addEventListener('change', function() {
-        if (this.checked) {
-            p1.style.display = 'none'; p2.style.display = 'none';
-            p1T.style.display = 'block'; p2T.style.display = 'block';
-        } else {
-            p1T.style.display = 'none'; p2T.style.display = 'none';
-            p1.style.display = 'block'; p2.style.display = 'block';
-        }
-    });
+    const chk = document.getElementById('chk-show-pass');
+    if(chk) {
+        chk.addEventListener('change', function() {
+            if (this.checked) {
+                p1.style.display = 'none'; p2.style.display = 'none';
+                p1T.style.display = 'block'; p2T.style.display = 'block';
+            } else {
+                p1T.style.display = 'none'; p2T.style.display = 'none';
+                p1.style.display = 'block'; p2.style.display = 'block';
+            }
+        });
+    }
 
-    // Speicher-Event
-    document.getElementById('btn-save-pass').addEventListener('click', function(event) {
-        event.preventDefault();
-        executeMobilePasswordUpdate();
-    });
+    const btnSave = document.getElementById('btn-save-pass');
+    if(btnSave) {
+        btnSave.addEventListener('click', function(event) {
+            event.preventDefault();
+            executeMobilePasswordUpdate();
+        });
+    }
 }
-    
-// Die dazu passende Auslese-Funktion
+
+// ==========================================
+// 5. UPDATE-LOGIK
+// ==========================================
 async function executeMobilePasswordUpdate() {
     const p1Field = document.getElementById('reset-pass-1');
     const p1TextField = document.getElementById('reset-pass-1-text');
