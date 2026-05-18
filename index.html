@@ -7,7 +7,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloushowupdflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
 <style>
     :root { 
@@ -1893,62 +1893,63 @@ async function deleteWork(id) {
 }
 
 function showUpdatePasswordUI() {
-    document.getElementById('loading-ui').style.display = 'none';
-    if(document.getElementById('auth-ui')) document.getElementById('auth-ui').style.display = 'none';
+    // Sicherstellen, dass die Lade-UIs existieren, bevor wir sie manipulieren
+    const loadingUI = document.getElementById('loading-ui');
+    const authUI = document.getElementById('auth-ui');
+    if (loadingUI) loadingUI.style.display = 'none';
+    if (authUI) authUI.style.display = 'none';
+    
+    // Falls der Container schon existiert, nicht doppelt erstellen
+    if (document.getElementById('password-reset-card')) return;
     
     const resetContainer = document.createElement('div');
+    resetContainer.id = 'password-reset-card';
     resetContainer.className = 'card';
-    resetContainer.style = 'max-width: 400px; margin: 50px auto; padding: 20px; box-sizing: border-box;';
+    resetContainer.style = 'max-width: 400px; margin: 50px auto; padding: 20px; box-sizing: border-box; background: #fff; border: 1px solid #eee; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
     
     resetContainer.innerHTML = `
-        <h2 style="color:var(--primary); margin-top:0;">Neues Passwort vergeben</h2>
-        <p style="font-size:0.9em; color:#666; margin-bottom:20px;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
+        <h2 style="color:var(--primary); margin-top:0; font-family: sans-serif;">Neues Passwort vergeben</h2>
+        <p style="font-size:0.9em; color:#666; margin-bottom:20px; font-family: sans-serif;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
         
         <div style="margin-bottom: 15px;">
-            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; padding: 10px 12px; box-sizing: border-box; height: 44px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-            <input type="text" id="reset-pass-1-text" placeholder="Neues Passwort" style="width:100%; padding: 10px 12px; box-sizing: border-box; height: 44px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; display: none;">
+            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; padding: 12px; box-sizing: border-box; height: 46px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+            <input type="text" id="reset-pass-1-text" placeholder="Neues Passwort" style="width:100%; padding: 12px; box-sizing: border-box; height: 46px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; display: none;">
         </div>
 
         <div style="margin-bottom: 15px;">
-            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; padding: 10px 12px; box-sizing: border-box; height: 44px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-            <input type="text" id="reset-pass-2-text" placeholder="Passwort bestätigen" style="width:100%; padding: 10px 12px; box-sizing: border-box; height: 44px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; display: none;">
+            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; padding: 12px; box-sizing: border-box; height: 46px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+            <input type="text" id="reset-pass-2-text" placeholder="Passwort bestätigen" style="width:100%; padding: 12px; box-sizing: border-box; height: 46px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; display: none;">
         </div>
 
-        <div style="display: flex; align-items: center; margin-bottom: 25px; user-select: none; -webkit-user-select: none;">
-            <input type="checkbox" id="chk-show-pass" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
-            <label for="chk-show-pass" style="font-size: 15px; cursor: pointer; color: #333;">Passwörter unverschlüsselt anzeigen</label>
+        <div style="display: flex; align-items: center; margin-bottom: 25px; padding: 5px 0;">
+            <input type="checkbox" id="chk-show-pass" style="width: 22px; height: 22px; margin-right: 12px; cursor: pointer; -webkit-appearance: checkbox;">
+            <label for="chk-show-pass" style="font-size: 16px; cursor: pointer; color: #333; font-family: sans-serif; user-select: none; -webkit-user-select: none;">Passwörter anzeigen</label>
         </div>
         
-        <button id="btn-save-pass" class="btn-primary" style="width:100%; height: 44px; font-size: 16px;">Passwort speichern</button>
+        <button id="btn-save-pass" class="btn-primary" style="width:100%; height: 46px; font-size: 16px; cursor: pointer;">Passwort speichern</button>
     `;
     
     document.body.appendChild(resetContainer);
 
-    // Event-Listener für die Checkbox (Steuert die Sichtbarkeit)
-    document.getElementById('chk-show-pass').addEventListener('change', function() {
-        const show = this.checked;
-        
-        const p1Hide = document.getElementById('reset-pass-1');
-        const p1Show = document.getElementById('reset-pass-1-text');
-        const p2Hide = document.getElementById('reset-pass-2');
-        const p2Show = document.getElementById('reset-pass-2-text');
+    // --- LIVE-SYNCHRONISATION BEIM TIPPEN ---
+    const p1 = document.getElementById('reset-pass-1');
+    const p1T = document.getElementById('reset-pass-1-text');
+    const p2 = document.getElementById('reset-pass-2');
+    const p2T = document.getElementById('reset-pass-2-text');
 
-        if (show) {
-            // Text rüberschieben und Textfelder anzeigen
-            p1Show.value = p1Hide.value;
-            p2Show.value = p2Hide.value;
-            p1Hide.style.display = 'none';
-            p2Hide.style.display = 'none';
-            p1Show.style.display = 'block';
-            p2Show.style.display = 'block';
+    p1.addEventListener('input', () => p1T.value = p1.value);
+    p1T.addEventListener('input', () => p1.value = p1T.value);
+    p2.addEventListener('input', () => p2T.value = p2.value);
+    p2T.addEventListener('input', () => p2.value = p2T.value);
+
+    // Checkbox Umschaltung
+    document.getElementById('chk-show-pass').addEventListener('change', function() {
+        if (this.checked) {
+            p1.style.display = 'none'; p2.style.display = 'none';
+            p1T.style.display = 'block'; p2T.style.display = 'block';
         } else {
-            // Text zurückschieben und Passwortfelder anzeigen
-            p1Hide.value = p1Show.value;
-            p2Hide.value = p2Show.value;
-            p1Show.style.display = 'none';
-            p2Show.style.display = 'none';
-            p1Hide.style.display = 'block';
-            p2Hide.style.display = 'block';
+            p1T.style.display = 'none'; p2T.style.display = 'none';
+            p1.style.display = 'block'; p2.style.display = 'block';
         }
     });
 
@@ -1958,7 +1959,7 @@ function showUpdatePasswordUI() {
         executeMobilePasswordUpdate();
     });
 }
-
+    
 // Die dazu passende Auslese-Funktion
 async function executeMobilePasswordUpdate() {
     const p1Field = document.getElementById('reset-pass-1');
