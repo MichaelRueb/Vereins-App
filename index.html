@@ -1900,62 +1900,74 @@ function showUpdatePasswordUI() {
     resetContainer.className = 'card';
     resetContainer.style = 'max-width: 400px; margin: 50px auto; padding: 20px; box-sizing: border-box;';
     
-    // WICHTIG: Keine onclick="" Befehle mehr im HTML!
     resetContainer.innerHTML = `
         <h2 style="color:var(--primary); margin-top:0;">Neues Passwort vergeben</h2>
         <p style="font-size:0.9em; color:#666; margin-bottom:20px;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
         
-        <div style="display: flex; align-items: center; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 44px; overflow: hidden;">
-            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; outline: none; width: 10px;">
-            <button type="button" id="btn-toggle-1" style="width: 50px; height: 100%; background: #f0f0f0; border: none; border-left: 1px solid #ccc; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">👁️</button>
+        <div style="margin-bottom: 15px;">
+            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; padding: 10px 12px; box-sizing: border-box; height: 44px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+            <input type="text" id="reset-pass-1-text" placeholder="Neues Passwort" style="width:100%; padding: 10px 12px; box-sizing: border-box; height: 44px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; display: none;">
         </div>
 
-        <div style="display: flex; align-items: center; margin-bottom: 25px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 44px; overflow: hidden;">
-            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; outline: none; width: 10px;">
-            <button type="button" id="btn-toggle-2" style="width: 50px; height: 100%; background: #f0f0f0; border: none; border-left: 1px solid #ccc; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">👁️</button>
+        <div style="margin-bottom: 15px;">
+            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; padding: 10px 12px; box-sizing: border-box; height: 44px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+            <input type="text" id="reset-pass-2-text" placeholder="Passwort bestätigen" style="width:100%; padding: 10px 12px; box-sizing: border-box; height: 44px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; display: none;">
+        </div>
+
+        <div style="display: flex; align-items: center; margin-bottom: 25px; user-select: none; -webkit-user-select: none;">
+            <input type="checkbox" id="chk-show-pass" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+            <label for="chk-show-pass" style="font-size: 15px; cursor: pointer; color: #333;">Passwörter unverschlüsselt anzeigen</label>
         </div>
         
         <button id="btn-save-pass" class="btn-primary" style="width:100%; height: 44px; font-size: 16px;">Passwort speichern</button>
     `;
     
-    // 1. Erst das HTML in die Seite einfügen
     document.body.appendChild(resetContainer);
 
-    // 2. DANACH die Knöpfe suchen und die Klick-Events knallhart anheften
-    document.getElementById('btn-toggle-1').addEventListener('click', function(event) {
-        event.preventDefault(); // Verhindert alle Standard-Aktionen des Handys
-        togglePasswordSimple('reset-pass-1', this);
+    // Event-Listener für die Checkbox (Steuert die Sichtbarkeit)
+    document.getElementById('chk-show-pass').addEventListener('change', function() {
+        const show = this.checked;
+        
+        const p1Hide = document.getElementById('reset-pass-1');
+        const p1Show = document.getElementById('reset-pass-1-text');
+        const p2Hide = document.getElementById('reset-pass-2');
+        const p2Show = document.getElementById('reset-pass-2-text');
+
+        if (show) {
+            // Text rüberschieben und Textfelder anzeigen
+            p1Show.value = p1Hide.value;
+            p2Show.value = p2Hide.value;
+            p1Hide.style.display = 'none';
+            p2Hide.style.display = 'none';
+            p1Show.style.display = 'block';
+            p2Show.style.display = 'block';
+        } else {
+            // Text zurückschieben und Passwortfelder anzeigen
+            p1Hide.value = p1Show.value;
+            p2Hide.value = p2Show.value;
+            p1Show.style.display = 'none';
+            p2Show.style.display = 'none';
+            p1Hide.style.display = 'block';
+            p2Hide.style.display = 'block';
+        }
     });
 
-    document.getElementById('btn-toggle-2').addEventListener('click', function(event) {
-        event.preventDefault();
-        togglePasswordSimple('reset-pass-2', this);
-    });
-
+    // Speicher-Event
     document.getElementById('btn-save-pass').addEventListener('click', function(event) {
         event.preventDefault();
         executeMobilePasswordUpdate();
     });
 }
 
-// Ganz simple Umschaltfunktion ohne Event-Blocker
-function togglePasswordSimple(inputId, btnElement) {
-    const inputField = document.getElementById(inputId);
-    if (!inputField) return;
-
-    if (inputField.type === "password") {
-        inputField.type = "text";
-        btnElement.innerText = "🙈";
-    } else {
-        inputField.type = "password";
-        btnElement.innerText = "👁️";
-    }
-}
-
-// Die Standard-Speicherfunktion
+// Die dazu passende Auslese-Funktion
 async function executeMobilePasswordUpdate() {
-    const p1 = document.getElementById('reset-pass-1').value;
-    const p2 = document.getElementById('reset-pass-2').value;
+    const p1Field = document.getElementById('reset-pass-1');
+    const p1TextField = document.getElementById('reset-pass-1-text');
+    const p1 = p1Field.style.display !== 'none' ? p1Field.value : p1TextField.value;
+
+    const p2Field = document.getElementById('reset-pass-2');
+    const p2TextField = document.getElementById('reset-pass-2-text');
+    const p2 = p2Field.style.display !== 'none' ? p2Field.value : p2TextField.value;
 
     if (!p1 || !p2) return alert("Bitte beide Felder ausfüllen!");
     if (p1 !== p2) return alert("Passwörter stimmen nicht überein!");
