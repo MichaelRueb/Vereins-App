@@ -1899,23 +1899,43 @@ function showUpdatePasswordUI() {
     const resetContainer = document.createElement('div');
     resetContainer.className = 'card';
     resetContainer.style = 'max-width: 400px; margin: 50px auto; padding: 20px; box-sizing: border-box;';
+    
+    // WICHTIG: Keine onclick="" Befehle mehr im HTML!
     resetContainer.innerHTML = `
         <h2 style="color:var(--primary); margin-top:0;">Neues Passwort vergeben</h2>
         <p style="font-size:0.9em; color:#666; margin-bottom:20px;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
         
         <div style="display: flex; align-items: center; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 44px; overflow: hidden;">
-            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; outline: none;">
-            <button type="button" onclick="togglePasswordSimple('reset-pass-1', this)" style="width: 50px; height: 100%; background: #f0f0f0; border: none; border-left: 1px solid #ccc; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center;">👁️</button>
+            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; outline: none; width: 10px;">
+            <button type="button" id="btn-toggle-1" style="width: 50px; height: 100%; background: #f0f0f0; border: none; border-left: 1px solid #ccc; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">👁️</button>
         </div>
 
         <div style="display: flex; align-items: center; margin-bottom: 25px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 44px; overflow: hidden;">
-            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; outline: none;">
-            <button type="button" onclick="togglePasswordSimple('reset-pass-2', this)" style="width: 50px; height: 100%; background: #f0f0f0; border: none; border-left: 1px solid #ccc; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center;">👁️</button>
+            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; outline: none; width: 10px;">
+            <button type="button" id="btn-toggle-2" style="width: 50px; height: 100%; background: #f0f0f0; border: none; border-left: 1px solid #ccc; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">👁️</button>
         </div>
         
-        <button class="btn-primary" onclick="executeMobilePasswordUpdate()" style="width:100%; height: 44px; font-size: 16px;">Passwort speichern</button>
+        <button id="btn-save-pass" class="btn-primary" style="width:100%; height: 44px; font-size: 16px;">Passwort speichern</button>
     `;
+    
+    // 1. Erst das HTML in die Seite einfügen
     document.body.appendChild(resetContainer);
+
+    // 2. DANACH die Knöpfe suchen und die Klick-Events knallhart anheften
+    document.getElementById('btn-toggle-1').addEventListener('click', function(event) {
+        event.preventDefault(); // Verhindert alle Standard-Aktionen des Handys
+        togglePasswordSimple('reset-pass-1', this);
+    });
+
+    document.getElementById('btn-toggle-2').addEventListener('click', function(event) {
+        event.preventDefault();
+        togglePasswordSimple('reset-pass-2', this);
+    });
+
+    document.getElementById('btn-save-pass').addEventListener('click', function(event) {
+        event.preventDefault();
+        executeMobilePasswordUpdate();
+    });
 }
 
 // Ganz simple Umschaltfunktion ohne Event-Blocker
