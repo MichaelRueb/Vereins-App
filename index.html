@@ -487,11 +487,20 @@ const S_URL = 'https://dewsihgtmlbhwqriduzc.supabase.co';
     let currentWorkEditId = null;
 
    window.onload = async () => {
-    // 1. Prüfen, ob wir im Passwort-Update-Modus sind
+    // 1. Extrem robuster Check für Passwort-Update (Desktop & Mobil)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('view') === 'update-password') {
+    const aktuelleURL = window.location.href;
+    
+    // Prüft, ob Supabase-Token in der Raute (#) oder Parameter in der URL stecken
+    const hatHashToken = window.location.hash.includes('access_token=');
+    const istRecoveryMode = aktuelleURL.includes('type=recovery') || urlParams.get('view') === 'update-password';
+
+    if (hatHashToken || istRecoveryMode) {
+        // Temporärer Alarm für dich zum Testen – zeigt sofort, ob das Handy anschlägt!
+        alert("Reset-Modus erfolgreich auf dem Handy erkannt!"); 
+        
         showUpdatePasswordUI();
-        return; 
+        return; // Stoppt hier, damit nicht der normale Login-Check ausgeführt wird
     }
 
     // 2. Normaler Login-Check (dein bestehender Code)
