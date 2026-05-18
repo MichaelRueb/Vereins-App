@@ -1903,20 +1903,14 @@ function showUpdatePasswordUI() {
         <h2 style="color:var(--primary); margin-top:0;">Neues Passwort vergeben</h2>
         <p style="font-size:0.9em; color:#666; margin-bottom:20px;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
         
-        <div style="display: flex; align-items: center; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 44px; box-sizing: border-box;">
-            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; height: 100%; box-sizing: border-box; width: 10px;">
-            <button type="button" 
-                    onclick="toggleMobilePassword('reset-pass-1', this, event)" 
-                    ontouchstart="toggleMobilePassword('reset-pass-1', this, event)" 
-                    style="width: 45px; height: 100%; background: none; border: none; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">👁️</button>
+        <div style="display: flex; align-items: center; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 44px; overflow: hidden;">
+            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; outline: none;">
+            <button type="button" onclick="togglePasswordSimple('reset-pass-1', this)" style="width: 50px; height: 100%; background: #f0f0f0; border: none; border-left: 1px solid #ccc; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center;">👁️</button>
         </div>
 
-        <div style="display: flex; align-items: center; margin-bottom: 25px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 44px; box-sizing: border-box;">
-            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; height: 100%; box-sizing: border-box; width: 10px;">
-            <button type="button" 
-                    onclick="toggleMobilePassword('reset-pass-2', this, event)" 
-                    ontouchstart="toggleMobilePassword('reset-pass-2', this, event)" 
-                    style="width: 45px; height: 100%; background: none; border: none; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">👁️</button>
+        <div style="display: flex; align-items: center; margin-bottom: 25px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 44px; overflow: hidden;">
+            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="flex: 1; border: none; background: transparent; padding: 10px 12px; font-size: 16px; outline: none;">
+            <button type="button" onclick="togglePasswordSimple('reset-pass-2', this)" style="width: 50px; height: 100%; background: #f0f0f0; border: none; border-left: 1px solid #ccc; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center;">👁️</button>
         </div>
         
         <button class="btn-primary" onclick="executeMobilePasswordUpdate()" style="width:100%; height: 44px; font-size: 16px;">Passwort speichern</button>
@@ -1924,27 +1918,21 @@ function showUpdatePasswordUI() {
     document.body.appendChild(resetContainer);
 }
 
-// Bombensichere Umschaltung mittels Flexbox-Trennung
-function toggleMobilePassword(inputId, btn, event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-
+// Ganz simple Umschaltfunktion ohne Event-Blocker
+function togglePasswordSimple(inputId, btnElement) {
     const inputField = document.getElementById(inputId);
     if (!inputField) return;
 
-    // Wechselt direkt den Typ des Feldes – durch das Flexbox-Layout zerschießt iOS das Feld nun nicht mehr!
     if (inputField.type === "password") {
         inputField.type = "text";
-        btn.innerText = "🙈";
+        btnElement.innerText = "🙈";
     } else {
         inputField.type = "password";
-        btn.innerText = "👁️";
+        btnElement.innerText = "👁️";
     }
 }
 
-// Wieder die einfache Auslese-Logik, da es nur noch ein Feld pro Passwort gibt
+// Die Standard-Speicherfunktion
 async function executeMobilePasswordUpdate() {
     const p1 = document.getElementById('reset-pass-1').value;
     const p2 = document.getElementById('reset-pass-2').value;
