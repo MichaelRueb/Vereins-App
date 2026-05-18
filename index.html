@@ -1892,59 +1892,57 @@ async function deleteWork(id) {
     }
 }
 
-  function showUpdatePasswordUI() {
+ function showUpdatePasswordUI() {
     document.getElementById('loading-ui').style.display = 'none';
     if(document.getElementById('auth-ui')) document.getElementById('auth-ui').style.display = 'none';
     
     const resetContainer = document.createElement('div');
     resetContainer.className = 'card';
-    resetContainer.style = 'max-width: 400px; margin: 50px auto; padding: 20px;';
+    resetContainer.style = 'max-width: 400px; margin: 50px auto; padding: 20px; box-sizing: border-box;';
     resetContainer.innerHTML = `
         <h2 style="color:var(--primary); margin-top:0;">Neues Passwort vergeben</h2>
         <p style="font-size:0.9em; color:#666; margin-bottom:20px;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
         
-        <div style="position: relative; margin-bottom: 10px; height: 40px;">
-            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; padding-right: 45px; box-sizing: border-box; height: 100%; position: absolute; left: 0; top: 0;">
-            <input type="text" id="reset-pass-1-text" placeholder="Neues Passwort" style="width:100%; padding-right: 45px; box-sizing: border-box; height: 100%; position: absolute; left: 0; top: 0; display: none;">
+        <div style="position: relative; margin-bottom: 15px; height: 44px;">
+            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; padding: 10px 45px 10px 12px; box-sizing: border-box; height: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; background: #fff;">
+            <input type="text" id="reset-pass-1-text" placeholder="Neues Passwort" style="width:100%; padding: 10px 45px 10px 12px; box-sizing: border-box; height: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; background: #fff; display: none;">
             
             <button type="button" 
                     onmousedown="toggleMobilePassword('1', event)" 
                     ontouchstart="toggleMobilePassword('1', event)" 
-                    style="position: absolute; right: 0; top: 0; width: 45px; height: 100%; background: none; border: none; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; z-index: 10; -webkit-tap-highlight-color: transparent;">👁️</button>
+                    style="position: absolute; right: 0; top: 0; width: 45px; height: 100%; background: none; border: none; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; z-index: 99; -webkit-tap-highlight-color: transparent;">👁️</button>
         </div>
 
-        <div style="position: relative; margin-bottom: 20px; height: 40px;">
-            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; padding-right: 45px; box-sizing: border-box; height: 100%; position: absolute; left: 0; top: 0;">
-            <input type="text" id="reset-pass-2-text" placeholder="Passwort bestätigen" style="width:100%; padding-right: 45px; box-sizing: border-box; height: 100%; position: absolute; left: 0; top: 0; display: none;">
+        <div style="position: relative; margin-bottom: 25px; height: 44px;">
+            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; padding: 10px 45px 10px 12px; box-sizing: border-box; height: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; background: #fff;">
+            <input type="text" id="reset-pass-2-text" placeholder="Passwort bestätigen" style="width:100%; padding: 10px 45px 10px 12px; box-sizing: border-box; height: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; background: #fff; display: none;">
             
             <button type="button" 
                     onmousedown="toggleMobilePassword('2', event)" 
                     ontouchstart="toggleMobilePassword('2', event)" 
-                    style="position: absolute; right: 0; top: 0; width: 45px; height: 100%; background: none; border: none; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; z-index: 10; -webkit-tap-highlight-color: transparent;">👁️</button>
+                    style="position: absolute; right: 0; top: 0; width: 45px; height: 100%; background: none; border: none; cursor: pointer; font-size: 1.3em; display: flex; align-items: center; justify-content: center; z-index: 99; -webkit-tap-highlight-color: transparent;">👁️</button>
         </div>
         
-        <button class="btn-primary" onclick="executeMobilePasswordUpdate()" style="width:100%;">Passwort speichern</button>
+        <button class="btn-primary" onclick="executeMobilePasswordUpdate()" style="width:100%; height: 44px; font-size: 16px;">Passwort speichern</button>
     `;
     document.body.appendChild(resetContainer);
 }
 
-// Neue, Smartphone-kompatible Umschalt-Logik
+// Smartphone-Umschalt-Logik (Ebenen-Fix)
 function toggleMobilePassword(fieldNum, event) {
     if (event) event.preventDefault(); // Verhindert Tastatur-Flackern
 
     const passField = document.getElementById(`reset-pass-${fieldNum}`);
     const textField = document.getElementById(`reset-pass-${fieldNum}-text`);
-    const btn = event.target;
+    const btn = event.currentTarget || event.target; // Holt sich sicher das Button-Element
 
     if (passField.style.display !== 'none') {
-        // Passwort in Textfeld übertragen und Textfeld anzeigen
         textField.value = passField.value;
         passField.style.display = 'none';
         textField.style.display = 'block';
         btn.innerText = "🙈";
         textField.focus();
     } else {
-        // Text in Passwortfeld übertragen und Passwortfeld anzeigen
         passField.value = textField.value;
         textField.style.display = 'none';
         passField.style.display = 'block';
