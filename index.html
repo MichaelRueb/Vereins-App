@@ -1904,13 +1904,19 @@ async function deleteWork(id) {
         <p style="font-size:0.9em; color:#666; margin-bottom:20px;">Sicherheit: Mind. 8 Zeichen sowie 3 von 4 (Groß, Klein, Zahl, Sonderzeichen).</p>
         
         <div style="position: relative; margin-bottom: 10px;">
-            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; padding-right: 40px; box-sizing: border-box;">
-            <button type="button" onclick="togglePasswordVisibility('reset-pass-1', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2em; padding: 0;">👁️</button>
+            <input type="password" id="reset-pass-1" placeholder="Neues Passwort" style="width:100%; padding-right: 45px; box-sizing: border-box; height: 40px;">
+            <button type="button" 
+                    onmousedown="togglePasswordVisibility('reset-pass-1', this, event)" 
+                    ontouchstart="togglePasswordVisibility('reset-pass-1', this, event)" 
+                    style="position: absolute; right: 0; top: 0; width: 45px; height: 100%; background: none; border: none; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">👁️</button>
         </div>
 
         <div style="position: relative; margin-bottom: 20px;">
-            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; padding-right: 40px; box-sizing: border-box;">
-            <button type="button" onclick="togglePasswordVisibility('reset-pass-2', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2em; padding: 0;">👁️</button>
+            <input type="password" id="reset-pass-2" placeholder="Passwort bestätigen" style="width:100%; padding-right: 45px; box-sizing: border-box; height: 40px;">
+            <button type="button" 
+                    onmousedown="togglePasswordVisibility('reset-pass-2', this, event)" 
+                    ontouchstart="togglePasswordVisibility('reset-pass-2', this, event)" 
+                    style="position: absolute; right: 0; top: 0; width: 45px; height: 100%; background: none; border: none; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;">👁️</button>
         </div>
         
         <button class="btn-primary" onclick="executePasswordUpdate()" style="width:100%;">Passwort speichern</button>
@@ -1918,17 +1924,21 @@ async function deleteWork(id) {
     document.body.appendChild(resetContainer);
 }
 
-// Diese Hilfsfunktion direkt darunter oder irgendwo im Skript einfügen:
-function togglePasswordVisibility(inputId, btnElement) {
+function togglePasswordVisibility(inputId, btnElement, event) {
+    // Verhindert, dass das Input-Feld den Fokus verliert oder die Tastatur auf dem Handy einklappt
+    if (event) {
+        event.preventDefault();
+    }
+
     const inputField = document.getElementById(inputId);
     if (!inputField) return;
 
     if (inputField.type === "password") {
         inputField.type = "text";
-        btnElement.innerText = "🙈"; // Wechselt zum Affen beim Anzeigen
+        btnElement.innerText = "🙈";
     } else {
         inputField.type = "password";
-        btnElement.innerText = "👁️"; // Zurück zum Auge beim Verstecken
+        btnElement.innerText = "👁️";
     }
 }
 
