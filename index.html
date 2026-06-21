@@ -271,6 +271,21 @@ td button.btn-del {
 /* Die Farben bleiben wie von dir definiert */
 .btn-edit { background: var(--accent) !important; }
 .btn-del { background: var(--danger) !important; }
+
+/* Spezifischer Fix für Datumsfelder */
+input[type="date"] {
+    -webkit-appearance: none; /* Wichtig für iOS, um das Standard-Layout zu entfernen */
+    min-height: 48px;         /* Besser für Touch-Bedienung */
+    line-height: normal;      /* Verhindert, dass der Text vertikal abgeschnitten wird */
+    display: block;
+}
+
+/* Fix, falls das Icon oder die Schrift unsichtbar ist */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(0.5); /* Macht das Icon deutlicher sichtbar */
+    opacity: 0.8;
+}
     
 </style>
 </head>
