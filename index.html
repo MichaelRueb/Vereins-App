@@ -286,6 +286,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(0.5); /* Macht das Icon deutlicher sichtbar */
     opacity: 0.8;
 }
+
+    .date-input {
+    display: block !important;
+    width: 100% !important;
+    min-height: 50px !important;
+    padding: 12px !important;
+    margin: 8px 0 !important;
+    font-size: 16px !important; /* Wichtig: Unter 16px zoomen manche Android-Browser beim Tippen */
+    background-color: #ffffff !important;
+    border: 1px solid #ccc !important;
+    color: #000000 !important; /* Erzwingt schwarze Schrift */
+    appearance: auto !important; /* Erlaubt Android, das Standard-Datum-Layout zu nutzen */
+    -webkit-appearance: auto !important;
+}
+
+/* Fallback: Wenn das Feld leer ist, erzwingen wir die Sichtbarkeit des Rahmens */
+.date-input:invalid {
+    color: #999;
+}
     
 </style>
 </head>
@@ -341,7 +360,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <div id="view-home">
             <h3>Deine Stunden</h3>
             <div class="progress-container"><div id="my-progress-bar" class="progress-bar"></div><div id="my-progress-label" class="progress-text">0 / 10 h</div></div>
-            <input type="date" id="date">
+            <input type="date" id="date" class="date-input">
             <input type="number" id="hours" step="0.5" placeholder="Stunden">
             <select id="work-category">
                 <option value="Standreinigung">Standreinigung</option>
