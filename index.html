@@ -800,19 +800,25 @@ function resetEventForm() {
    function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
+    
+    // NEU: Datum von heute ermitteln (Format YYYY-MM-DD)
+    const today = new Date().toISOString().split('T')[0];
+
     const filtered = allEvents.filter(e => {
+        // NEU: Termine, die vor heute liegen, werden komplett ignoriert
+        if (e.date < today) return false;
+
         if (filter === 'all_teams') return true;
         if (filter === 'Verein') return e.team === 'Verein';
         if (filter === 'only_sports') return e.team !== 'Verein';
         if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
         return e.team === filter;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    }).sort((a, b) => new Date(a.date) - new Date(b.date)); // Sortiert automatisch den nächsten Termin nach ganz oben
 
     let html = '';
     const sports = filtered.filter(e => e.team !== 'Verein');
     const club = filtered.filter(e => e.team === 'Verein');
 
-    // colspan auf 6 erhöht für die neue Spalte "Ort"
     if (sports.length > 0) {
         html += `<tr style="background:#f0f0f0;"><td colspan="6"><b>🎯 Wettkampftermine</b></td></tr>`;
         sports.forEach(e => html += renderEventRow(e));
@@ -824,7 +830,8 @@ function resetEventForm() {
     
     const listBody = document.getElementById('tournament-list-body');
     if (listBody) {
-        listBody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;">Keine Termine gefunden</td></tr>';
+        // NEU: Text angepasst, falls die Liste leer ist
+        listBody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;">Keine anstehenden Termine</td></tr>';
     }
 }
 
