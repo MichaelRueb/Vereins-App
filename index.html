@@ -501,7 +501,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             </table>
             <div style="margin-bottom: 20px; border: 1px dashed #ccc; padding: 10px;">
     <h4>Wettkampfplan importieren (.ics)</h4>
-    <input type="file" id="ics-upload" accept=".ics" onchange="handleICSUpload(event)">
+    <input type="file" id="ics-upload" accept=".ics" onchange="handleICSUpload(event)" style="margin-bottom: 15px;">
+    
+    <h4 style="margin-top: 10px;">Alte Wettkämpfe bereinigen</h4>
+    <button onclick="deleteOldTournaments()" style="background: var(--danger); width: auto; padding: 8px 15px;">🗑️ Alte Saison löschen</button>
 </div>
         </div>
         
@@ -2180,6 +2183,28 @@ async function importICSPlan(icsText) {
     const reader = new FileReader();
     reader.onload = (e) => importICSPlan(e.target.result);
     reader.readAsText(file);
+}
+
+    async function deleteOldTournaments() {
+    // Fragt nach einem Stichtag, standardmäßig der 1. August 2026 (Beginn der neuen Saison)
+    const cutoff = prompt("Alle Wettkämpfe VOR folgendem Datum werden gelöscht (Format: JJJJ-MM-TT):", "2026-08-01");
+    if (!cutoff) return; // Abbruch
+    
+    // Sicherheitsabfrage
+    if (!confirm(`Bist du sicher? Das löscht unwiderruflich ALLE Wettkämpfe vor dem ${cutoff}!`)) return;
+
+    try {
+        // Löscht alle Einträge in der Tabelle 'tournaments', deren Datum (date) kleiner (lt = less than) als das Stichtag-Datum ist
+        const { error } = await sb.from('tournaments').delete().lt('date', cutoff);
+        
+        if (error) throw error;
+        
+        alert(`Erfolgreich bereinigt! Alle Wettkämpfe vor dem ${cutoff} wurden gelöscht.`);
+        loadAllEvents(); // Aktualisiert die Ansichten sofort
+        
+    } catch (err) {
+        alert("Fehler beim Löschen: " + err.message);
+    }
 }
     
 </script>
