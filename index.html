@@ -354,6 +354,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
            <div id="tab-mileage" class="tab" onclick="switchTab('mileage')">Fahrten</div>
             <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
+             <div id="tab-gau" class="tab" style="display:none; background:var(--accent); color:white;" onclick="switchTab('gau')">Gau-Meldung</div>
         </div>
 
         <!-- STUNDEN VIEW -->
@@ -482,6 +483,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
+        <!-- GAU MELDUNG VIEW -->
+<div id="view-gau" style="display:none;">
+    <div class="card" style="background:#fff3e0; border: 2px solid var(--accent);">
+        <h3 style="margin-top:0; color:var(--accent);">🎯 Meldung Gaumeisterschaft</h3>
+        <p style="font-size:14px; margin-bottom:15px;">Die Meldung ist aktuell geöffnet. Bitte wähle alle Disziplinen aus, in denen du antreten möchtest:</p>
+        <div id="discipline-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom: 20px;"></div>
+        <button onclick="saveGauMeldung()" style="background:var(--accent);">Meldung speichern</button>
+    </div>
+</div>
+       
+
         <!-- ADMIN VIEW -->
         <div id="view-admin" style="display:none;">
             <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32;">
@@ -505,6 +517,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     
     <h4 style="margin-top: 10px;">Alte Wettkämpfe bereinigen</h4>
     <button onclick="deleteOldTournaments()" style="background: var(--danger); width: auto; padding: 8px 15px;">🗑️ Alte Saison löschen</button>
+</div>
+            <div style="margin-top:30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+    <h4 style="margin-top:0;">⚙️ Meldung für Schützen freischalten</h4>
+    <label class="checkbox-wrapper" style="font-size: 15px; font-weight: bold; margin-bottom:15px;">
+        <input type="checkbox" id="admin-toggle-reg" onchange="updateRegStatus(this.checked)" style="width: 20px; height: 20px;"> 
+        Reiter "Gau-Meldung" für alle einblenden
+    </label>
+    <hr>
+    <h4 style="margin-top:15px;">📋 Übersicht Meisterschaftsmeldungen</h4>
+    <table style="width:100%; border-collapse: collapse;">
+        <thead><tr style="background:#eee; text-align:left;"><th style="padding:8px;">Schütze</th><th style="padding:8px;">Gemeldete Disziplinen</th></tr></thead>
+        <tbody id="admin-championship-list"></tbody>
+    </table>
 </div>
         </div>
         
@@ -536,7 +561,12 @@ try {
 
 const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
 const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr Auflage", "Luftpistole 1", "Luftpistole 2", "Sportpistole", "Großkaliber", "Passiv / Sonstige"];
-
+let isRegOpen = false; 
+const ALL_DISCIPLINES = [
+    "1.10 Luftgewehr", "1.11 Luftgewehr Auflage", "1.36 KK 100m Auflage",
+    "1.56 DSB KK-Unterhebelgewehr", "2.10 Luftpistole", "2.40 25 M Pistole", 
+    "2.53 25 M Pistole 9x19", "2.59 25 M Pistole 45"
+];
 let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
 let all = [];
 let currentWorkEditId = null;
@@ -629,6 +659,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (p) {
         userTeam = p.team || ""; 
+        const { data: setData } = await sb.from('settings').select('is_reg_open').eq('id', 1).maybeSingle();
+        isRegOpen = setData ? setData.is_reg_open : false;
+        
+        const tabGau = document.getElementById('tab-gau');
+        if (tabGau) tabGau.style.display = isRegOpen ? 'block' : 'none';
+        
+        renderDisciplineCheckboxes(p.disciplines || "");
         isCaptain = p.is_captain || false; 
         isOfficial = p.is_official || false;
         
@@ -895,7 +932,7 @@ async function deleteEvent(id) {
 
    function switchTab(t) { 
     // Hier stehen die Namen deiner Tabs/Views
-    ['home', 'events', 'profile', 'admin', 'mileage'].forEach(v => { 
+    ['home', 'events', 'profile', 'admin', 'mileage', 'gau'].forEach(v => { 
         const view = document.getElementById('view-' + v);
         const tab = document.getElementById('tab-' + v);
         
@@ -1381,6 +1418,19 @@ async function loadAdmin() {
             </tr>
             <tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:15px;"></td></tr>`;
         }).join('');
+    }
+    const regToggle = document.getElementById('admin-toggle-reg');
+    if (regToggle) regToggle.checked = isRegOpen;
+
+    const championshipList = document.getElementById('admin-championship-list');
+    if (championshipList) {
+        const meldungen = profilesData.filter(p => p.disciplines && p.disciplines.trim() !== "");
+        championshipList.innerHTML = meldungen.map(p => `
+            <tr>
+                <td><strong>${p.full_name}</strong></td>
+                <td style="font-size:13px;">${p.disciplines.split(',').map(d => `• ${d.trim()}`).join('<br>')}</td>
+            </tr>
+        `).join('') || "<tr><td colspan='2' style='text-align:center;'>Noch keine Meldungen</td></tr>";
     }
 }
 
@@ -2212,6 +2262,33 @@ async function importICSPlan(icsText) {
     } catch (err) {
         alert("Fehler beim Löschen: " + err.message);
     }
+}
+    async function saveGauMeldung() { 
+    const disciplines = Array.from(document.querySelectorAll('input[name="prof-disciplines"]:checked')).map(c=>c.value).join(', '); 
+    const { error } = await sb.from('profiles').update({ disciplines: disciplines }).eq('id', currentUser.id); 
+    if (error) alert("Fehler beim Speichern: " + error.message);
+    else alert("Deine Meldung zur Gaumeisterschaft wurde gespeichert!"); 
+}
+
+async function updateRegStatus(isOpen) {
+    const { error } = await sb.from('settings').upsert({ id: 1, is_reg_open: isOpen });
+    if (error) {
+        alert("Fehler beim Umschalten: " + error.message);
+        document.getElementById('admin-toggle-reg').checked = !isOpen; 
+    } else {
+        isRegOpen = isOpen;
+        const tabGau = document.getElementById('tab-gau');
+        if (tabGau) tabGau.style.display = isOpen ? 'block' : 'none';
+        if (!isOpen && document.getElementById('view-gau').style.display === 'block') switchTab('home');
+        alert(isOpen ? "Der Reiter 'Gau-Meldung' ist nun für alle sichtbar!" : "Die Meldung wurde geschlossen. Der Reiter ist verschwunden.");
+    }
+}
+
+function renderDisciplineCheckboxes(sel) { 
+    const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
+    document.getElementById('discipline-checkboxes').innerHTML = ALL_DISCIPLINES.map(d => 
+        `<label class="checkbox-wrapper"><input type="checkbox" name="prof-disciplines" value="${d}" ${arr.includes(d) ? 'checked' : ''}><span style="font-size:13px;">${d}</span></label>`
+    ).join(''); 
 }
     
 </script>
