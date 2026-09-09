@@ -531,6 +531,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <tbody id="admin-championship-list"></tbody>
     </table>
 </div>
+            <div style="margin-top: 15px;">
+        <button onclick="clearAllGauMelungen()" style="background: var(--danger); width: auto; padding: 8px 15px;">🗑️ Alle Meisterschaftsmeldungen zurücksetzen</button>
+    </div>
         </div>
         
     </div> <!-- ENDE MAIN-APP -->
@@ -2365,6 +2368,22 @@ function renderDisciplineCheckboxes(sel) {
     document.getElementById('discipline-checkboxes').innerHTML = ALL_DISCIPLINES.map(d => 
         `<label class="checkbox-wrapper"><input type="checkbox" name="prof-disciplines" value="${d}" ${arr.includes(d) ? 'checked' : ''}><span style="font-size:13px;">${d}</span></label>`
     ).join(''); 
+}
+    async function clearAllGauMelungen() {
+    if (!confirm("Möchtest du wirklich ALLE Meisterschaftsmeldungen aller Schützen zurücksetzen? Dies kann nicht rückgängig gemacht werden!")) return;
+
+    try {
+        // Setzt das 'disciplines'-Feld in der Tabelle 'profiles' für alle User auf NULL/leer
+        const { error } = await sb.from('profiles').update({ disciplines: null }).not('disciplines', 'is', null);
+        
+        if (error) throw error;
+        
+        alert("Alle Meisterschaftsmeldungen wurden erfolgreich zurückgesetzt.");
+        loadAdmin(); // Admin-Ansicht sofort aktualisieren
+        
+    } catch (err) {
+        alert("Fehler beim Zurücksetzen: " + err.message);
+    }
 }
     
 </script>
