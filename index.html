@@ -483,11 +483,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
-        <!-- GAU MELDUNG VIEW -->
+       <!-- GAU MELDUNG VIEW -->
 <div id="view-gau" style="display:none;">
     <div class="card" style="background:#fff3e0; border: 2px solid var(--accent);">
         <h3 style="margin-top:0; color:var(--accent);">🎯 Meldung Gaumeisterschaft</h3>
-        <p style="font-size:14px; margin-bottom:15px;">Die Meldung ist aktuell geöffnet. Bitte wähle alle Disziplinen aus, in denen du antreten möchtest:</p>
+        
+        <!-- NEU: Admin/Funktionär Schützen-Auswahl -->
+        <div id="gau-admin-selector-container" style="display:none; margin-bottom: 15px; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #ccc;">
+            <label for="gau-member-select" style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">👤 Schütze auswählen (Funktionärs-Modus):</label>
+            <select id="gau-member-select" onchange="onGauMemberChange()" style="margin: 0;"></select>
+        </div>
+
+        <p style="font-size:14px; margin-bottom:15px;">Die Meldung ist aktuell geöffnet. Bitte wähle alle Disziplinen aus, in denen angetreten werden soll:</p>
         <div id="discipline-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom: 20px;"></div>
         <button onclick="saveGauMeldung()" style="background:var(--accent);">Meldung speichern</button>
     </div>
@@ -1025,6 +1032,10 @@ async function deleteEvent(id) {
     // Spezial-Aktionen beim Wechsel
     if(t === 'admin') {
         loadAdmin(); 
+    }
+
+       if (t === 'gau') {
+        initGauTab();
     }
     
     if(t === 'mileage') {
@@ -2344,9 +2355,22 @@ async function importICSPlan(icsText) {
 }
     async function saveGauMeldung() { 
     const disciplines = Array.from(document.querySelectorAll('input[name="prof-disciplines"]:checked')).map(c=>c.value).join(', '); 
-    const { error } = await sb.from('profiles').update({ disciplines: disciplines }).eq('id', currentUser.id); 
-    if (error) alert("Fehler beim Speichern: " + error.message);
-    else alert("Deine Meldung zur Gaumeisterschaft wurde gespeichert!"); 
+    const userIdToSave = targetGauUserId || currentUser.id;
+
+    const { error } = await sb.from('profiles').update({ disciplines: disciplines }).eq('id', userIdToSave); 
+    
+    if (error) {
+        alert("Fehler beim Speichern: " + error.message);
+    } else {
+        // Cache lokal aktualisieren, falls als Admin für andere gespeichert wurde
+        if (window.gauProfilesCache) {
+            const p = window.gauProfilesCache.find(x => x.id === userIdToSave);
+            if (p) p.disciplines = disciplines;
+        }
+        
+        const isSelf = userIdToSave === currentUser.id;
+        alert(isSelf ? "Deine Meldung zur Gaumeisterschaft wurde gespeichert!" : "Meldung für das ausgewählte Mitglied erfolgreich gespeichert!"); 
+    }
 }
 
 async function updateRegStatus(isOpen) {
@@ -2384,6 +2408,39 @@ function renderDisciplineCheckboxes(sel) {
     } catch (err) {
         alert("Fehler beim Zurücksetzen: " + err.message);
     }
+}
+
+    let targetGauUserId = null; // Speichert, für welchen User gerade gemeldet wird
+
+async function initGauTab() {
+    const selectorContainer = document.getElementById('gau-admin-selector-container');
+    if (!selectorContainer) return;
+
+    // Prüfen, ob der User Admin oder Funktionär ist
+    if (isAdmin || isOfficial) {
+        selectorContainer.style.display = 'block';
+        const { data: profiles } = await sb.from('profiles').select('*').eq('is_approved', true).order('full_name');
+        if (profiles) {
+            window.gauProfilesCache = profiles;
+            const sel = document.getElementById('gau-member-select');
+            sel.innerHTML = profiles.map(p => `<option value="${p.id}" ${p.id === currentUser.id ? 'selected' : ''}>${p.full_name || 'Unbekannt'}</option>`).join('');
+        }
+        targetGauUserId = currentUser.id;
+        const currentProfile = window.gauProfilesCache?.find(p => p.id === currentUser.id);
+        renderDisciplineCheckboxes(currentProfile?.disciplines || "");
+    } else {
+        selectorContainer.style.display = 'none';
+        targetGauUserId = currentUser.id;
+        const { data: p } = await sb.from('profiles').select('disciplines').eq('id', currentUser.id).maybeSingle();
+        renderDisciplineCheckboxes(p?.disciplines || "");
+    }
+}
+
+function onGauMemberChange() {
+    const selVal = document.getElementById('gau-member-select').value;
+    targetGauUserId = selVal;
+    const profile = window.gauProfilesCache?.find(p => p.id === selVal);
+    renderDisciplineCheckboxes(profile?.disciplines || "");
 }
     
 </script>
