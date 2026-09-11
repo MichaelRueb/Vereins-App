@@ -2599,10 +2599,20 @@ function onGauMemberChange() {
     totalContainer.innerText = totalFee.toFixed(2).replace('.', ',') + " €";
 }
 
-    async function toggleGauReported(userId, isReported) {
+   async function toggleGauReported(userId, isReported) {
+    let reporterName = "Funktionär";
+
+    if (isReported) {
+        // Hol den echten Namen des aktuell eingeloggten Users aus der Tabelle 'profiles'
+        const { data: myProfile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).maybeSingle();
+        if (myProfile && myProfile.full_name) {
+            reporterName = myProfile.full_name;
+        }
+    }
+
     const payload = isReported ? {
         gau_reported_at: new Date().toISOString(),
-        gau_reported_by: currentUser.email === ADMIN_EMAIL ? "Admin" : (document.getElementById('prof-name')?.value || "Funktionär")
+        gau_reported_by: reporterName
     } : {
         gau_reported_at: null,
         gau_reported_by: null
