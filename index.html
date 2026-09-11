@@ -476,6 +476,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <div id="team-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:15px; border:1px solid #ddd; border-radius:8px;"></div>
             <button onclick="updateProfile()" style="margin-top:15px;">Speichern</button>
             <hr>
+            <!-- NEUES INFO-FENSTER IM PROFIL -->
+    <div style="margin-top: 25px; padding: 15px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
+        <h4 style="margin-top: 0; color: var(--blue);">🎯 Meine Meldung zur Gaumeisterschaft</h4>
+        <div id="profile-my-disciplines-list" style="font-size: 14px; margin-bottom: 10px;">
+            Lade Meldungen...
+        </div>
+        <div style="font-weight: bold; font-size: 15px; color: var(--blue); border-top: 1px solid #90caf9; padding-top: 8px; display: flex; justify-content: space-between;">
+            <span>Gesamtstartgeld:</span>
+            <span id="profile-my-total-fee">0,00 €</span>
+        </div>
+    </div>
+             <hr>
             <h4>Passwort ändern</h4>
             <input type="password" id="new-pass" placeholder="Neues Passwort">
             <input type="password" id="new-pass-confirm" placeholder="Bestätigen">
@@ -784,6 +796,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         isOfficial = p.is_official || false;
         
         document.getElementById('prof-name').value = p.full_name || "";
+        updateProfileDisciplineOverview(p.disciplines || "");
         
         // --- SICHTBARKEIT DER TABS (ADMIN & FAHRTEN) ---
         const tabAdmin = document.getElementById('tab-admin');
@@ -2461,6 +2474,10 @@ async function executeGauSave() {
         
         const isSelf = userIdToSave === currentUser.id;
         alert(isSelf ? "Deine Meldung zur Gaumeisterschaft wurde erfolgreich gespeichert!" : "Meldung für das ausgewählte Mitglied erfolgreich gespeichert!"); 
+   // Falls der User gerade sein eigenes Profil updatet, direkt die Ansicht im Profil aktualisieren
+        if (userIdToSave === currentUser.id) {
+            updateProfileDisciplineOverview(disciplines);
+        }
     }
 }
 
@@ -2537,7 +2554,32 @@ function onGauMemberChange() {
     const profile = window.gauProfilesCache?.find(p => p.id === selVal);
     renderDisciplineCheckboxes(profile?.disciplines || "");
 }
-    
+
+    function updateProfileDisciplineOverview(disciplinesStr) {
+    const container = document.getElementById('profile-my-disciplines-list');
+    const totalContainer = document.getElementById('profile-my-total-fee');
+    if (!container || !totalContainer) return;
+
+    if (!disciplinesStr || disciplinesStr.trim() === "") {
+        container.innerHTML = "<span style='color: #666; font-style: italic;'>Bisher keine Disziplinen gemeldet.</span>";
+        totalContainer.innerText = "0,00 €";
+        return;
+    }
+
+    const userDiscs = disciplinesStr.split(',').map(d => d.trim());
+    let totalFee = 0;
+
+    const html = "<ul style='margin: 0; padding-left: 15px;'>" + userDiscs.map(discName => {
+        const foundObj = ALL_DISCIPLINES.find(d => d.name === discName);
+        const fee = foundObj ? foundObj.fee : 0;
+        totalFee += fee;
+        const feeStr = fee > 0 ? `<b>${fee.toFixed(2).replace('.', ',')} €</b>` : "<span style='color:green;'>kostenlos</span>";
+        return `<li style="margin-bottom: 4px;">${discName} <span style="float: right;">${feeStr}</span></li>`;
+    }).join('') + "</ul>";
+
+    container.innerHTML = html;
+    totalContainer.innerText = totalFee.toFixed(2).replace('.', ',') + " €";
+}
 </script>
     
 </body>
