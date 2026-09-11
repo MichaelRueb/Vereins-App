@@ -496,8 +496,30 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
         <p style="font-size:14px; margin-bottom:15px;">Die Meldung ist aktuell geöffnet. Bitte wähle alle Disziplinen aus, in denen angetreten werden soll:</p>
         <div id="discipline-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom: 20px;"></div>
-        <button onclick="saveGauMeldung()" style="background:var(--accent);">Meldung speichern</button>
+        
+<button onclick="openGauConfirmation()" style="background:var(--accent);">Meldung prüfen & speichern</button>
     </div>
+    <!-- BESTÄTIGUNGS-MODAL FÜR GAU-MELDUNG -->
+<div id="gau-confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:450px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+        <h3 style="margin-top:0; color:var(--accent);">📋 Zusammenfassung der Meldung</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:10px;" id="gau-modal-subtitle">Bitte überprüfe deine Auswahl:</p>
+        
+        <div id="gau-modal-list" style="background:#f9f9f9; padding:12px; border-radius:8px; max-height:200px; overflow-y:auto; font-size:13px; margin-bottom:15px; border:1px solid #eee;">
+            <!-- Hier fliegen dynamisch die Disziplinen rein -->
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:16px; margin-bottom:20px; padding: 10px; background:#e8f5e9; border-radius:8px; color:var(--primary-dark);">
+            <span>Gesamtbetrag (Startgeld):</span>
+            <span id="gau-modal-total">0,00 €</span>
+        </div>
+        
+        <div style="display:flex; gap:10px;">
+            <button onclick="executeGauSave()" style="background:var(--primary); flex:2; margin:0;">Jetzt verbindlich speichern</button>
+            <button onclick="closeGauModal()" style="background:#777; flex:1; margin:0;">Zurück</button>
+        </div>
+    </div>
+</div>
 </div>
        
 
@@ -2375,7 +2397,55 @@ async function importICSPlan(icsText) {
         alert("Fehler beim Löschen: " + err.message);
     }
 }
-    async function saveGauMeldung() { 
+    // 1. Öffnet das Vorschau-Fenster und berechnet die Summe
+function openGauConfirmation() {
+    const checkedBoxes = Array.from(document.querySelectorAll('input[name="prof-disciplines"]:checked'));
+    
+    if (checkedBoxes.length === 0) {
+        if (!confirm("Du hast keine Disziplin ausgewählt. Möchtest du alle Meldungen für diese Person löschen?")) return;
+    }
+
+    let totalSum = 0;
+    let listHtml = "";
+
+    if (checkedBoxes.length > 0) {
+        listHtml = "<ul style='margin:0; padding-left:15px;'>" + checkedBoxes.map(cb => {
+            const discName = cb.value;
+            // Finde den Preis aus der ALL_DISCIPLINES Liste
+            const foundObj = ALL_DISCIPLINES.find(d => d.name === discName);
+            const fee = foundObj ? foundObj.fee : 0;
+            totalSum += fee;
+            const feeStr = fee > 0 ? `<b>${fee.toFixed(2).replace('.', ',')} €</b>` : "<span style='color:green;'>kostenlos</span>";
+            return `<li style="margin-bottom:6px;">${discName} <span style="float:right;">${feeStr}</span></li>`;
+        }).join('') + "</ul>";
+    } else {
+        listHtml = "<i>Keine Disziplinen ausgewählt (Meldung wird geleert).</i>";
+    }
+
+    // Name des Schützen ermitteln (falls im Admin/Funktionärs-Modus)
+    let memberName = "dir";
+    const memberSelect = document.getElementById('gau-member-select');
+    if (memberSelect && memberSelect.style.display !== 'none' && window.gauProfilesCache) {
+        const selectedProfile = window.gauProfilesCache.find(p => p.id === targetGauUserId);
+        if (selectedProfile) memberName = selectedProfile.full_name;
+    }
+
+    document.getElementById('gau-modal-subtitle').innerText = `Meldung für: ${memberName}`;
+    document.getElementById('gau-modal-list').innerHTML = listHtml;
+    document.getElementById('gau-modal-total').innerText = totalSum.toFixed(2).replace('.', ',') + " €";
+    
+    // Modal anzeigen
+    document.getElementById('gau-confirm-modal').style.display = 'flex';
+}
+
+// 2. Schließt das Vorschau-Fenster wieder ohne zu speichern
+function closeGauModal() {
+    document.getElementById('gau-confirm-modal').style.display = 'none';
+}
+
+// 3. Führt das eigentliche Speichern in der Datenbank aus (wird aus dem Modal aufgerufen)
+async function executeGauSave() { 
+    closeGauModal();
     const disciplines = Array.from(document.querySelectorAll('input[name="prof-disciplines"]:checked')).map(c=>c.value).join(', '); 
     const userIdToSave = targetGauUserId || currentUser.id;
 
@@ -2384,14 +2454,13 @@ async function importICSPlan(icsText) {
     if (error) {
         alert("Fehler beim Speichern: " + error.message);
     } else {
-        // Cache lokal aktualisieren, falls als Admin für andere gespeichert wurde
         if (window.gauProfilesCache) {
             const p = window.gauProfilesCache.find(x => x.id === userIdToSave);
             if (p) p.disciplines = disciplines;
         }
         
         const isSelf = userIdToSave === currentUser.id;
-        alert(isSelf ? "Deine Meldung zur Gaumeisterschaft wurde gespeichert!" : "Meldung für das ausgewählte Mitglied erfolgreich gespeichert!"); 
+        alert(isSelf ? "Deine Meldung zur Gaumeisterschaft wurde erfolgreich gespeichert!" : "Meldung für das ausgewählte Mitglied erfolgreich gespeichert!"); 
     }
 }
 
