@@ -567,12 +567,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     </label>
     <hr>
     <h4 style="margin-top:15px;">📋 Übersicht Meisterschaftsmeldungen</h4>
-   <table style="width:100%; border-collapse: collapse;">
+<table style="width:100%; border-collapse: collapse;">
         <thead>
             <tr style="background:#eee; text-align:left;">
                 <th style="padding:8px;">Schütze</th>
                 <th style="padding:8px;">Gemeldete Disziplinen</th>
-                <th style="padding:8px; width:100px;">Gesamtgebühr</th>
+                <th style="padding:8px; width:90px;">Gesamt</th>
+                <th style="padding:8px; width:180px;">Gau-Melde-Status</th>
             </tr>
         </thead>
         <tbody id="admin-championship-list"></tbody>
@@ -1559,8 +1560,6 @@ async function loadAdmin() {
         
         championshipList.innerHTML = meldungen.map(p => {
             const userDiscs = p.disciplines.split(',').map(d => d.trim());
-            
-            // Berechne die Gesamtsumme für diesen Schützen anhand der Liste
             let totalFee = 0;
             const discDetailsHtml = userDiscs.map(discName => {
                 const foundObj = ALL_DISCIPLINES.find(d => d.name === discName);
@@ -1570,16 +1569,35 @@ async function loadAdmin() {
                 return `• ${discName}${feeStr}`;
             }).join('<br>');
 
+            // Status-Anzeige (Ob schon gemeldet wurde)
+            let statusHtml = '';
+            if (p.gau_reported_at) {
+                const formattedDate = new Date(p.gau_reported_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+                statusHtml = `
+                    <div style="margin-top:6px; font-size:11px; color:#2e7d32; background:#e8f5e9; padding:4px 8px; border-radius:4px; display:inline-block;">
+                        ✅ Gemeldet von <strong>${p.gau_reported_by || 'Unbekannt'}</strong> am ${formattedDate}
+                        <br><a href="#" onclick="toggleGauReported('${p.id}', false); return false;" style="color:#d32f2f; text-decoration:underline;">Zurücksetzen</a>
+                    </div>
+                `;
+            } else {
+                statusHtml = `
+                    <div style="margin-top:6px;">
+                        <button onclick="toggleGauReported('${p.id}', true)" style="background:var(--primary); width:auto; padding:5px 10px; font-size:12px; margin:0;">🚀 Als 'Gau gemeldet' markieren</button>
+                    </div>
+                `;
+            }
+
             return `
                 <tr>
                     <td><strong>${p.full_name}</strong></td>
                     <td style="font-size:13px; padding: 10px 8px;">${discDetailsHtml}</td>
                     <td style="font-size:13px; font-weight:bold; color:var(--primary); vertical-align:top; padding: 10px 8px;">${totalFee.toFixed(2).replace('.', ',')} €</td>
+                    <td style="vertical-align:top; padding: 10px 8px;">${statusHtml}</td>
                 </tr>
             `;
-        }).join('') || "<tr><td colspan='3' style='text-align:center;'>Noch keine Meldungen</td></tr>";
+        }).join('') || "<tr><td colspan='4' style='text-align:center;'>Noch keine Meldungen</td></tr>";
     }
-}
+     }
 
    async function viewUserDetail(uid) {
     const row = document.getElementById(`details-${uid}`);
@@ -2580,6 +2598,25 @@ function onGauMemberChange() {
     container.innerHTML = html;
     totalContainer.innerText = totalFee.toFixed(2).replace('.', ',') + " €";
 }
+
+    async function toggleGauReported(userId, isReported) {
+    const payload = isReported ? {
+        gau_reported_at: new Date().toISOString(),
+        gau_reported_by: currentUser.email === ADMIN_EMAIL ? "Admin" : (document.getElementById('prof-name')?.value || "Funktionär")
+    } : {
+        gau_reported_at: null,
+        gau_reported_by: null
+    };
+
+    const { error } = await sb.from('profiles').update(payload).eq('id', userId);
+
+    if (error) {
+        alert("Fehler beim Aktualisieren: " + error.message);
+    } else {
+        loadAdmin(); // Admin-Ansicht sofort neu laden
+    }
+}
+    
 </script>
     
 </body>
