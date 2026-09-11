@@ -533,8 +533,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     </label>
     <hr>
     <h4 style="margin-top:15px;">📋 Übersicht Meisterschaftsmeldungen</h4>
-    <table style="width:100%; border-collapse: collapse;">
-        <thead><tr style="background:#eee; text-align:left;"><th style="padding:8px;">Schütze</th><th style="padding:8px;">Gemeldete Disziplinen</th></tr></thead>
+   <table style="width:100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background:#eee; text-align:left;">
+                <th style="padding:8px;">Schütze</th>
+                <th style="padding:8px;">Gemeldete Disziplinen</th>
+                <th style="padding:8px; width:100px;">Gesamtgebühr</th>
+            </tr>
+        </thead>
         <tbody id="admin-championship-list"></tbody>
     </table>
 </div>
@@ -574,84 +580,84 @@ const ALL_TEAMS = ["Luftgewehr 1", "Luftgewehr 2", "Luftgewehr 3", "Luftgewehr A
 let isRegOpen = false; 
 const ALL_DISCIPLINES = [
     // Langwaffe
-    "1.10 Luftgewehr",
-    "1.11 Luftgewehr Auflage",
-    "1.12 Luftgewehr 10m Mix Team",
-    "1.18 LG Liegend",
-    "1.20 LG 3-Stellung",
-    "1.30 Zimmerstutzen",
-    "1.31 Zimmerstutzen-Auflage",
-    "1.35 KK - 100 m",
-    "1.36 KK 100m Auflage",
-    "1.40 KK - 3x20",
-    "1.41 KK - Gewehr Auflage",
-    "1.42 KK - 50 Meter",
-    "1.50 Standardgewehr 300 M",
-    "1.56 DSB KK-Unterhebelgewehr",
-    "1.58G Ordonnanzgewehr DSB G",
-    "1.58O Ordonnanzgewehr DSB O",
-    "1.60 KK - 3x40",
-    "1.70 GK - Freigewehr 120",
-    "1.80 KK - Liegendkampf",
-    "1.81 KK-Liegendkampf (Para)",
-    "1.90 Liegendkampf 300 M",
-    "11.10 Lichtgewehr Freihand",
-    "11.11 Faszination Lichtgewehr",
-    "11.12 Lichtgewehr Auflage",
-    "11.20 Lichtgewehr 3-Stellung",
-    "B.08 Zielfernrohrgewehr 50m",
-    "B.09 Zielfernrohrgewehr 100m",
-    "B.10 Wehrmanngewehr",
-    "B.11 Ordonnanzgewehr BSSB",
-    "B.12 Unterhebelgewehr A",
-    "B.13 Unterhebelgewehr B",
-    "B.14 Unterhebelgewehr C",
-    "B.15 KK Mehrlader",
-    "B.16 Feuerstutzen",
-    "B.17 Zimmerstutzen traditionell",
-    "F.01 Fernwettkampf LG",
-    "F.03 Fernwettkampf-Auflage LG",
-    "F.05 Fernwettkampf Bogen",
-    "G11.12 Lichtgewehr Auflage",
-    "S.01 SeniorenpokalschießenG",
+    { name: "1.10 Luftgewehr", fee: 9.00 },
+    { name: "1.11 Luftgewehr Auflage", fee: 9.00 },
+    { name: "1.12 Luftgewehr 10m Mix Team", fee: 9.00 },
+    { name: "1.18 LG Liegend", fee: 9.00 },
+    { name: "1.20 LG 3-Stellung", fee: 9.00 },
+    { name: "1.30 Zimmerstutzen", fee: 9.00 },
+    { name: "1.31 Zimmerstutzen-Auflage", fee: 4.00 },
+    { name: "1.35 KK - 100 m", fee: 9.00 },
+    { name: "1.36 KK 100m Auflage", fee: 9.00 },
+    { name: "1.40 KK - 3x20", fee: 9.00 },
+    { name: "1.41 KK - Gewehr Auflage", fee: 9.00 },
+    { name: "1.42 KK - 50 Meter", fee: 9.00 },
+    { name: "1.50 Standardgewehr 300 M", fee: 9.00 },
+    { name: "1.56 DSB KK-Unterhebelgewehr", fee: 13.00 },
+    { name: "1.58G Ordonnanzgewehr DSB G", fee: 13.00 },
+    { name: "1.58O Ordonnanzgewehr DSB O", fee: 13.00 },
+    { name: "1.60 KK - 3x40", fee: 9.00 },
+    { name: "1.70 GK - Freigewehr 120", fee: 9.00 },
+    { name: "1.80 KK - Liegendkampf", fee: 9.00 },
+    { name: "1.81 KK-Liegendkampf (Para)", fee: 9.00 },
+    { name: "1.90 Liegendkampf 300 M", fee: 9.00 },
+    { name: "11.10 Lichtgewehr Freihand", fee: 0.00 },
+    { name: "11.11 Faszination Lichtgewehr", fee: 0.00 },
+    { name: "11.12 Lichtgewehr Auflage", fee: 0.00 },
+    { name: "11.20 Lichtgewehr 3-Stellung", fee: 0.00 },
+    { name: "B.08 Zielfernrohrgewehr 50m", fee: 9.00 },
+    { name: "B.09 Zielfernrohrgewehr 100m", fee: 9.00 },
+    { name: "B.10 Wehrmanngewehr", fee: 4.00 },
+    { name: "B.11 Ordonnanzgewehr BSSB", fee: 4.00 },
+    { name: "B.12 Unterhebelgewehr A", fee: 13.00 },
+    { name: "B.13 Unterhebelgewehr B", fee: 13.00 },
+    { name: "B.14 Unterhebelgewehr C", fee: 13.00 },
+    { name: "B.15 KK Mehrlader", fee: 11.00 },
+    { name: "B.16 Feuerstutzen", fee: 9.00 },
+    { name: "B.17 Zimmerstutzen traditionell", fee: 9.00 },
+    { name: "F.01 Fernwettkampf LG", fee: 9.00 },
+    { name: "F.03 Fernwettkampf-Auflage LG", fee: 9.00 },
+    { name: "F.05 Fernwettkampf Bogen", fee: 9.00 },
+    { name: "G11.12 Lichtgewehr Auflage", fee: 0.00 },
+    { name: "S.01 SeniorenpokalschießenG", fee: 9.00 },
 
     // Kurzwaffe
-    "11.50 Lichtpistole Freihand",
-    "11.51 Faszination Lichtpistole",
-    "11.52 Lichtpistole Auflage",
-    "2.10 Luftpistole",
-    "2.11 Luftpistole Auflage",
-    "2.12 Luftpistole 10m Mix Team",
-    "2.17 Luftpistole Mehrkampf",
-    "2.18 Luftpistole Standard",
-    "2.20 50 M Pistole",
-    "2.21 Freie Pistole Auflage",
-    "2.30 25 M Schnellfeuerpistole",
-    "2.31 25 M Schnellfeuerp Jug",
-    "2.40 25 M Pistole",
-    "2.42 Sportpistole Auflage",
-    "2.45 25 M Zentralfeuerpistole",
-    "2.51 GK Pi .30",
-    "2.52 GK Pi .32",
-    "2.53 25 M Pistole 9x19",
-    "2.54 GK R .38",
-    "2.55 25 M Revolver 357",
-    "2.58 25 M Revolver 44",
-    "2.59 25 M Pistole 45",
-    "2.60 25 M Standardpistole",
-    "B.21 BSSB GK-Kombi",
-    "B.24 Ordonnanzpistole /-revolver",
-    "B.25 Großkalibersportpistole",
-    "B.26 Alte Scheibenpistole",
-    "B.27 BSSB KK-Klappscheibe",
-    "B.28 BSSB GK-Klappscheibe",
-    "B.29 BSSB Sportrevolver Kleinkaliber",
-    "B.30 BSSB Schnellfeuerpistole",
-    "F.02 Fernwettkampf LP",
-    "F.04 Fernwettkampf-Auflage LP",
-    "G.16 Luftpistole 5-schuessig",
-    "G11.52 Lichtpistole Auflage",
-    "S.02 SeniorenpokalschießenP"
+    { name: "11.50 Lichtpistole Freihand", fee: 0.00 },
+    { name: "11.51 Faszination Lichtpistole", fee: 0.00 },
+    { name: "11.52 Lichtpistole Auflage", fee: 0.00 },
+    { name: "2.10 Luftpistole", fee: 9.00 },
+    { name: "2.11 Luftpistole Auflage", fee: 9.00 },
+    { name: "2.12 Luftpistole 10m Mix Team", fee: 9.00 },
+    { name: "2.17 Luftpistole Mehrkampf", fee: 9.00 },
+    { name: "2.18 Luftpistole Standard", fee: 9.00 },
+    { name: "2.20 50 M Pistole", fee: 4.00 },
+    { name: "2.21 Freie Pistole Auflage", fee: 4.00 },
+    { name: "2.30 25 M Schnellfeuerpistole", fee: 11.00 },
+    { name: "2.31 25 M Schnellfeuerp Jug", fee: 11.00 },
+    { name: "2.40 25 M Pistole", fee: 11.00 },
+    { name: "2.42 Sportpistole Auflage", fee: 4.00 },
+    { name: "2.45 25 M Zentralfeuerpistole", fee: 11.00 },
+    { name: "2.51 GK Pi .30", fee: 13.00 },
+    { name: "2.52 GK Pi .32", fee: 13.00 },
+    { name: "2.53 25 M Pistole 9x19", fee: 13.00 },
+    { name: "2.54 GK R .38", fee: 13.00 },
+    { name: "2.55 25 M Revolver 357", fee: 13.00 },
+    { name: "2.58 25 M Revolver 44", fee: 13.00 },
+    { name: "2.59 25 M Pistole 45", fee: 13.00 },
+    { name: "2.60 25 M Standardpistole", fee: 11.00 },
+    { name: "B.21 BSSB GK-Kombi", fee: 13.00 },
+    { name: "B.24 Ordonnanzpistole /-revolver", height: 0, fee: 13.00 },
+    { name: "B.25 Großkalibersportpistole", fee: 13.00 },
+    { name: "B.26 Alte Scheibenpistole", fee: 11.00 },
+    { name: "B.27 BSSB KK-Klappscheibe", fee: 13.00 },
+    { name: "B.28 BSSB GK-Klappscheibe", fee: 13.00 },
+    { name: "B.29 BSSB Sportrevolver Kleinkaliber", fee: 13.00 },
+    { name: "B.30 BSSB Schnellfeuerpistole", fee: 11.00 },
+    { name: "F.02 Fernwettkampf LP", fee: 9.00 },
+    { name: "F.04 Fernwettkampf-Auflage LP", fee: 9.00 },
+    { name: "G.16 Luftpistole 5-schuessig", fee: 9.00 },
+    { name: "G11.52 Lichtpistole Auflage", fee: 0.00 },
+    { name: "S.02 SeniorenpokalschießenP", fee: 9.00 }
 ];
 let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
 let all = [];
@@ -1512,15 +1518,31 @@ async function loadAdmin() {
     const regToggle = document.getElementById('admin-toggle-reg');
     if (regToggle) regToggle.checked = isRegOpen;
 
-    const championshipList = document.getElementById('admin-championship-list');
+   const championshipList = document.getElementById('admin-championship-list');
     if (championshipList) {
         const meldungen = profilesData.filter(p => p.disciplines && p.disciplines.trim() !== "");
-        championshipList.innerHTML = meldungen.map(p => `
-            <tr>
-                <td><strong>${p.full_name}</strong></td>
-                <td style="font-size:13px;">${p.disciplines.split(',').map(d => `• ${d.trim()}`).join('<br>')}</td>
-            </tr>
-        `).join('') || "<tr><td colspan='2' style='text-align:center;'>Noch keine Meldungen</td></tr>";
+        
+        championshipList.innerHTML = meldungen.map(p => {
+            const userDiscs = p.disciplines.split(',').map(d => d.trim());
+            
+            // Berechne die Gesamtsumme für diesen Schützen anhand der Liste
+            let totalFee = 0;
+            const discDetailsHtml = userDiscs.map(discName => {
+                const foundObj = ALL_DISCIPLINES.find(d => d.name === discName);
+                const fee = foundObj ? foundObj.fee : 0;
+                totalFee += fee;
+                const feeStr = fee > 0 ? ` (${fee.toFixed(2).replace('.', ',')} €)` : "";
+                return `• ${discName}${feeStr}`;
+            }).join('<br>');
+
+            return `
+                <tr>
+                    <td><strong>${p.full_name}</strong></td>
+                    <td style="font-size:13px; padding: 10px 8px;">${discDetailsHtml}</td>
+                    <td style="font-size:13px; font-weight:bold; color:var(--primary); vertical-align:top; padding: 10px 8px;">${totalFee.toFixed(2).replace('.', ',')} €</td>
+                </tr>
+            `;
+        }).join('') || "<tr><td colspan='3' style='text-align:center;'>Noch keine Meldungen</td></tr>";
     }
 }
 
@@ -2389,9 +2411,13 @@ async function updateRegStatus(isOpen) {
 
 function renderDisciplineCheckboxes(sel) { 
     const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
-    document.getElementById('discipline-checkboxes').innerHTML = ALL_DISCIPLINES.map(d => 
-        `<label class="checkbox-wrapper"><input type="checkbox" name="prof-disciplines" value="${d}" ${arr.includes(d) ? 'checked' : ''}><span style="font-size:13px;">${d}</span></label>`
-    ).join(''); 
+    document.getElementById('discipline-checkboxes').innerHTML = ALL_DISCIPLINES.map(d => {
+        const feeText = d.fee > 0 ? ` (${d.fee.toFixed(2).replace('.', ',')} €)` : " (kostenlos)";
+        return `<label class="checkbox-wrapper">
+            <input type="checkbox" name="prof-disciplines" value="${d.name}" ${arr.includes(d.name) ? 'checked' : ''}>
+            <span style="font-size:13px;">${d.name} <span style="color:#666; font-size:11px;">${feeText}</span></span>
+        </label>`;
+    }).join(''); 
 }
     async function clearAllGauMelungen() {
     if (!confirm("Möchtest du wirklich ALLE Meisterschaftsmeldungen aller Schützen zurücksetzen? Dies kann nicht rückgängig gemacht werden!")) return;
