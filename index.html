@@ -610,6 +610,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         Bereich "Standgebühr & Vereinswaffen" in Profilen einblenden
     </label>
 </div>
+            <div style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+    <h4 style="margin-top:0;">📋 Übersicht Standgebühren & Vereinswaffen</h4>
+    <table style="width:100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background:#eee; text-align:left;">
+                <th style="padding:8px;">Schütze</th>
+                <th style="padding:8px;">Stand-Nutzung</th>
+                <th style="padding:8px;">Vereinswaffe</th>
+                <th style="padding:8px; width:90px;">Gesamt</th>
+            </tr>
+        </thead>
+        <tbody id="admin-stand-list"></tbody>
+    </table>
+</div>
         </div>
         
     </div> <!-- ENDE MAIN-APP -->
@@ -1644,6 +1658,27 @@ async function loadAdmin() {
     const standToggle = document.getElementById('admin-toggle-stand');
     if (standToggle) standToggle.checked = isStandOpen;
      }
+    // Standgebühren-Toggle und Tabelle aktualisieren
+    const standToggle = document.getElementById('admin-toggle-stand');
+    if (standToggle) standToggle.checked = isStandOpen;
+
+    const standList = document.getElementById('admin-stand-list');
+    if (standList) {
+        // Alle Mitglieder filtern, die einen Stand oder eine Waffe gewählt haben
+        const standMeldungen = profilesData.filter(p => (p.shooting_stand && p.shooting_stand !== "keiner") || (p.club_weapon && p.club_weapon !== "keine"));
+        
+        standList.innerHTML = standMeldungen.map(p => {
+            const details = getStandDetails(p.shooting_stand, p.club_weapon);
+            return `
+                <tr>
+                    <td><strong>${p.full_name}</strong></td>
+                    <td style="font-size:13px; padding: 10px 8px;">${details.standText}</td>
+                    <td style="font-size:13px; padding: 10px 8px;">${details.weaponText}</td>
+                    <td style="font-size:13px; font-weight:bold; color:var(--primary); vertical-align:top; padding: 10px 8px;">${details.total.toFixed(2).replace('.', ',')} €</td>
+                </tr>
+            `;
+        }).join('') || "<tr><td colspan='4' style='text-align:center;'>Bisher keine Stand- oder Waffenangaben gemacht</td></tr>";
+    }
 
    async function viewUserDetail(uid) {
     const row = document.getElementById(`details-${uid}`);
@@ -2686,6 +2721,29 @@ function onGauMemberChange() {
         
         alert(isOpen ? "Die Standgebühr-Auswahl ist nun für alle im Profil sichtbar!" : "Die Standgebühr-Auswahl wurde geschlossen.");
     }
+}
+
+    function getStandDetails(standKey, weaponKey) {
+    let standText = "Keine Nutzung";
+    let standFee = 0;
+
+    if (standKey === "10m_schueler") { standText = "10m Stand (Schüler)"; standFee = 15.00; }
+    else if (standKey === "10m_jugend") { standText = "10m Stand (Jugend)"; standFee = 20.00; }
+    else if (standKey === "10m_erwachsene") { standText = "10m Stand (Erwachsene)"; standFee = 25.00; }
+    else if (standKey === "50m") { standText = "50m Stand"; standFee = 35.00; }
+    else if (standKey === "kombiniert") { standText = "Kombiniert (10m + 50m)"; standFee = 40.00; }
+
+    let weaponText = "Keine";
+    let weaponFee = 0;
+
+    if (weaponKey === "lg_lp_20") { weaponText = "LG / LP"; weaponFee = 20.00; }
+    else if (weaponKey === "cal22_30") { weaponText = "Ab Kaliber .22 / Kurzwaffe"; weaponFee = 30.00; }
+
+    return {
+        standText,
+        weaponText,
+        total: standFee + weaponFee
+    };
 }
     
 </script>
