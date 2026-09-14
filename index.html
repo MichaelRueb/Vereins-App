@@ -871,16 +871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadHistory(); 
     loadAllEvents();
 }
-    
-    renderTeamCheckboxes(userTeam);
-    
-    // UI umschalten
-    document.getElementById('loading-ui').style.display = 'none';
-    document.getElementById('main-app').style.display = 'block';
-    
-    loadHistory(); 
-    loadAllEvents();
-}
+        
 
     function fillTeamSelect() {
     const sel = document.getElementById('event-team-select');
