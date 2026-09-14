@@ -487,6 +487,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <span id="profile-my-total-fee">0,00 €</span>
         </div>
     </div>
+           <!-- STANDGEBÜHR & VEREINSSWAFEN AUSWAHL (Standardmäßig versteckt) -->
+    <div id="stand-fee-section" style="display:none; margin-top: 25px; padding: 15px; background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 8px;">
+        <h4 style="margin-top: 0; color: var(--primary-dark);">🎯 Standgebühr & Vereinswaffen</h4>
+        
+        <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Welchen Stand nutzt du?</label>
+        <select id="prof-stand" style="margin-bottom: 15px;">
+            <option value="keiner">Bitte auswählen / Keine Nutzung</option>
+            <option value="10m_schueler">10m Stand – Schüler bis 14 Jahre (15,00 €)</option>
+            <option value="10m_jugend">10m Stand – Jugend bis 18 Jahre (20,00 €)</option>
+            <option value="10m_erwachsene">10m Stand – Erwachsen ab 18 Jahre (25,00 €)</option>
+            <option value="50m">50m Stand (35,00 €)</option>
+            <option value="kombiniert">Kombiniert (10m + 50m Stand) (40,00 €)</option>
+        </select>
+
+        <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Nutzt du Vereinswaffen?</label>
+        <select id="prof-weapon" style="margin-bottom: 5px;">
+            <option value="keine">Keine Vereinswaffen</option>
+           <!-- <option value="lg_lp_20">Luftgewehr / Luftpistole (20,00 €)</option>-->
+            <option value="cal22_30">Ab Kaliber .22 / Kurzwaffen (30,00 €)</option>
+        </select>
+    </div>
              <hr>
             <h4>Passwort ändern</h4>
             <input type="password" id="new-pass" placeholder="Neues Passwort">
@@ -582,6 +603,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <div style="margin-top: 15px;">
         <button onclick="clearAllGauMelungen()" style="background: var(--danger); width: auto; padding: 8px 15px;">🗑️ Alle Meisterschaftsmeldungen zurücksetzen</button>
     </div>
+            <div style="margin-top:20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+    <h4 style="margin-top:0;">⚙️ Standgebühr-Auswahl für Schützen freischalten</h4>
+    <label class="checkbox-wrapper" style="font-size: 15px; font-weight: bold;">
+        <input type="checkbox" id="admin-toggle-stand" onchange="updateStandStatus(this.checked)" style="width: 20px; height: 20px;"> 
+        Bereich "Standgebühr & Vereinswaffen" in Profilen einblenden
+    </label>
+</div>
         </div>
         
     </div> <!-- ENDE MAIN-APP -->
@@ -697,6 +725,7 @@ const ALL_DISCIPLINES = [
 let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
 let all = [];
 let currentWorkEditId = null;
+    let isStandOpen = false;
 
 // ==========================================
 // 3. ROBUSTES ROUTING (REAGIERT SOFORT)
@@ -774,7 +803,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 }
 
-    async function setupApp(user) {
+   async function setupApp(user) {
     // FIX: Das Anmeldefenster explizit verstecken
     const authUI = document.getElementById('auth-ui');
     if (authUI) authUI.style.display = 'none';
@@ -786,17 +815,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (p) {
         userTeam = p.team || ""; 
-        const { data: setData } = await sb.from('settings').select('is_reg_open').eq('id', 1).maybeSingle();
-        isRegOpen = setData ? setData.is_reg_open : false;
         
+        // --- EINSTELLUNGEN ABRUFEN (Gau-Meldung & Standgebühr) ---
+        const { data: setData } = await sb.from('settings').select('is_reg_open, is_stand_open').eq('id', 1).maybeSingle();
+        isRegOpen = setData ? setData.is_reg_open : false;
+        isStandOpen = setData ? setData.is_stand_open : false;
+        
+        // Tab für Gau-Meldung steuern
         const tabGau = document.getElementById('tab-gau');
         if (tabGau) tabGau.style.display = isRegOpen ? 'block' : 'none';
+
+        // Sektion für Standgebühr & Waffen im Profil steuern
+        const standSection = document.getElementById('stand-fee-section');
+        if (standSection) standSection.style.display = isStandOpen ? 'block' : 'none';
         
         renderDisciplineCheckboxes(p.disciplines || "");
         isCaptain = p.is_captain || false; 
         isOfficial = p.is_official || false;
         
         document.getElementById('prof-name').value = p.full_name || "";
+        document.getElementById('prof-stand').value = p.shooting_stand || "keiner";
+        document.getElementById('prof-weapon').value = p.club_weapon || "keine";
         updateProfileDisciplineOverview(p.disciplines || "");
         
         // --- SICHTBARKEIT DER TABS (ADMIN & FAHRTEN) ---
@@ -822,6 +861,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'none';
         }
     }
+    
+    renderTeamCheckboxes(userTeam);
+    
+    // UI umschalten
+    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    
+    loadHistory(); 
+    loadAllEvents();
+}
     
     renderTeamCheckboxes(userTeam);
     
@@ -1463,24 +1512,28 @@ async function exportMileagePDF() {
         document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>`).join(''); 
     }
 
-    async function updateProfile() { 
+   async function updateProfile() { 
     const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', '); 
+    const disciplines = Array.from(document.querySelectorAll('input[name="prof-disciplines"]:checked')).map(c=>c.value).join(', '); 
+    const stand = document.getElementById('prof-stand').value;
+    const weapon = document.getElementById('prof-weapon').value;
     
     const { error } = await sb.from('profiles').upsert({ 
         id: currentUser.id, 
         full_name: document.getElementById('prof-name').value, 
-        team: teams 
+        team: teams,
+        disciplines: disciplines,
+        shooting_stand: stand,
+        club_weapon: weapon
     }); 
 
     if (error) {
         alert("Fehler beim Speichern: " + error.message);
     } else {
-        userTeam = teams; 
-        alert("Profil gespeichert!"); 
-        // Der Aufruf von fillTeamSelect() wurde entfernt, da die Funktion nicht existiert.
+        userTeam = teams;
+        alert("Profil, Standgebühr & Waffen-Auswahl gespeichert!"); 
     }
 }
-
 async function loadAdmin() {
     // Daten von Supabase holen
     const { data: profilesData, error: pErr } = await sb.from('profiles').select('*').order('full_name');
@@ -1597,6 +1650,8 @@ async function loadAdmin() {
             `;
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Noch keine Meldungen</td></tr>";
     }
+    const standToggle = document.getElementById('admin-toggle-stand');
+    if (standToggle) standToggle.checked = isStandOpen;
      }
 
    async function viewUserDetail(uid) {
@@ -2624,6 +2679,21 @@ function onGauMemberChange() {
         alert("Fehler beim Aktualisieren: " + error.message);
     } else {
         loadAdmin(); // Admin-Ansicht sofort neu laden
+    }
+}
+
+    async function updateStandStatus(isOpen) {
+    // Da wir id: 1 schon per upsert verwenden, übergeben wir den Wert
+    const { error } = await sb.from('settings').upsert({ id: 1, is_stand_open: isOpen });
+    if (error) {
+        alert("Fehler beim Umschalten: " + error.message);
+        document.getElementById('admin-toggle-stand').checked = !isOpen; 
+    } else {
+        isStandOpen = isOpen;
+        const standSection = document.getElementById('stand-fee-section');
+        if (standSection) standSection.style.display = isOpen ? 'block' : 'none';
+        
+        alert(isOpen ? "Die Standgebühr-Auswahl ist nun für alle im Profil sichtbar!" : "Die Standgebühr-Auswahl wurde geschlossen.");
     }
 }
     
