@@ -1609,10 +1609,12 @@ async function loadAdmin() {
             <tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:15px;"></td></tr>`;
         }).join('');
     }
+
+    // --- GAU-MELDUNG TOGGLE & TABELLE ---
     const regToggle = document.getElementById('admin-toggle-reg');
     if (regToggle) regToggle.checked = isRegOpen;
 
-   const championshipList = document.getElementById('admin-championship-list');
+    const championshipList = document.getElementById('admin-championship-list');
     if (championshipList) {
         const meldungen = profilesData.filter(p => p.disciplines && p.disciplines.trim() !== "");
         
@@ -1627,7 +1629,6 @@ async function loadAdmin() {
                 return `• ${discName}${feeStr}`;
             }).join('<br>');
 
-            // Status-Anzeige (Ob schon gemeldet wurde)
             let statusHtml = '';
             if (p.gau_reported_at) {
                 const formattedDate = new Date(p.gau_reported_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
@@ -1655,16 +1656,13 @@ async function loadAdmin() {
             `;
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Noch keine Meldungen</td></tr>";
     }
-    const standToggle = document.getElementById('admin-toggle-stand');
-    if (standToggle) standToggle.checked = isStandOpen;
-     }
-    // Standgebühren-Toggle und Tabelle aktualisieren
+
+    // --- STANDGEBÜHR TOGGLE & TABELLE ---
     const standToggle = document.getElementById('admin-toggle-stand');
     if (standToggle) standToggle.checked = isStandOpen;
 
     const standList = document.getElementById('admin-stand-list');
     if (standList) {
-        // Alle Mitglieder filtern, die einen Stand oder eine Waffe gewählt haben
         const standMeldungen = profilesData.filter(p => (p.shooting_stand && p.shooting_stand !== "keiner") || (p.club_weapon && p.club_weapon !== "keine"));
         
         standList.innerHTML = standMeldungen.map(p => {
@@ -1679,7 +1677,7 @@ async function loadAdmin() {
             `;
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Bisher keine Stand- oder Waffenangaben gemacht</td></tr>";
     }
-
+}
    async function viewUserDetail(uid) {
     const row = document.getElementById(`details-${uid}`);
     const content = document.getElementById(`content-${uid}`);
