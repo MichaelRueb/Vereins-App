@@ -1639,6 +1639,7 @@ async function loadAdmin() {
     }
     // Initialisiert den Bereinigungs-Modus im Admin-Bereich
    // --- TURNIER-BEREINIGUNG MODUS INITIALISIEREN ---
+   await initCleanupTeams();
     if (typeof toggleCleanupMode === 'function') {
         toggleCleanupMode();
     }
@@ -2795,18 +2796,28 @@ function toggleCleanupMode() {
     if (boxTeam) boxTeam.style.display = (mode === 'team') ? 'block' : 'none';
 }
 
-    function initCleanupTeams() {
+   async function initCleanupTeams() {
     const teamSelect = document.getElementById('cleanup-team-select');
     if (!teamSelect) return;
 
     let optionsHtml = '-- Bitte Mannschaft wählen --';
     
-    if (typeof ALL_TEAMS !== 'undefined' && ALL_TEAMS.length > 0) {
-        ALL_TEAMS.forEach(t => {
-            optionsHtml += `${t}`;
-        });
-    } else {
-        optionsHtml += 'Keine Mannschaften gefunden';
+    try {
+        // Holt die Teams direkt aus deiner Supabase-Tabelle 'teams'
+        const { data: teamData, error } = await sb.from('teams').select('name').order('id');
+        
+        if (error) throw error;
+
+        if (teamData && teamData.length > 0) {
+            teamData.forEach(t => {
+                optionsHtml += `${t.name}`;
+            });
+        } else {
+            optionsHtml += 'Keine Mannschaften in DB gefunden';
+        }
+    } catch (err) {
+        console.error("Fehler beim Laden der Teams für Cleanup:", err);
+        optionsHtml += 'Fehler beim Laden';
     }
     
     teamSelect.innerHTML = optionsHtml;
