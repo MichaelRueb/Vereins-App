@@ -581,13 +581,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         
         <hr style="margin: 15px 0;">
         
-        <h4 style="margin-top: 0; color: var(--primary-dark);">🧹 Turnier-Bereinigung</h4>
+        <h4 style="margin-top: 0; color: var(--primary-dark);">🧹 Wettkampfplan löschen</h4>
         <div style="margin-bottom: 10px;">
             <label style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">Aktion / Modus wählen:</label>
             <select id="cleanup-mode" onchange="toggleCleanupMode()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
-                <option value="date">Alle Turniere vor einem bestimmten Datum löschen</option>
-                <option value="team">Alle Turniere einer einzelnen Mannschaft löschen</option>
-                <option value="all_teams">Alle Turniere ALLER Mannschaften löschen (Gesamter Plan)</option>
+                <option value="date">Alle Wettkampfpläne vor einem bestimmten Datum löschen</option>
+                <option value="team">Alle Wettkampfpläne einer einzelnen Mannschaft löschen</option>
+                <option value="all_teams">Alle Wettkampfpläne ALLER Mannschaften löschen (Gesamter Plan)</option>
             </select>
         </div>
 
@@ -1639,6 +1639,11 @@ async function loadAdmin() {
     }
     // Initialisiert den Bereinigungs-Modus im Admin-Bereich
     if (typeof toggleCleanupMode === 'function') {
+        toggleCleanupMode();
+    }
+    // Behebt leere Mannschaftsauswahl beim Wechseln
+    const cleanupModeSelect = document.getElementById('cleanup-mode');
+    if (cleanupModeSelect && cleanupModeSelect.value === 'team') {
         toggleCleanupMode();
     }
 
@@ -2784,8 +2789,28 @@ function toggleCleanupMode() {
 
     if (mode === 'team') {
         const teamSelect = document.getElementById('cleanup-team-select');
-        if (teamSelect && typeof ALL_TEAMS !== 'undefined') {
-            teamSelect.innerHTML = ALL_TEAMS.map(t => `${t}`).join('');
+        if (!teamSelect) return;
+
+        // 1. Versuche, Mannschaften aus globalen Variablen zu holen
+        let teamsList = [];
+        if (typeof ALL_TEAMS !== 'undefined' && Array.isArray(ALL_TEAMS)) teamsList = ALL_TEAMS;
+        else if (typeof TEAMS !== 'undefined' && Array.isArray(TEAMS)) teamsList = TEAMS;
+        
+        // 2. Falls keine Variable existiert, hole die Optionen aus einem vorhandenen Team-Dropdown in der App
+        if (teamsList.length === 0) {
+            const existingSelect = document.getElementById('captain-team-select') || document.getElementById('event-team') || document.querySelector('select[name="team"]');
+            if (existingSelect) {
+                teamsList = Array.from(existingSelect.options)
+                    .map(o => o.value)
+                    .filter(val => val && val !== "" && val !== "all");
+            }
+        }
+
+        // 3. Dropdown befüllen
+        if (teamsList.length > 0) {
+            teamSelect.innerHTML = teamsList.map(t => `${t}`).join('');
+        } else {
+            teamSelect.innerHTML = `Keine Mannschaften gefunden`;
         }
     }
 }
