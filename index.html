@@ -1638,6 +1638,7 @@ async function loadAdmin() {
         }).join('');
     }
     // Initialisiert den Bereinigungs-Modus im Admin-Bereich
+    // --- TURNIER-BEREINIGUNG MODUS INITIALISIEREN ---
     if (typeof toggleCleanupMode === 'function') {
         await toggleCleanupMode();
     }
