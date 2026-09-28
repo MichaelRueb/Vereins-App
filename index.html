@@ -1638,7 +1638,6 @@ async function loadAdmin() {
         }).join('');
     }
     // Initialisiert den Bereinigungs-Modus im Admin-Bereich
-    // --- TURNIER-BEREINIGUNG MODUS INITIALISIEREN ---
    // --- TURNIER-BEREINIGUNG MODUS INITIALISIEREN ---
     if (typeof toggleCleanupMode === 'function') {
         toggleCleanupMode();
@@ -1710,6 +1709,10 @@ async function loadAdmin() {
                 </tr>
             `;
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Bisher keine Stand- oder Waffenangaben gemacht</td></tr>";
+    }
+    initCleanupTeams();
+    if (typeof toggleCleanupMode === 'function') {
+        toggleCleanupMode();
     }
 }
    async function viewUserDetail(uid) {
@@ -2787,27 +2790,26 @@ function toggleCleanupMode() {
     const boxDate = document.getElementById('cleanup-box-date');
     const boxTeam = document.getElementById('cleanup-box-team');
     
-    // Sichtbarkeit der Boxen umschalten
+    // Nur noch Sichtbarkeit umschalten
     if (boxDate) boxDate.style.display = (mode === 'date') ? 'block' : 'none';
     if (boxTeam) boxTeam.style.display = (mode === 'team') ? 'block' : 'none';
+}
 
-    // Wenn der Team-Modus gewählt wird, Dropdown befüllen
-    if (mode === 'team') {
-        const teamSelect = document.getElementById('cleanup-team-select');
-        if (!teamSelect) return;
+    function initCleanupTeams() {
+    const teamSelect = document.getElementById('cleanup-team-select');
+    if (!teamSelect) return;
 
-        let optionsHtml = '-- Bitte Mannschaft wählen --';
-        
-        if (typeof ALL_TEAMS !== 'undefined' && ALL_TEAMS.length > 0) {
-            ALL_TEAMS.forEach(t => {
-                optionsHtml += `${t}`;
-            });
-        } else {
-            optionsHtml += 'Keine Mannschaften gefunden';
-        }
-        
-        teamSelect.innerHTML = optionsHtml;
+    let optionsHtml = '-- Bitte Mannschaft wählen --';
+    
+    if (typeof ALL_TEAMS !== 'undefined' && ALL_TEAMS.length > 0) {
+        ALL_TEAMS.forEach(t => {
+            optionsHtml += `${t}`;
+        });
+    } else {
+        optionsHtml += 'Keine Mannschaften gefunden';
     }
+    
+    teamSelect.innerHTML = optionsHtml;
 }
     
 // Führt die eigentliche Löschung in Supabase aus
