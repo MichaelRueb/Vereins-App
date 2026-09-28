@@ -2834,36 +2834,43 @@ function toggleCleanupMode() {
     }
 }
 
- async function initCleanupTeams() {
-    const teamSelect = document.getElementById('cleanup-team-select');
-    if (!teamSelect) {
-        console.error("Fehler: #cleanup-team-select nicht gefunden!");
-        return;
-    }
+async function initCleanupTeams() {
+    const select = document.getElementById('cleanup-team-select');
+    if (!select) return;
 
     try {
         const { data: teamData, error } = await sb.from('teams').select('name').order('id');
-        
         if (error) throw error;
 
-        // Start-Eintrag mit echtem HTML-Tag
-        let optionsHtml = '-- Bitte Mannschaft wählen --';
-        
+        // 1. Feld komplett leeren
+        select.options.length = 0;
+
+        // 2. Platzhalter-Option hinzufügen
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '-- Bitte Mannschaft wählen --';
+        select.appendChild(defaultOption);
+
+        // 3. Teams als echte DOM-Elemente anhängen
         if (teamData && teamData.length > 0) {
             teamData.forEach(t => {
-                // Hier wird das option-Tag fest mit Verkettung gebaut
-                optionsHtml += '' + t.name + '';
+                const opt = document.createElement('option');
+                opt.value = t.name;
+                opt.textContent = t.name;
+                opt.style.color = '#000000';
+                opt.style.backgroundColor = '#ffffff';
+                select.appendChild(opt);
             });
-        } else {
-            optionsHtml += 'Keine Teams in Datenbank';
         }
-        
-        teamSelect.innerHTML = optionsHtml;
-        teamSelect.style.color = "#000000";
-        teamSelect.style.backgroundColor = "#ffffff";
-        console.log("Dropdown erfolgreich befüllt!");
+
+        // 4. Styles direkt erzwingen
+        select.style.color = '#000000';
+        select.style.backgroundColor = '#ffffff';
+        select.style.height = '45px';
+        select.style.display = 'block';
+
     } catch (err) {
-        console.error("Fehler beim Laden der Teams:", err);
+        console.error("Fehler beim Befüllen des Teams-Dropdowns:", err);
     }
 }
     
