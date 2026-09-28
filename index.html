@@ -2794,7 +2794,7 @@ async function toggleCleanupMode() {
         const teamSelect = document.getElementById('cleanup-team-select');
         if (!teamSelect) return;
 
-        teamSelect.innerHTML = `Lade Mannschaften...`;
+        teamSelect.innerHTML = 'Lade Mannschaften...';
 
         // Hole alle Mannschaften direkt aus Supabase
         const { data, error } = await sb.from('tournaments').select('team');
@@ -2809,10 +2809,9 @@ async function toggleCleanupMode() {
         }
 
         if (teams.length > 0) {
-            // WICHTIG: Hier waren die -Tags verschwunden!
             teamSelect.innerHTML = teams.map(t => `${t}`).join('');
         } else {
-            teamSelect.innerHTML = `Keine Mannschaften gefunden`;
+            teamSelect.innerHTML = 'Keine Mannschaften gefunden';
         }
     }
 }
