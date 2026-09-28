@@ -193,6 +193,40 @@
     margin: 1px;
 }
 
+    #cleanup-box-team {
+width: 100% !important;
+box-sizing: border-box !important;
+margin-top: 10px !important;
+background: #ffffff !important;
+padding: 15px !important;
+border: 1px solid #ddd !important;
+border-radius: 8px !important;
+}
+
+#cleanup-team-select {
+width: 100% !important;
+min-height: 48px !important;
+height: 48px !important;
+padding: 10px 12px !important;
+font-size: 16px !important;
+background-color: #ffffff !important;
+color: #000000 !important;
+border: 2px solid #2e7d32 !important;
+border-radius: 6px !important;
+display: block !important;
+box-sizing: border-box !important;
+appearance: auto !important;
+-webkit-appearance: auto !important;
+}
+
+#cleanup-box-team label {
+font-size: 13px !important;
+font-weight: bold !important;
+display: block !important;
+margin-bottom: 5px !important;
+color: #333333 !important;
+}
+
    /* Farben für die Mannschaften & Verein */
 /* Bestehende Farben */
 .team-verein { background-color: #FFD700 !important; } 
@@ -2780,7 +2814,7 @@ function onGauMemberChange() {
 }
 
     // Schaltet die Eingabefelder je nach Modus um und füllt das Mannschafts-Dropdown
-async function toggleCleanupMode() {
+function toggleCleanupMode() {
     const modeSelect = document.getElementById('cleanup-mode');
     if (!modeSelect) return;
     
@@ -2789,11 +2823,14 @@ async function toggleCleanupMode() {
     const boxTeam = document.getElementById('cleanup-box-team');
     
     if (boxDate) boxDate.style.display = (mode === 'date') ? 'block' : 'none';
-    if (boxTeam) boxTeam.style.display = (mode === 'team') ? 'block' : 'none';
+    
+    // WICHTIG: Hier wird das Container-Div eingeblendet
+    if (boxTeam) {
+        boxTeam.style.display = (mode === 'team') ? 'block' : 'none';
+    }
 
-    // Sobald auf "Team" geschaltet wird, laden wir die Teams frisch aus Supabase direkt in das Select-Feld!
     if (mode === 'team') {
-        await initCleanupTeams();
+        initCleanupTeams();
     }
 }
 
