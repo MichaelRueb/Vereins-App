@@ -556,75 +556,103 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 </div>
        
 
-        <!-- ADMIN VIEW -->
-        <div id="view-admin" style="display:none;">
-            <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32;">
-                <h3 style="margin-top:0; color:#2e7d32;">Datensicherung</h3>
-                <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%;">📦 Vollständiges Backup erstellen (.json)</button>
-            </div>
-            <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; margin-top:10px;">📄 Stunden Report (PDF)</button>
-            <h4 style="margin-top:20px;">⏳ Offene Anträge</h4>
-            <table style="width:100%; border-collapse: collapse; max-width: 900px; border: 1px solid #ddd;">
-                <thead><tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;"><th style="padding:12px; width:180px;">Name/Datum</th><th style="padding:12px;">Beschreibung</th><th style="padding:12px; width:60px;">Dauer</th><th style="padding:12px; width:120px; text-align:center;">Aktion</th></tr></thead>
-                <tbody id="admin-pending-body-real"></tbody>
-            </table>
-            <h4 style="margin-top:30px;">👥 Mitglieder-Verwaltung</h4>
-            <table>
-                <thead><tr style="background:#eee; text-align:left;"><th style="padding:8px;">Name</th><th style="padding:8px; width:60px;">h</th><th style="padding:8px; width:140px;">Rollen</th></tr></thead>
-                <tbody id="admin-member-table-list"></tbody>
-            </table>
-            <div style="margin-bottom: 20px; border: 1px dashed #ccc; padding: 10px;">
-    <h4>Wettkampfplan importieren (.ics)</h4>
-    <input type="file" id="ics-upload" accept=".ics" onchange="handleICSUpload(event)" style="margin-bottom: 15px;">
-    
-    <h4 style="margin-top: 10px;">Alte Wettkämpfe bereinigen</h4>
-    <button onclick="deleteOldTournaments()" style="background: var(--danger); width: auto; padding: 8px 15px;">🗑️ Alte Saison löschen</button>
-</div>
-            <div style="margin-top:30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
-    <h4 style="margin-top:0;">⚙️ Meldung für Schützen freischalten</h4>
-    <label class="checkbox-wrapper" style="font-size: 15px; font-weight: bold; margin-bottom:15px;">
-        <input type="checkbox" id="admin-toggle-reg" onchange="updateRegStatus(this.checked)" style="width: 20px; height: 20px;"> 
-        Reiter "Gau-Meldung" für alle einblenden
-    </label>
-    <hr>
-    <h4 style="margin-top:15px;">📋 Übersicht Meisterschaftsmeldungen</h4>
-<table style="width:100%; border-collapse: collapse;">
-        <thead>
-            <tr style="background:#eee; text-align:left;">
-                <th style="padding:8px;">Schütze</th>
-                <th style="padding:8px;">Gemeldete Disziplinen</th>
-                <th style="padding:8px; width:90px;">Gesamt</th>
-                <th style="padding:8px; width:180px;">Gau-Melde-Status</th>
-            </tr>
-        </thead>
-        <tbody id="admin-championship-list"></tbody>
+       <!-- ADMIN VIEW -->
+<div id="view-admin" style="display:none;">
+    <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32;">
+        <h3 style="margin-top:0; color:#2e7d32;">Datensicherung</h3>
+        <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%;">📦 Vollständiges Backup erstellen (.json)</button>
+    </div>
+    <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; margin-top:10px;">📄 Stunden Report (PDF)</button>
+    <h4 style="margin-top:20px;">⏳ Offene Anträge</h4>
+    <table style="width:100%; border-collapse: collapse; max-width: 900px; border: 1px solid #ddd;">
+        <thead><tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;"><th style="padding:12px; width:180px;">Name/Datum</th><th style="padding:12px;">Beschreibung</th><th style="padding:12px; width:60px;">Dauer</th><th style="padding:12px; width:120px; text-align:center;">Aktion</th></tr></thead>
+        <tbody id="admin-pending-body-real"></tbody>
     </table>
-</div>
-            <div style="margin-top: 15px;">
+    <h4 style="margin-top:30px;">👥 Mitglieder-Verwaltung</h4>
+    <table>
+        <thead><tr style="background:#eee; text-align:left;"><th style="padding:8px;">Name</th><th style="padding:8px; width:60px;">h</th><th style="padding:8px; width:140px;">Rollen</th></tr></thead>
+        <tbody id="admin-member-table-list"></tbody>
+    </table>
+
+    <!-- WETTKAMPFPLAN IMPORT & TURNIER-BEREINIGUNG -->
+    <div style="margin-bottom: 20px; border: 1px dashed #ccc; padding: 15px; margin-top: 30px; border-radius: 8px; background: #fff;">
+        <h4 style="margin-top: 0;">📅 Wettkampfplan importieren (.ics)</h4>
+        <input type="file" id="ics-upload" accept=".ics" onchange="handleICSUpload(event)" style="margin-bottom: 15px;">
+        
+        <hr style="margin: 15px 0;">
+        
+        <h4 style="margin-top: 0; color: var(--primary-dark);">🧹 Turnier-Bereinigung</h4>
+        <div style="margin-bottom: 10px;">
+            <label style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">Aktion / Modus wählen:</label>
+            <select id="cleanup-mode" onchange="toggleCleanupMode()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
+                <option value="date">Alle Turniere vor einem bestimmten Datum löschen</option>
+                <option value="team">Alle Turniere einer einzelnen Mannschaft löschen</option>
+                <option value="all_teams">Alle Turniere ALLER Mannschaften löschen (Gesamter Plan)</option>
+            </select>
+        </div>
+
+        <!-- Modus A: Nach Datum -->
+        <div id="cleanup-box-date" style="margin-bottom: 10px;">
+            <label style="font-size: 12px; display: block; margin-bottom: 3px;">Datum auswählen (alle Termine davor werden gelöscht):</label>
+            <input type="date" id="cleanup-date" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
+        </div>
+
+        <!-- Modus B: Einzelne Mannschaft -->
+        <div id="cleanup-box-team" style="display: none; margin-bottom: 10px;">
+            <label style="font-size: 12px; display: block; margin-bottom: 3px;">Mannschaft auswählen:</label>
+            <select id="cleanup-team-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;"></select>
+        </div>
+
+        <button onclick="executeTournamentCleanup()" style="background: var(--danger); color: white; border: none; border-radius: 4px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-weight: bold; width: 100%;">
+            🗑️ Ausgewählte Turniere bereinigen
+        </button>
+    </div>
+
+    <div style="margin-top:30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+        <h4 style="margin-top:0;">⚙️ Meldung für Schützen freischalten</h4>
+        <label class="checkbox-wrapper" style="font-size: 15px; font-weight: bold; margin-bottom:15px;">
+            <input type="checkbox" id="admin-toggle-reg" onchange="updateRegStatus(this.checked)" style="width: 20px; height: 20px;"> 
+            Reiter "Gau-Meldung" für alle einblenden
+        </label>
+        <hr>
+        <h4 style="margin-top:15px;">📋 Übersicht Meisterschaftsmeldungen</h4>
+        <table style="width:100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background:#eee; text-align:left;">
+                    <th style="padding:8px;">Schütze</th>
+                    <th style="padding:8px;">Gemeldete Disziplinen</th>
+                    <th style="padding:8px; width:90px;">Gesamt</th>
+                    <th style="padding:8px; width:180px;">Gau-Melde-Status</th>
+                </tr>
+            </thead>
+            <tbody id="admin-championship-list"></tbody>
+        </table>
+    </div>
+    <div style="margin-top: 15px;">
         <button onclick="clearAllGauMelungen()" style="background: var(--danger); width: auto; padding: 8px 15px;">🗑️ Alle Meisterschaftsmeldungen zurücksetzen</button>
     </div>
-            <div style="margin-top:20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
-    <h4 style="margin-top:0;">⚙️ Standgebühr-Auswahl für Schützen freischalten</h4>
-    <label class="checkbox-wrapper" style="font-size: 15px; font-weight: bold;">
-        <input type="checkbox" id="admin-toggle-stand" onchange="updateStandStatus(this.checked)" style="width: 20px; height: 20px;"> 
-        Bereich "Standgebühr & Vereinswaffen" in Profilen einblenden
-    </label>
+    <div style="margin-top:20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+        <h4 style="margin-top:0;">⚙️ Standgebühr-Auswahl für Schützen freischalten</h4>
+        <label class="checkbox-wrapper" style="font-size: 15px; font-weight: bold;">
+            <input type="checkbox" id="admin-toggle-stand" onchange="updateStandStatus(this.checked)" style="width: 20px; height: 20px;"> 
+            Bereich "Standgebühr & Vereinswaffen" in Profilen einblenden
+        </label>
+    </div>
+    <div style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+        <h4 style="margin-top:0;">📋 Übersicht Standgebühren & Vereinswaffen</h4>
+        <table style="width:100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background:#eee; text-align:left;">
+                    <th style="padding:8px;">Schütze</th>
+                    <th style="padding:8px;">Stand-Nutzung</th>
+                    <th style="padding:8px;">Vereinswaffe</th>
+                    <th style="padding:8px; width:90px;">Gesamt</th>
+                </tr>
+            </thead>
+            <tbody id="admin-stand-list"></tbody>
+        </table>
+    </div>
 </div>
-            <div style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
-    <h4 style="margin-top:0;">📋 Übersicht Standgebühren & Vereinswaffen</h4>
-    <table style="width:100%; border-collapse: collapse;">
-        <thead>
-            <tr style="background:#eee; text-align:left;">
-                <th style="padding:8px;">Schütze</th>
-                <th style="padding:8px;">Stand-Nutzung</th>
-                <th style="padding:8px;">Vereinswaffe</th>
-                <th style="padding:8px; width:90px;">Gesamt</th>
-            </tr>
-        </thead>
-        <tbody id="admin-stand-list"></tbody>
-    </table>
-</div>
-        </div>
         
     </div> <!-- ENDE MAIN-APP -->
 </div> <!-- ENDE CARD -->
@@ -1608,6 +1636,10 @@ async function loadAdmin() {
             </tr>
             <tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:15px;"></td></tr>`;
         }).join('');
+    }
+    // Initialisiert den Bereinigungs-Modus im Admin-Bereich
+    if (typeof toggleCleanupMode === 'function') {
+        toggleCleanupMode();
     }
 
     // --- GAU-MELDUNG TOGGLE & TABELLE ---
@@ -2742,6 +2774,74 @@ function onGauMemberChange() {
         weaponText,
         total: standFee + weaponFee
     };
+}
+
+    // Schaltet die Eingabefelder je nach Modus um und füllt das Mannschafts-Dropdown
+function toggleCleanupMode() {
+    const mode = document.getElementById('cleanup-mode').value;
+    document.getElementById('cleanup-box-date').style.display = (mode === 'date') ? 'block' : 'none';
+    document.getElementById('cleanup-box-team').style.display = (mode === 'team') ? 'block' : 'none';
+
+    if (mode === 'team') {
+        const teamSelect = document.getElementById('cleanup-team-select');
+        if (teamSelect && typeof ALL_TEAMS !== 'undefined') {
+            teamSelect.innerHTML = ALL_TEAMS.map(t => `${t}`).join('');
+        }
+    }
+}
+
+// Führt die eigentliche Löschung in Supabase aus
+async function executeTournamentCleanup() {
+    const mode = document.getElementById('cleanup-mode').value;
+
+    if (mode === 'date') {
+        const dateLimit = document.getElementById('cleanup-date').value;
+        if (!dateLimit) {
+            alert("Bitte wähle ein Datum aus.");
+            return;
+        }
+
+        if (!confirm(`Möchtest du wirklich alle Turniere vor dem ${dateLimit} löschen?`)) return;
+
+        const { error } = await sb.from('tournaments').delete().lt('date', dateLimit);
+        if (error) {
+            alert("Fehler beim Löschen: " + error.message);
+        } else {
+            alert("Vergangene Turniere wurden erfolgreich gelöscht.");
+            loadAllEvents();
+            if (typeof loadAdmin === 'function') loadAdmin();
+        }
+
+    } else if (mode === 'team') {
+        const selectedTeam = document.getElementById('cleanup-team-select').value;
+        if (!selectedTeam) {
+            alert("Bitte wähle eine Mannschaft aus.");
+            return;
+        }
+
+        if (!confirm(`Möchtest du wirklich alle Turniere der Mannschaft "${selectedTeam}" löschen?`)) return;
+
+        const { error } = await sb.from('tournaments').delete().eq('team', selectedTeam);
+        if (error) {
+            alert("Fehler beim Löschen: " + error.message);
+        } else {
+            alert(`Alle Turniere der Mannschaft "${selectedTeam}" wurden erfolgreich gelöscht.`);
+            loadAllEvents();
+            if (typeof loadAdmin === 'function') loadAdmin();
+        }
+
+    } else if (mode === 'all_teams') {
+        if (!confirm("SICHERHEITSHINWEIS: Möchtest du wirklich ALLE Turniere ALLER Mannschaften unwiderruflich löschen?")) return;
+
+        const { error } = await sb.from('tournaments').delete().neq('id', 0);
+        if (error) {
+            alert("Fehler beim Löschen: " + error.message);
+        } else {
+            alert("Der gesamte Turnierplan wurde komplett geleert.");
+            loadAllEvents();
+            if (typeof loadAdmin === 'function') loadAdmin();
+        }
+    }
 }
     
 </script>
