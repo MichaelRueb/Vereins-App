@@ -2822,6 +2822,8 @@ async function toggleCleanupMode() {
         }
         
         teamSelect.innerHTML = optionsHtml;
+        teamSelect.style.color = "#000000";
+        teamSelect.style.backgroundColor = "#ffffff";
         console.log("Dropdown erfolgreich befüllt!");
     } catch (err) {
         console.error("Fehler beim Laden der Teams:", err);
