@@ -2787,20 +2787,25 @@ function toggleCleanupMode() {
     const boxDate = document.getElementById('cleanup-box-date');
     const boxTeam = document.getElementById('cleanup-box-team');
     
+    // Sichtbarkeit der Boxen umschalten
     if (boxDate) boxDate.style.display = (mode === 'date') ? 'block' : 'none';
     if (boxTeam) boxTeam.style.display = (mode === 'team') ? 'block' : 'none';
 
+    // Wenn der Team-Modus gewählt wird, Dropdown befüllen
     if (mode === 'team') {
         const teamSelect = document.getElementById('cleanup-team-select');
         if (!teamSelect) return;
 
-        // Korrigiert: -Tags hinzugefügt
         let optionsHtml = '-- Bitte Mannschaft wählen --';
-        if (typeof ALL_TEAMS !== 'undefined') {
+        
+        if (typeof ALL_TEAMS !== 'undefined' && ALL_TEAMS.length > 0) {
             ALL_TEAMS.forEach(t => {
                 optionsHtml += `${t}`;
             });
+        } else {
+            optionsHtml += 'Keine Mannschaften gefunden';
         }
+        
         teamSelect.innerHTML = optionsHtml;
     }
 }
