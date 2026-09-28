@@ -2809,6 +2809,7 @@ async function toggleCleanupMode() {
         }
 
         if (teams.length > 0) {
+            // WICHTIG: Hier waren die -Tags verschwunden!
             teamSelect.innerHTML = teams.map(t => `${t}`).join('');
         } else {
             teamSelect.innerHTML = `Keine Mannschaften gefunden`;
