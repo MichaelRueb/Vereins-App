@@ -2797,11 +2797,10 @@ async function toggleCleanupMode() {
     }
 }
 
-  async function initCleanupTeams() {
-    // Holt das Element ganz explizit
+ async function initCleanupTeams() {
     const teamSelect = document.getElementById('cleanup-team-select');
     if (!teamSelect) {
-        console.error("KRITISCH: #cleanup-team-select wurde im Dokument nicht gefunden!");
+        console.error("Fehler: #cleanup-team-select nicht gefunden!");
         return;
     }
 
@@ -2810,26 +2809,20 @@ async function toggleCleanupMode() {
         
         if (error) throw error;
 
+        // Start-Eintrag mit echtem HTML-Tag
         let optionsHtml = '-- Bitte Mannschaft wählen --';
         
         if (teamData && teamData.length > 0) {
             teamData.forEach(t => {
-                // Wir erzwingen saubere Option-Tags mit Textinhalt
-                optionsHtml += `${t.name}`;
+                // Hier wird das option-Tag fest mit Verkettung gebaut
+                optionsHtml += '' + t.name + '';
             });
         } else {
-            optionsHtml += 'Keine Teams gefunden';
+            optionsHtml += 'Keine Teams in Datenbank';
         }
         
-        // Direktes Zuweisen
         teamSelect.innerHTML = optionsHtml;
-        
-        // Zwingt den Browser zum Neulich-Zeichnen des Dropdowns
-        teamSelect.style.display = 'none';
-        teamSelect.offsetHeight; // Reflow auslösen
-        teamSelect.style.display = 'block';
-
-        console.log("HTML erfolgreich in das Select-Feld injiziert:", teamSelect.innerHTML);
+        console.log("Dropdown erfolgreich befüllt!");
     } catch (err) {
         console.error("Fehler beim Laden der Teams:", err);
     }
