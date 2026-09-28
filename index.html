@@ -1639,8 +1639,9 @@ async function loadAdmin() {
     }
     // Initialisiert den Bereinigungs-Modus im Admin-Bereich
     // --- TURNIER-BEREINIGUNG MODUS INITIALISIEREN ---
+   // --- TURNIER-BEREINIGUNG MODUS INITIALISIEREN ---
     if (typeof toggleCleanupMode === 'function') {
-        await toggleCleanupMode();
+        toggleCleanupMode();
     }
     
     // --- GAU-MELDUNG TOGGLE & TABELLE ---
@@ -2778,7 +2779,7 @@ function onGauMemberChange() {
 }
 
     // Schaltet die Eingabefelder je nach Modus um und füllt das Mannschafts-Dropdown
-async function toggleCleanupMode() {
+function toggleCleanupMode() {
     const modeSelect = document.getElementById('cleanup-mode');
     if (!modeSelect) return;
     
@@ -2794,25 +2795,18 @@ async function toggleCleanupMode() {
         const teamSelect = document.getElementById('cleanup-team-select');
         if (!teamSelect) return;
 
-        teamSelect.innerHTML = 'Lade Mannschaften...';
-
-        // Hole alle Mannschaften direkt aus Supabase
-        const { data, error } = await sb.from('tournaments').select('team');
+        // Greift sofort auf deine vordefinierte ALL_TEAMS Liste zu
+        let optionsHtml = '-- Bitte Mannschaft wählen --';
         
-        let teams = [];
-        if (!error && data) {
-            teams = [...new Set(data.map(item => item.team).filter(t => t && t.trim() !== ""))].sort();
-        }
-
-        if (teams.length === 0 && typeof ALL_TEAMS !== 'undefined') {
-            teams = ALL_TEAMS;
-        }
-
-        if (teams.length > 0) {
-            teamSelect.innerHTML = teams.map(t => `${t}`).join('');
+        if (typeof ALL_TEAMS !== 'undefined') {
+            ALL_TEAMS.forEach(t => {
+                optionsHtml += `${t}`;
+            });
         } else {
-            teamSelect.innerHTML = 'Keine Mannschaften gefunden';
+            optionsHtml += 'Fehler: Liste nicht gefunden';
         }
+        
+        teamSelect.innerHTML = optionsHtml;
     }
 }
     
