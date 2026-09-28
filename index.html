@@ -2784,7 +2784,6 @@ function toggleCleanupMode() {
     if (!modeSelect) return;
     
     const mode = modeSelect.value;
-    
     const boxDate = document.getElementById('cleanup-box-date');
     const boxTeam = document.getElementById('cleanup-box-team');
     
@@ -2795,17 +2794,13 @@ function toggleCleanupMode() {
         const teamSelect = document.getElementById('cleanup-team-select');
         if (!teamSelect) return;
 
-        // Greift sofort auf deine vordefinierte ALL_TEAMS Liste zu
+        // Korrigiert: -Tags hinzugefügt
         let optionsHtml = '-- Bitte Mannschaft wählen --';
-        
         if (typeof ALL_TEAMS !== 'undefined') {
             ALL_TEAMS.forEach(t => {
                 optionsHtml += `${t}`;
             });
-        } else {
-            optionsHtml += 'Fehler: Liste nicht gefunden';
         }
-        
         teamSelect.innerHTML = optionsHtml;
     }
 }
