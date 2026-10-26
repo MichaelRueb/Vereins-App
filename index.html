@@ -920,23 +920,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!sel) return;
 
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
-    
-    let allowedTeams = [];
+    let optionsHtml = '';
 
     if (isAdmin || isOfficial) {
-        // Admins und Funktionäre dürfen alle sportlichen Mannschaften wählen
-        allowedTeams = ALL_TEAMS.filter(t => t !== "Passiv / Sonstige");
+        // Admins und Funktionäre dürfen Vereinstermine und alle Teams wählen
+        optionsHtml += `<option value="Verein" style="font-weight:bold; color:var(--primary);">📅 Allgemeiner Vereinstermin</option>`;
+        optionsHtml += `<option disabled>──────────────</option>`;
+        
+        const allowedTeams = ALL_TEAMS.filter(t => t !== "Passiv / Sonstige");
+        optionsHtml += allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     } else if (isCaptain) {
         // Kapitäne sehen nur ihre zugeordneten Teams
-        allowedTeams = myTeams;
+        optionsHtml += myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     }
 
-    sel.innerHTML = allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+    sel.innerHTML = optionsHtml;
+    
+    // Listener für dynamische Formular-Anpassung hinzufügen
+    sel.removeEventListener('change', updateEventFormUI);
+    sel.addEventListener('change', updateEventFormUI);
+    
+    updateEventFormUI(); // Direkt beim Laden einmal ausführen
+}
+
+    function updateEventFormUI() {
+    const sel = document.getElementById('event-team-select');
+    const opponentInput = document.getElementById('event-opponent');
+    const homeCheckboxWrap = document.getElementById('event-is-home');
+    
+    if (!sel || !opponentInput) return;
+    
+    if (sel.value === 'Verein') {
+        opponentInput.placeholder = "Titel des Termins (z.B. Mitgliederversammlung)";
+        if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'none'; // Heim-Checkbox verstecken
+    } else {
+        opponentInput.placeholder = "Gegner / Wettkampf-Name";
+        if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'flex'; // Heim-Checkbox anzeigen
+    }
 }
 
     // --- KALENDER & WETTKAMPF LOGIK ---
 
-  async function saveNewEvent() {
+ async function saveNewEvent() {
     const id = document.getElementById('edit-event-id').value;
     const date = document.getElementById('event-date').value;
     const time = document.getElementById('event-time').value;
@@ -944,31 +969,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const opponent = document.getElementById('event-opponent').value;
     const isHome = document.getElementById('event-is-home').checked;
 
-    if (!date || !opponent || !team) return alert("Bitte Datum, Team und Gegner angeben!");
+    if (!date || !opponent || !team) return alert("Bitte Datum, Mannschaft/Kategorie und Titel angeben!");
 
-    const payload = { date, time, team, opponent, is_home: isHome }; 
     let res;
-
-    // Wenn eine ID da ist -> UPDATE, sonst -> INSERT
-    if (id) {
-        res = await sb.from('tournaments').update(payload).eq('id', id);
+    
+    if (team === 'Verein') {
+        // Vereinstermine kommen in die 'club_events' Tabelle
+        const payload = { date, time, title: opponent }; 
+        if (id) {
+            res = await sb.from('club_events').update(payload).eq('id', id);
+        } else {
+            res = await sb.from('club_events').insert([payload]);
+        }
     } else {
-        res = await sb.from('tournaments').insert([payload]);
+        // Wettkämpfe kommen in die 'tournaments' Tabelle
+        const payload = { date, time, team, opponent, is_home: isHome }; 
+        if (id) {
+            res = await sb.from('tournaments').update(payload).eq('id', id);
+        } else {
+            res = await sb.from('tournaments').insert([payload]);
+        }
     }
-
-    if (res.error) {
-        // Falls die ID nicht mehr existiert (weil gelöscht), 
-        // wird hier der Fehler ausgegeben.
+     if (res && res.error) {
         alert("Fehler beim Speichern: " + res.error.message);
     } else {
-        alert(id ? "Termin aktualisiert!" : "Wettkampf erfolgreich gespeichert!");
-        
-        // WICHTIG: Formular leeren (inkl. der ID!)
+        alert(id ? "Termin aktualisiert!" : "Erfolgreich gespeichert!");
         resetEventForm();
-        
-        // Modal schließen (falls vorhanden)
         if (typeof closeModal === "function") closeModal();
-        
         loadAllEvents();
     }
 }
@@ -977,29 +1004,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ev = allEvents.find(x => x.id === id);
     if (!ev) return;
 
-    // 1. Daten in die Felder füllen
     document.getElementById('edit-event-id').value = id;
     document.getElementById('event-date').value = ev.date;
     document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
+    // ev.title kommt von club_events, ev.opponent von tournaments
     document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
     document.getElementById('event-team-select').value = ev.team;
     
-    // NEU: Checkbox für Heimwettkampf setzen
     const homeCb = document.getElementById('event-is-home');
     if (homeCb) homeCb.checked = ev.is_home || false;
 
-    // 2. UI-Texte für den Bearbeitungsmodus anpassen
-    document.getElementById('event-form-title').innerText = "Wettkampf bearbeiten";
+    document.getElementById('event-form-title').innerText = "Termin bearbeiten";
     document.getElementById('btn-save-event').innerText = "Änderungen speichern";
     document.getElementById('btn-cancel-event').style.display = "block";
+    
+    updateEventFormUI(); // Wichtig: UI beim Bearbeiten auf "Verein" oder "Team" umstellen
 
-    // 3. Scrollen zum Formular nach unten
     const formElement = document.getElementById('captain-event-form');
     if (formElement) {
-        formElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-        });
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
 
@@ -1085,12 +1108,21 @@ function resetEventForm() {
  function renderEventRow(e) {
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
     const isMyTeam = myTeams.includes(e.team);
-    const canEdit = isAdmin || isOfficial || (isCaptain && isMyTeam);
+    
+    // Berechtigungs-Logik:
+    let showActions = false;
+    if (e.team === 'Verein') {
+        // Nur Admin oder Funktionär darf Vereinstermine bearbeiten
+        showActions = isAdmin || isOfficial; 
+    } else {
+        // Bei Wettkämpfen: Auch der Mannschaftskapitän darf bearbeiten
+        showActions = isAdmin || isOfficial || (isCaptain && isMyTeam);
+    }
     
     let ortLabel = e.team !== 'Verein' ? (e.is_home ? "🏠 Heim" : "🚗 Auswärts") : "-";
 
     let actionButtons = '-';
-    if (canEdit && e.team !== 'Verein') {
+    if (showActions) {
         actionButtons = `
             <div class="action-btn-container">
                 <button class="btn-edit" onclick="editEvent('${e.id}')" title="Bearbeiten">✏️</button>
@@ -1108,30 +1140,19 @@ function resetEventForm() {
         <td>${actionButtons}</td>
     </tr>`;
 }
-
 // Die dazugehörige Lösch-Funktion für den Button
 async function deleteEvent(id) {
-    if (!confirm('Möchtest du diesen Wettkampf wirklich löschen?')) return;
+    if (!confirm('Möchtest du diesen Termin wirklich löschen?')) return;
 
     try {
-        // Nutze Supabase statt fetch, damit es zum Rest des Codes passt
-        const { error } = await sb
-            .from('tournaments')
-            .delete()
-            .eq('id', id);
+        // Wir löschen den Termin vorsichtshalber in BEIDEN Tabellen, da wir anhand
+        // der ID sofort den richtigen erwischen. Das verhindert Bugs ohne Mehraufwand.
+        await sb.from('tournaments').delete().eq('id', id);
+        await sb.from('club_events').delete().eq('id', id);
 
-        if (error) {
-            alert("Fehler beim Löschen: " + error.message);
-        } else {
-            // WICHTIG: Das Formular leeren, damit die gelöschte ID verschwindet
-            if (typeof resetEventForm === "function") {
-                resetEventForm();
-            }
-            
-            // Seite aktualisieren oder Liste neu laden
-            alert("Wettkampf gelöscht.");
-            loadAllEvents(); 
-        }
+        if (typeof resetEventForm === "function") resetEventForm();
+        alert("Termin erfolgreich gelöscht.");
+        loadAllEvents(); 
     } catch (error) {
         console.error('Kritischer Fehler beim Löschen:', error);
         alert('Verbindung zum Server fehlgeschlagen.');
