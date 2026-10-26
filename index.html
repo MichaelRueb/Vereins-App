@@ -1610,11 +1610,11 @@ async function loadAdmin() {
     }
 
     // --- MITGLIEDER-VERWALTUNG (Optimiertes Layout für Checkboxen) ---
+   // --- MITGLIEDER-VERWALTUNG ---
     const memberList = document.getElementById('admin-member-table-list');
     if (memberList) {
         memberList.innerHTML = profilesData.filter(p => p.is_approved === true).map(p => {
             const sum = hoursData ? hoursData.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
-            
             return `
             <tr>
                 <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold; vertical-align:middle;">
@@ -1630,6 +1630,12 @@ async function loadAdmin() {
                         <div class="admin-role-wrapper" style="display: flex; align-items: center; gap: 8px;">
                             <label style="font-size: 12px; font-weight: bold;">Funk:</label>
                             <input type="checkbox" style="width:16px; height:16px; margin:0;" ${p.is_official ? 'checked' : ''} onchange="updateRole('${p.id}','is_official',this.checked)">
+                        </div>
+                        
+                        <!-- NEUE ADMIN-BUTTONS FÜR EMAIL UND LÖSCHEN -->
+                        <div style="margin-top: 6px; display: flex; gap: 4px;">
+                            <button onclick="adminChangeEmail('${p.id}', '${p.full_name}')" style="background:#0288d1; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">📧 E-Mail</button>
+                            <button onclick="adminDeleteUser('${p.id}', '${p.full_name}')" style="background:#d32f2f; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">🗑️ Löschen</button>
                         </div>
                     </div>
                 </td>
@@ -1751,6 +1757,44 @@ async function loadAdmin() {
         
         content.innerHTML = html + '</ul>';
         row.style.display = 'table-row';
+    }
+}
+
+    async function adminChangeEmail(userId, currentName) {
+    if (!isAdmin) return alert("Nur Administratoren dürfen das.");
+    
+    const newEmail = prompt(`Neue E-Mail-Adresse für ${currentName} eingeben:`);
+    if (!newEmail || !newEmail.includes('@')) return;
+
+    const { error } = await sb.rpc('admin_update_email', { 
+        target_user_id: userId, 
+        new_email: newEmail 
+    });
+
+    if (error) {
+        alert("Fehler beim Ändern der E-Mail: " + error.message);
+    } else {
+        alert(`E-Mail für ${currentName} erfolgreich geändert! Der Benutzer kann sich ab sofort mit der neuen E-Mail einloggen.`);
+        loadAdmin();
+    }
+}
+
+async function adminDeleteUser(userId, currentName) {
+    if (!isAdmin) return alert("Nur Administratoren dürfen das.");
+    
+    if (!confirm(`WARNUNG: Möchtest du den Benutzer "${currentName}" wirklich KOMPLETT löschen? \n\nDas löscht seinen Login, sein Profil und all seine erfassten Stunden unwiderruflich!`)) {
+        return;
+    }
+
+    const { error } = await sb.rpc('admin_delete_user', { 
+        target_user_id: userId 
+    });
+
+    if (error) {
+        alert("Fehler beim Löschen: " + error.message);
+    } else {
+        alert(`Benutzer ${currentName} wurde restlos gelöscht.`);
+        loadAdmin();
     }
 }
 
