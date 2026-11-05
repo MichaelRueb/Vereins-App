@@ -615,6 +615,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </label>
         <hr>
         <h4 style="margin-top:15px;">📋 Übersicht Meisterschaftsmeldungen</h4>
+        <button onclick="exportGauMeldungenPDF()" style="background:var(--blue); margin-bottom:15px; width:auto; padding:8px 15px;">
+    📄 Gau-Meldungen PDF exportieren
+</button>
         <table style="width:100%; border-collapse: collapse;">
             <thead>
                 <tr style="background:#eee; text-align:left;">
@@ -2128,6 +2131,98 @@ async function adminDeleteUser(userId, currentName) {
     });
 
     doc.save(`Standgebühren_SV_Hubertus_${dateString}.pdf`);
+}
+
+    async function exportGauMeldungenPDF() {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert("PDF-Bibliothek fehlt. Bitte Seite neu laden.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // 1. Profile aus Supabase abrufen
+    const { data: profs, error } = await sb.from('profiles').select('*').order('full_name');
+
+    if (error || !profs) {
+        return alert("Fehler beim Laden der Daten: " + (error?.message || "Keine Daten gefunden"));
+    }
+
+    // Nur freigeschaltete Mitglieder mit Disziplinmeldungen filtern
+    const meldungen = profs.filter(p => p.is_approved && p.disciplines && p.disciplines.trim() !== "");
+
+    if (meldungen.length === 0) {
+        return alert("Bisher wurden keine Meisterschaftsmeldungen abgegeben.");
+    }
+
+    // Header & Design (Einheitlich mit den anderen PDF-Exporten)
+    doc.setFontSize(22);
+    doc.setTextColor(46, 125, 50);
+    doc.setFont("helvetica", "bold");
+    doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    const dateString = new Date().toLocaleDateString('de-DE');
+    doc.text(`Übersicht Meisterschaftsmeldungen (Gau) - Stand: ${dateString}`, 105, 28, { align: "center" });
+    doc.line(14, 35, 196, 35);
+
+    let grandTotal = 0;
+    const tableRows = [];
+
+    meldungen.forEach(p => {
+        const userDiscs = p.disciplines.split(',').map(d => d.trim());
+        let userTotal = 0;
+
+        const discDetailsText = userDiscs.map(discName => {
+            const foundObj = ALL_DISCIPLINES.find(d => d.name === discName);
+            const fee = foundObj ? foundObj.fee : 0;
+            userTotal += fee;
+            const feeStr = fee > 0 ? ` (${fee.toFixed(2).replace('.', ',')} €)` : " (kostenlos)";
+            return `• ${discName}${feeStr}`;
+        }).join('\n');
+
+        grandTotal += userTotal;
+
+        const statusText = p.gau_reported_at 
+            ? `✅ Gemeldet\n(${new Date(p.gau_reported_at).toLocaleDateString('de-DE')})` 
+            : '⏳ Offen';
+
+        tableRows.push([
+            { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+            { content: discDetailsText, styles: { fillColor: [245, 245, 245] } },
+            { 
+                content: `${userTotal.toFixed(2).replace('.', ',')} €`, 
+                styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245], textColor: [46, 125, 50] } 
+            },
+            { content: statusText, styles: { halign: 'center', fillColor: [245, 245, 245] } }
+        ]);
+    });
+
+    // Summenzeile am Tabellenende
+    tableRows.push([
+        { content: 'GESAMTSUMME (STARTGELDER)', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: `${grandTotal.toFixed(2).replace('.', ',')} €`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 240, 240], textColor: [46, 125, 50] } },
+        { content: '', styles: { fillColor: [240, 240, 240] } }
+    ]);
+
+    doc.autoTable({
+        startY: 40,
+        head: [['Schütze', 'Gemeldete Disziplinen', 'Startgeld', 'Melde-Status']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50] },
+        columnStyles: {
+            0: { cellWidth: 45 },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 30, halign: 'right' },
+            3: { cellWidth: 35, halign: 'center' }
+        }
+    });
+
+    doc.save(`Gau_Meldungen_SV_Hubertus_${dateString}.pdf`);
 }
 
     async function updatePassword() {
