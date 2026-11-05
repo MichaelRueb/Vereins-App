@@ -638,19 +638,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </label>
     </div>
     <div style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
-        <h4 style="margin-top:0;">📋 Übersicht Standgebühren & Vereinswaffen</h4>
-        <table style="width:100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background:#eee; text-align:left;">
-                    <th style="padding:8px;">Schütze</th>
-                    <th style="padding:8px;">Stand-Nutzung</th>
-                    <th style="padding:8px;">Vereinswaffe</th>
-                    <th style="padding:8px; width:90px;">Gesamt</th>
-                </tr>
-            </thead>
-            <tbody id="admin-stand-list"></tbody>
-        </table>
-    </div>
+    <h4 style="margin-top:0;">📋 Übersicht Standgebühren & Vereinswaffen</h4>
+    
+    <!-- HIER GEHÖRT DER BUTTON HIN -->
+    <button onclick="exportStandFeePDF()" style="background:var(--blue); margin-bottom:15px; width:auto; padding:8px 15px;">
+        📄 Standgebühren PDF exportieren
+    </button>
+    
+    <table style="width:100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background:#eee; text-align:left;">
+                <th style="padding:8px;">Schütze</th>
+                <th style="padding:8px;">Stand-Nutzung</th>
+                <th style="padding:8px;">Vereinswaffe</th>
+                <th style="padding:8px; width:90px;">Gesamt</th>
+            </tr>
+        </thead>
+        <tbody id="admin-stand-list"></tbody>
+    </table>
+</div>
 </div>
         
     </div> <!-- ENDE MAIN-APP -->
@@ -1629,8 +1635,7 @@ async function loadAdmin() {
         target.innerHTML = (pendingHtml || hoursHtml) ? (pendingHtml + hoursHtml) : "<tr><td colspan='4' style='text-align:center;'>Keine Aufgaben</td></tr>";
     }
 
-    // --- MITGLIEDER-VERWALTUNG (Optimiertes Layout für Checkboxen) ---
-   // --- MITGLIEDER-VERWALTUNG ---
+    // --- MITGLIEDER-VERWALTUNG ---
     const memberList = document.getElementById('admin-member-table-list');
     if (memberList) {
         memberList.innerHTML = profilesData.filter(p => p.is_approved === true).map(p => {
@@ -1652,7 +1657,6 @@ async function loadAdmin() {
                             <input type="checkbox" style="width:16px; height:16px; margin:0;" ${p.is_official ? 'checked' : ''} onchange="updateRole('${p.id}','is_official',this.checked)">
                         </div>
                         
-                        <!-- NEUE ADMIN-BUTTONS FÜR EMAIL UND LÖSCHEN -->
                         <div style="margin-top: 6px; display: flex; gap: 4px;">
                             <button onclick="adminChangeEmail('${p.id}', '${p.full_name}')" style="background:#0288d1; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">📧 E-Mail</button>
                             <button onclick="adminDeleteUser('${p.id}', '${p.full_name}')" style="background:#d32f2f; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">🗑️ Löschen</button>
@@ -1663,9 +1667,11 @@ async function loadAdmin() {
             <tr id="details-${p.id}" style="display:none;"><td colspan="3" id="content-${p.id}" style="background:#f9f9f9; padding:15px;"></td></tr>`;
         }).join('');
     }
-    // Initialisiert den Bereinigungs-Modus im Admin-Bereich
-   // --- TURNIER-BEREINIGUNG MODUS INITIALISIEREN ---
-   await initCleanupTeams();
+
+    // --- TURNIER-BEREINIGUNG INITIALISIEREN ---
+    if (typeof initCleanupTeams === 'function') {
+        await initCleanupTeams();
+    }
     if (typeof toggleCleanupMode === 'function') {
         toggleCleanupMode();
     }
@@ -1716,9 +1722,7 @@ async function loadAdmin() {
             `;
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Noch keine Meldungen</td></tr>";
     }
-<button onclick="exportStandFeePDF()" style="background:var(--blue); margin-bottom:15px; width:auto; padding:8px 15px;">
-    📄 Standgebühren PDF exportieren
-</button>
+
     // --- STANDGEBÜHR TOGGLE & TABELLE ---
     const standToggle = document.getElementById('admin-toggle-stand');
     if (standToggle) standToggle.checked = isStandOpen;
@@ -1739,7 +1743,6 @@ async function loadAdmin() {
             `;
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Bisher keine Stand- oder Waffenangaben gemacht</td></tr>";
     }
-   
 }
    async function viewUserDetail(uid) {
     const row = document.getElementById(`details-${uid}`);
