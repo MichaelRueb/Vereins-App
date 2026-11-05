@@ -1716,7 +1716,9 @@ async function loadAdmin() {
             `;
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Noch keine Meldungen</td></tr>";
     }
-
+<button onclick="exportStandFeePDF()" style="background:var(--blue); margin-bottom:15px; width:auto; padding:8px 15px;">
+    📄 Standgebühren PDF exportieren
+</button>
     // --- STANDGEBÜHR TOGGLE & TABELLE ---
     const standToggle = document.getElementById('admin-toggle-stand');
     if (standToggle) standToggle.checked = isStandOpen;
@@ -2046,6 +2048,83 @@ async function adminDeleteUser(userId, currentName) {
     });
 
     doc.save(`Hubertus_Abrechnung_${dateString}.pdf`);
+}
+
+    async function exportStandFeePDF() {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert("PDF-Bibliothek fehlt. Bitte Seite neu laden.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // 1. Profile aus Supabase abrufen
+    const { data: profs, error } = await sb.from('profiles').select('*').order('full_name');
+
+    if (error || !profs) {
+        return alert("Fehler beim Laden der Daten: " + (error?.message || "Keine Daten gefunden"));
+    }
+
+    // Nur freigeschaltete Mitglieder filtern, die Stand oder Leihwaffe angegeben haben
+    const standMeldungen = profs.filter(p => p.is_approved && ((p.shooting_stand && p.shooting_stand !== "keiner") || (p.club_weapon && p.club_weapon !== "keine")));
+
+    if (standMeldungen.length === 0) {
+        return alert("Bisher wurden keine Angaben zu Standgebühren oder Vereinswaffen gemacht.");
+    }
+
+    // Header & Design (Eins-zu-Eins aus exportToPDF übernommen)
+    doc.setFontSize(22);
+    doc.setTextColor(46, 125, 50);
+    doc.setFont("helvetica", "bold");
+    doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    const dateString = new Date().toLocaleDateString('de-DE');
+    doc.text(`Übersicht Standgebühren & Vereinswaffen - Stand: ${dateString}`, 105, 28, { align: "center" });
+    doc.line(14, 35, 196, 35);
+
+    let grandTotal = 0;
+    const tableRows = [];
+
+    standMeldungen.forEach(p => {
+        const details = getStandDetails(p.shooting_stand, p.club_weapon);
+        grandTotal += details.total;
+
+        tableRows.push([
+            { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+            { content: details.standText, styles: { fillColor: [245, 245, 245] } },
+            { content: details.weaponText, styles: { fillColor: [245, 245, 245] } },
+            { 
+                content: `${details.total.toFixed(2).replace('.', ',')} €`, 
+                styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245], textColor: [46, 125, 50] } 
+            }
+        ]);
+    });
+
+    // Summenzeile am Tabellenende
+    tableRows.push([
+        { content: 'GESAMTSUMME', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: `${grandTotal.toFixed(2).replace('.', ',')} €`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 240, 240], textColor: [46, 125, 50] } }
+    ]);
+
+    doc.autoTable({
+        startY: 40,
+        head: [['Schütze', 'Stand-Nutzung', 'Vereinswaffe', 'Gesamt']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50] },
+        columnStyles: {
+            0: { cellWidth: 'auto' },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 45 },
+            3: { cellWidth: 35, halign: 'right' }
+        }
+    });
+
+    doc.save(`Standgebühren_SV_Hubertus_${dateString}.pdf`);
 }
 
     async function updatePassword() {
