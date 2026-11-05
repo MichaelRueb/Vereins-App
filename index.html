@@ -503,8 +503,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Nutzt du Vereinswaffen?</label>
         <select id="prof-weapon" style="margin-bottom: 5px;">
             <option value="keine">Keine Vereinswaffen</option>
-           <!-- <option value="lg_lp_20">Luftgewehr / Luftpistole (20,00 €)</option>-->
-            <option value="cal22_30">Ab Kaliber .22 / Kurzwaffen (30,00 €)</option>
+           <option value="lg_lp_30">Luftgewehr/Luftpistole (30,00 €)</option>
         </select> 
     </div>
              <button onclick="updateProfile()" style="margin-top:15px;">Speichern</button>
@@ -2834,7 +2833,7 @@ function onGauMemberChange() {
     let weaponText = "Keine";
     let weaponFee = 0;
 
-    if (weaponKey === "lg_lp_20") { weaponText = "LG / LP"; weaponFee = 20.00; }
+    if (weaponKey === "lg_lp_30") { weaponText = "LG / LP"; weaponFee = 30.00; }
     else if (weaponKey === "cal22_30") { weaponText = "Ab Kaliber .22 / Kurzwaffe"; weaponFee = 30.00; }
 
     return {
