@@ -351,10 +351,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <div class="tabs">
             <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
             <div id="tab-events" class="tab" onclick="switchTab('events')">Kalender</div>
-           <div id="tab-mileage" class="tab" onclick="switchTab('mileage')">Fahrten</div>
+            <div id="tab-meals" class="tab" onclick="switchTab('meals')">Essen</div>
+            <div id="tab-mileage" class="tab" onclick="switchTab('mileage')">Fahrten</div>
             <div id="tab-profile" class="tab" onclick="switchTab('profile')">Profil</div>
             <div id="tab-admin" class="tab" style="display:none;" onclick="switchTab('admin')">Admin</div>
-             <div id="tab-gau" class="tab" style="display:none; background:var(--accent); color:white;" onclick="switchTab('gau')">Gau-Meldung</div>
+            <div id="tab-gau" class="tab" style="display:none; background:var(--accent); color:white;" onclick="switchTab('gau')">Gau-Meldung</div>
         </div>
 
         <!-- STUNDEN VIEW -->
@@ -554,7 +555,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 </div>
 </div>
        
-
+<div id="view-meals" class="view-section" style="display:none;">
+    <h3>🍲 Trainings-Essen</h3>
+    <div id="meals-user-container">
+        <!-- Wird dynamisch per JS befüllt -->
+    </div>
+</div>
        <!-- ADMIN VIEW -->
 <div id="view-admin" style="display:none;">
     <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32;">
@@ -660,6 +666,31 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <tbody id="admin-stand-list"></tbody>
     </table>
 </div>
+
+<div style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+    <h4>🍲 Trainings-Essen verwalten (Funktionäre / Admin)</h4>
+    
+    <!-- Formular zum Erstellen eines neuen Essens -->
+    <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px;">
+        <h5 style="margin-top:0;">Neues Essen anbieten</h5>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+            <input type="text" id="admin-meal-title" placeholder="Gericht (z.B. Schnitzel mit Kartoffelsalat)">
+            <input type="date" id="admin-meal-date">
+            <input type="number" step="0.50" id="admin-meal-price" placeholder="Preis pro Portion (€)">
+            <div>
+                <label style="font-size:11px; display:block;">Anmeldefrist bis:</label>
+                <input type="datetime-local" id="admin-meal-deadline">
+            </div>
+        </div>
+        <button onclick="saveNewMeal()" style="background:var(--primary); color:white; margin-top:10px; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">
+            Essen veröffentlichen
+        </button>
+    </div>
+
+    <!-- Hier wird dynamisch für jedes Essen die Gesamtanzahl & der PDF-Export-Button generiert -->
+    <div id="admin-meals-list"></div>
+</div>
+    
 </div>
         
     </div> <!-- ENDE MAIN-APP -->
@@ -1200,6 +1231,9 @@ async function deleteEvent(id) {
         // Datum auf heute setzen
         const dateInput = document.getElementById('ml-date');
         if(dateInput) dateInput.valueAsDate = new Date();
+    }
+       if (tabName === 'meals') {
+        loadMealsView();
     }
 }
 
@@ -1746,6 +1780,9 @@ async function loadAdmin() {
             `;
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Bisher keine Stand- oder Waffenangaben gemacht</td></tr>";
     }
+    if (typeof loadAdminMeals === 'function') {
+    loadAdminMeals();
+}
 }
    async function viewUserDetail(uid) {
     const row = document.getElementById(`details-${uid}`);
@@ -2754,6 +2791,234 @@ async function importICSPlan(icsText) {
     alert(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`);
 }
 
+    // --- TRAININGS-ESSEN LOGIK ---
+
+// 1. Mitglieder-Ansicht laden (Formular für Portionen & Bemerkungen)
+async function loadMealsView() {
+    const container = document.getElementById('meals-user-container');
+    if (!container) return;
+
+    container.innerHTML = "<p>Lade Essen...</p>";
+
+    const { data: meals, error } = await sb.from('meals').select('*').order('date', { ascending: true });
+    
+    if (error || !meals || meals.length === 0) {
+        container.innerHTML = "<p>Aktuell ist kein Essen nach dem Training geplant.</p>";
+        return;
+    }
+
+    const { data: myOrders } = await sb.from('meal_orders').select('*').eq('user_id', currentUser.id);
+    const now = new Date();
+
+    container.innerHTML = meals.map(meal => {
+        const deadlineDate = new Date(meal.deadline);
+        const isExpired = now > deadlineDate;
+        const myOrder = myOrders ? myOrders.find(o => o.meal_id === meal.id) : null;
+
+        const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
+        const formattedDeadline = deadlineDate.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+
+        return `
+            <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h4 style="margin:0 0 5px 0; color:var(--primary);">${meal.title}</h4>
+                        <p style="margin:0; font-size:14px; color:#555;">
+                            📅 <strong>Termin:</strong> ${formattedDate} | 
+                            💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € pro Portion
+                        </p>
+                        <p style="margin:5px 0 0 0; font-size:12px; color:${isExpired ? '#d32f2f' : '#2e7d32'}; font-weight:bold;">
+                            ⏰ <strong>Anmeldefrist:</strong> ${formattedDeadline} Uhr ${isExpired ? '(Abgelaufen!)' : ''}
+                        </p>
+                    </div>
+                </div>
+
+                <hr style="margin:12px 0; border:0; border-top:1px solid #eee;">
+
+                ${isExpired ? `
+                    <div style="background:#ffebee; color:#c62828; padding:10px; border-radius:4px; font-size:13px;">
+                        ${myOrder ? `Du hast <strong>${myOrder.portions} Portion(en)</strong> bestellt. (Frist abgelaufen, keine Änderungen mehr möglich)` : 'Die Anmeldefrist für dieses Essen ist leider abgelaufen.'}
+                    </div>
+                ` : `
+                    <form onsubmit="submitMealOrder(event, '${meal.id}')" style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="display:flex; gap:15px; align-items:center;">
+                            <label style="font-size:13px; font-weight:bold;">Portionen:</label>
+                            <input type="number" id="portions-${meal.id}" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:70px; padding:6px;">
+                        </div>
+                        <div>
+                            <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">Bemerkungen / Sonderwünsche:</label>
+                            <input type="text" id="remarks-${meal.id}" placeholder="z.B. Keine Beilage, Vegetarisch..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px;">
+                        </div>
+                        <button type="submit" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; align-self:flex-start;">
+                            ${myOrder ? 'Bestellung aktualisieren' : 'Kostenpflichtig bestellen'}
+                        </button>
+                    </form>
+                `}
+            </div>
+        `;
+    }).join('');
+}
+
+// 2. Bestellung speichern (Mitglied)
+async function submitMealOrder(event, mealId) {
+    event.preventDefault();
+    const portions = parseInt(document.getElementById(`portions-${mealId}`).value);
+    const remarks = document.getElementById(`remarks-${mealId}`).value.trim();
+
+    const { error } = await sb.from('meal_orders').upsert({
+        meal_id: mealId,
+        user_id: currentUser.id,
+        portions: portions,
+        remarks: remarks
+    }, { onConflict: 'meal_id,user_id' });
+
+    if (error) {
+        alert("Fehler beim Speichern der Bestellung: " + error.message);
+    } else {
+        alert("Bestellung erfolgreich gespeichert!");
+        loadMealsView();
+    }
+}
+
+// 3. Neues Essen anlegen (Admin / Funktionär)
+async function saveNewMeal() {
+    if (!isAdmin && !isOfficial) return alert("Nur Funktionäre dürfen Essen anlegen.");
+
+    const title = document.getElementById('admin-meal-title').value.trim();
+    const date = document.getElementById('admin-meal-date').value;
+    const price = parseFloat(document.getElementById('admin-meal-price').value || 0);
+    const deadline = document.getElementById('admin-meal-deadline').value;
+
+    if (!title || !date || !deadline) {
+        return alert("Bitte Titel, Datum und Anmeldefrist ausfüllen!");
+    }
+
+    const { error } = await sb.from('meals').insert([{ title, date, price, deadline }]);
+
+    if (error) {
+        alert("Fehler beim Anlegen: " + error.message);
+    } else {
+        alert("Essen erfolgreich veröffentlicht!");
+        document.getElementById('admin-meal-title').value = "";
+        document.getElementById('admin-meal-date').value = "";
+        document.getElementById('admin-meal-price').value = "";
+        document.getElementById('admin-meal-deadline').value = "";
+        loadAdminMeals();
+    }
+}
+
+// 4. Admin-Übersicht für Essen laden (Generiert Liste + PDF-Export Buttons)
+async function loadAdminMeals() {
+    const container = document.getElementById('admin-meals-list');
+    if (!container) return;
+
+    const { data: meals } = await sb.from('meals').select('*, meal_orders(*, profiles(full_name))').order('date', { ascending: false });
+
+    if (!meals || meals.length === 0) {
+        container.innerHTML = "<p>Keine Essen vorhanden.</p>";
+        return;
+    }
+
+    container.innerHTML = meals.map(m => {
+        const orders = m.meal_orders || [];
+        const totalPortions = orders.reduce((sum, o) => sum + o.portions, 0);
+        const totalPrice = totalPortions * parseFloat(m.price);
+
+        return `
+            <div style="background:#f4f4f4; border:1px solid #ccc; padding:12px; margin-bottom:12px; border-radius:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong>${m.title}</strong> (${new Date(m.date).toLocaleDateString('de-DE')})<br>
+                        <small>Gesamt: <strong>${totalPortions} Portionen</strong> (${totalPrice.toFixed(2).replace('.', ',')} €)</small>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <!-- HIER WIRD DER PDF-BUTTON PRO ESSEN GENERIERT -->
+                        <button onclick="exportMealPDF('${m.id}')" style="background:#0288d1; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">📄 PDF Export</button>
+                        <button onclick="deleteMeal('${m.id}')" style="background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">🗑️ Löschen</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 5. Essen löschen
+async function deleteMeal(mealId) {
+    if (!confirm("Möchtest du dieses Essen und alle zugehörigen Bestellungen wirklich löschen?")) return;
+    await sb.from('meals').delete().eq('id', mealId);
+    loadAdminMeals();
+}
+
+// 6. PDF-Export für das gewählte Essen
+async function exportMealPDF(mealId) {
+    if (!window.jspdf || !window.jspdf.jsPDF) return alert("PDF-Bibliothek fehlt.");
+
+    const { data: meal, error } = await sb.from('meals')
+        .select('*, meal_orders(*, profiles(full_name))')
+        .eq('id', mealId)
+        .single();
+
+    if (error || !meal) return alert("Fehler beim Laden der Daten.");
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Header & Design (Einheitlich im Grün-Design)
+    doc.setFontSize(22);
+    doc.setTextColor(46, 125, 50);
+    doc.setFont("helvetica", "bold");
+    doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    const dateString = new Date(meal.date).toLocaleDateString('de-DE');
+    doc.text(`Bestellliste: ${meal.title} am ${dateString}`, 105, 28, { align: "center" });
+    doc.line(14, 35, 196, 35);
+
+    const orders = meal.meal_orders || [];
+    let totalPortions = 0;
+    let grandTotal = 0;
+    const tableRows = [];
+
+    orders.forEach(o => {
+        totalPortions += o.portions;
+        const price = o.portions * parseFloat(meal.price);
+        grandTotal += price;
+
+        tableRows.push([
+            { content: o.profiles?.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+            { content: `${o.portions} Portion(en)`, styles: { halign: 'center', fillColor: [245, 245, 245] } },
+            { content: o.remarks || '-', styles: { fillColor: [245, 245, 245] } },
+            { content: `${price.toFixed(2).replace('.', ',')} €`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245], textColor: [46, 125, 50] } }
+        ]);
+    });
+
+    // Summenzeile am Ende der Tabelle
+    tableRows.push([
+        { content: 'GESAMTSUMME', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: `${totalPortions} Portionen`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [240, 240, 240] } },
+        { content: '', styles: { fillColor: [240, 240, 240] } },
+        { content: `${grandTotal.toFixed(2).replace('.', ',')} €`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 240, 240], textColor: [46, 125, 50] } }
+    ]);
+
+    doc.autoTable({
+        startY: 40,
+        head: [['Mitglied', 'Anzahl', 'Bemerkung / Sonderwunsch', 'Betrag']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50] },
+        columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 30, halign: 'center' },
+            2: { cellWidth: 'auto' },
+            3: { cellWidth: 30, halign: 'right' }
+        }
+    });
+
+    doc.save(`Bestellung_${meal.title.replace(/\s+/g, '_')}_${dateString}.pdf`);
+}
+
     function handleICSUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -3080,6 +3345,7 @@ async function initCleanupTeams() {
         console.error("Fehler beim Befüllen des Teams-Dropdowns:", err);
     }
 }
+
     
 // Führt die eigentliche Löschung in Supabase aus
 async function executeTournamentCleanup() {
