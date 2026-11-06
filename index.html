@@ -1201,8 +1201,8 @@ async function deleteEvent(id) {
     // --- TABS & NAVIGATION ---
 
    function switchTab(t) { 
-    // Hier stehen die Namen deiner Tabs/Views
-    ['home', 'events', 'profile', 'admin', 'mileage', 'gau'].forEach(v => { 
+    // Hier stehen die Namen deiner Tabs/Views (inklusive 'meals')
+    ['home', 'events', 'profile', 'admin', 'mileage', 'gau', 'meals'].forEach(v => { 
         const view = document.getElementById('view-' + v);
         const tab = document.getElementById('tab-' + v);
         
@@ -1218,7 +1218,7 @@ async function deleteEvent(id) {
         loadAdmin(); 
     }
 
-       if (t === 'gau') {
+    if (t === 'gau') {
         initGauTab();
     }
     
@@ -1232,14 +1232,11 @@ async function deleteEvent(id) {
         const dateInput = document.getElementById('ml-date');
         if(dateInput) dateInput.valueAsDate = new Date();
     }
-       if (tabName === 'meals') {
-        loadMealsView();
+
+    if (t === 'meals') {
+        if(typeof loadMealsView === "function") loadMealsView();
     }
 }
-
-    // --- FAHRTENBUCH LOGIK (AKTUALISIERT) ---
-
-let currentMileageEditId = null; // Globale Variable für den Bearbeitungs-Status
 
 function calcTotalKm() {
     // Geändert auf ID 'ml-km-single' und 'ml-roundtrip'
