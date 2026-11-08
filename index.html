@@ -892,8 +892,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 // 1. MOBILER LIVE-DEBUGGER (Muss ganz oben stehen!)
 // ==========================================
 window.onerror = function(message, source, lineno, colno, error) {
-    alert("🚨 JS-FEHLER AUF DEM HANDY:\n" + message + "\nZeile: " + lineno);
+    console.error("Globaler JS-Fehler:", message, "in", source, "Zeile:", lineno);
+    
+    if (typeof showToast === 'function') {
+        showToast("🚨 JS-Fehler: " + message + " (Zeile " + lineno + ")", "error");
+    }
     return false;
+};
 };
 
 // ==========================================
@@ -906,7 +911,10 @@ let sb;
 try {
     sb = supabase.createClient(S_URL, S_KEY);
 } catch (e) {
-    alert("🚨 Supabase konnte nicht geladen werden: " + e.message);
+    console.error("Supabase-Fehler:", e);
+    if (typeof showToast === 'function') {
+        showToast("🚨 Supabase konnte nicht geladen werden: " + e.message, "error");
+    }
 }
 
 const ADMIN_EMAIL = "zonk1981.mz@googlemail.com";
@@ -1009,11 +1017,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hatHashToken = window.location.hash.includes('access_token=');
     const istRecoveryMode = aktuelleURL.includes('type=recovery') || urlParams.get('view') === 'update-password';
 
-    if (hatHashToken || istRecoveryMode) {
-        alert("🎉 Reset-Modus erfolgreich auf dem Handy erkannt!"); 
-        showUpdatePasswordUI();
-        return; // Verhindert den normalen Login-Check
+   if (hatHashToken || istRecoveryMode) {
+    if (typeof showToast === 'function') {
+        showToast("🎉 Reset-Modus auf dem Handy erkannt!", "info");
     }
+    showUpdatePasswordUI();
+    return; // Verhindert den normalen Login-Check
+}
 
     // 2. Normaler Login-Check
     if (sb) {
@@ -1040,27 +1050,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         const name = document.getElementById('reg-name').value;
         const confirm = document.getElementById('password-confirm').value;
 
-        if (!name || !email || !pass) return alert("Bitte alle Felder ausfüllen!");
-        if (pass !== confirm) return alert("Passwörter stimmen nicht überein!");
+      if (!name || !email || !pass) {
+            showToast("Bitte alle Felder ausfüllen!", "error");
+            return;
+        }
+        if (pass !== confirm) {
+            showToast("Passwörter stimmen nicht überein!", "error");
+            return;
+        }
         
         // Deine Passwort-Validierung (3 von 4) bleibt hier...
 
         const { data, error } = await sb.auth.signUp({ email, password: pass });
-        if (error) return alert(error.message);
+        if (error) {
+            showToast(error.message, "error");
+            return;
+        }
 
         // WICHTIG: Profil explizit mit is_approved: false anlegen
         const { error: profError } = await sb.from('profiles').insert([
             { id: data.user.id, full_name: name, is_approved: false }
         ]);
 
-        if (profError) return alert("Profilfehler: " + profError.message);
+        if (profError) {
+            showToast("Profilfehler: " + profError.message, "error");
+            return;
+        }
 
-        alert("Registrierung erfolgreich! Bitte warte auf die Freigabe durch den Admin. Du kannst dich erst danach einloggen.");
-        location.reload(); // Seite neu laden, damit setupApp nicht ausgeführt wird
+        showToast("Registrierung erfolgreich! Bitte warte auf die Freigabe durch den Admin.", "success");
+        setTimeout(() => location.reload(), 2000); // Seite nach 2 Sek. neu laden, damit die Meldung sichtbar bleibt
     } else {
         // Normaler Login
         const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-        if (error) return alert(error.message);
+        if (error) {
+            showToast(error.message, "error");
+            return;
+        }
         
         // Prüfen, ob der User freigeschaltet ist
         const { data: p } = await sb.from('profiles').select('is_approved').eq('id', data.user.id).maybeSingle();
@@ -1069,11 +1094,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             setupApp(data.user);
         } else {
             await sb.auth.signOut();
-            alert("Dein Konto ist noch nicht freigeschaltet. Bitte gedulde dich noch etwas.");
+            showToast("Dein Konto ist noch nicht freigeschaltet. Bitte gedulde dich noch etwas.", "info");
         }
     }
 }
-
    async function setupApp(user) {
     // FIX: Das Anmeldefenster explizit verstecken
     const authUI = document.getElementById('auth-ui');
@@ -1198,7 +1222,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const opponent = document.getElementById('event-opponent').value;
     const isHome = document.getElementById('event-is-home').checked;
 
-    if (!date || !opponent || !team) return alert("Bitte Datum, Mannschaft/Kategorie und Titel angeben!");
+  if (!date || !opponent || !team) {
+        showToast("Bitte Datum, Mannschaft/Kategorie und Titel angeben!", "error");
+        return;
+    }
 
     let res;
     
@@ -1219,10 +1246,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             res = await sb.from('tournaments').insert([payload]);
         }
     }
-     if (res && res.error) {
-        alert("Fehler beim Speichern: " + res.error.message);
+
+    if (res && res.error) {
+        showToast("Fehler beim Speichern: " + res.error.message, "error");
     } else {
-        alert(id ? "Termin aktualisiert!" : "Erfolgreich gespeichert!");
+        showToast(id ? "Termin aktualisiert!" : "Erfolgreich gespeichert!", "success");
         resetEventForm();
         if (typeof closeModal === "function") closeModal();
         loadAllEvents();
@@ -1379,13 +1407,13 @@ async function deleteEvent(id) {
         await sb.from('tournaments').delete().eq('id', id);
         await sb.from('club_events').delete().eq('id', id);
 
-        if (typeof resetEventForm === "function") resetEventForm();
-        alert("Termin erfolgreich gelöscht.");
-        loadAllEvents(); 
-    } catch (error) {
-        console.error('Kritischer Fehler beim Löschen:', error);
-        alert('Verbindung zum Server fehlgeschlagen.');
-    }
+      if (typeof resetEventForm === "function") resetEventForm();
+    showToast("Termin erfolgreich gelöscht.", "success");
+    loadAllEvents(); 
+} catch (error) {
+    console.error('Kritischer Fehler beim Löschen:', error);
+    showToast("Verbindung zum Server fehlgeschlagen.", "error");
+}
 }
 
     // --- TABS & NAVIGATION ---
@@ -1542,11 +1570,10 @@ async function saveMileage() {
     const kmSingle = parseFloat(fields.km.value.replace(',', '.'));
     const isRound = fields.roundtrip.checked;
 
-    if (!date || !purpose || isNaN(kmSingle)) {
-        alert("Bitte fülle mindestens Datum, Zweck und Kilometer aus.");
-        return;
-    }
-
+   if (!date || !purpose || isNaN(kmSingle)) {
+    showToast("Bitte fülle mindestens Datum, Zweck und Kilometer aus.", "error");
+    return;
+}
     const payload = {
         date: date,
         purpose: purpose,
@@ -1568,16 +1595,16 @@ async function saveMileage() {
             error = res.error;
         }
 
-        if (error) throw error;
+      if (error) throw error;
 
-        alert("Fahrt erfolgreich gespeichert!");
-        resetMileageForm();
-        loadMileageHistory(); // Liste neu laden
-        
-    } catch (err) {
-        console.error("Datenbankfehler:", err);
-        alert("Speichern fehlgeschlagen: " + err.message);
-    }
+    showToast("Fahrt erfolgreich gespeichert!", "success");
+    resetMileageForm();
+    loadMileageHistory(); // Liste neu laden
+    
+} catch (err) {
+    console.error("Datenbankfehler:", err);
+    showToast("Speichern fehlgeschlagen: " + err.message, "error");
+}
 }
 
 function resetMileageForm() {
@@ -1625,7 +1652,7 @@ async function editMileage(id) {
         document.getElementById('ml-form-title').innerText = "Fahrt bearbeiten";
         document.getElementById('ml-cancel-btn').style.display = "inline-block";
         const btn = document.querySelector('button[onclick="saveMileage()"]');
-        if (btn) {
+       if (btn) {
             btn.innerText = "Änderungen speichern";
             btn.style.backgroundColor = "#f39c12";
         }
@@ -1633,15 +1660,20 @@ async function editMileage(id) {
         calcTotalKm();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-        alert("Fehler beim Laden: " + err.message);
+        showToast("Fehler beim Laden: " + err.message, "error");
     }
 }
 
 async function deleteMileage(id) {
     if (!confirm("Möchtest du diese Fahrt wirklich löschen?")) return;
     const { error } = await sb.from('mileage_logs').delete().eq('id', id);
-    if (error) alert("Fehler beim Löschen: " + error.message);
-    else loadMileageHistory();
+    
+    if (error) {
+        showToast("Fehler beim Löschen: " + error.message, "error");
+    } else {
+        showToast("Fahrt gelöscht.", "info");
+        loadMileageHistory();
+    }
 }
 
 async function exportMileagePDF() {
@@ -1650,7 +1682,10 @@ async function exportMileagePDF() {
     const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
     const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
     
-    if (!logs || logs.length === 0) return alert("Keine Fahrten zum Exportieren gefunden!");
+ if (!logs || logs.length === 0) {
+    showToast("Keine Fahrten zum Exportieren gefunden!", "info");
+    return;
+}
 
     doc.setFontSize(18);
     doc.setTextColor(46, 125, 50);
@@ -1688,16 +1723,22 @@ async function exportMileagePDF() {
 
     // --- STUNDEN LOGIK ---
 
-    async function sendHours() { 
-        await sb.from('work_hours').insert([{ 
-            user_id: currentUser.id, 
-            date: document.getElementById('date').value, 
-            duration: document.getElementById('hours').value, 
-            description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, 
-            status: 'pending' 
-        }]); 
-        alert("Gesendet!"); loadHistory(); 
+  async function sendHours() { 
+    const { error } = await sb.from('work_hours').insert([{ 
+        user_id: currentUser.id, 
+        date: document.getElementById('date').value, 
+        duration: document.getElementById('hours').value, 
+        description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, 
+        status: 'pending' 
+    }]); 
+
+    if (error) {
+        showToast("Fehler beim Senden: " + error.message, "error");
+    } else {
+        showToast("Gesendet!", "success"); 
+        loadHistory(); 
     }
+}
 
    async function loadHistory() {
     const { data: hours, error } = await sb.from('work_hours')
@@ -1810,11 +1851,11 @@ async function exportMileagePDF() {
         club_weapon: weapon
     }); 
 
-    if (error) {
-        alert("Fehler beim Speichern: " + error.message);
+  if (error) {
+        showToast("Fehler beim Speichern: " + error.message, "error");
     } else {
         userTeam = teams;
-        alert("Profil, Standgebühr & Waffen-Auswahl gespeichert!"); 
+        showToast("Profil, Standgebühr & Waffen-Auswahl gespeichert!", "success"); 
     }
 }
 async function loadAdmin() {
@@ -2015,8 +2056,11 @@ async function loadAdmin() {
     }
 }
 
-    async function adminChangeEmail(userId, currentName) {
-    if (!isAdmin) return alert("Nur Administratoren dürfen das.");
+  async function adminChangeEmail(userId, currentName) {
+    if (!isAdmin) {
+        showToast("Nur Administratoren dürfen das.", "error");
+        return;
+    }
     
     const newEmail = prompt(`Neue E-Mail-Adresse für ${currentName} eingeben:`);
     if (!newEmail || !newEmail.includes('@')) return;
@@ -2027,15 +2071,18 @@ async function loadAdmin() {
     });
 
     if (error) {
-        alert("Fehler beim Ändern der E-Mail: " + error.message);
+        showToast("Fehler beim Ändern der E-Mail: " + error.message, "error");
     } else {
-        alert(`E-Mail für ${currentName} erfolgreich geändert! Der Benutzer kann sich ab sofort mit der neuen E-Mail einloggen.`);
+        showToast(`E-Mail für ${currentName} erfolgreich geändert!`, "success");
         loadAdmin();
     }
 }
 
 async function adminDeleteUser(userId, currentName) {
-    if (!isAdmin) return alert("Nur Administratoren dürfen das.");
+    if (!isAdmin) {
+        showToast("Nur Administratoren dürfen das.", "error");
+        return;
+    }
     
     if (!confirm(`WARNUNG: Möchtest du den Benutzer "${currentName}" wirklich KOMPLETT löschen? \n\nDas löscht seinen Login, sein Profil und all seine erfassten Stunden unwiderruflich!`)) {
         return;
@@ -2046,14 +2093,14 @@ async function adminDeleteUser(userId, currentName) {
     });
 
     if (error) {
-        alert("Fehler beim Löschen: " + error.message);
+        showToast("Fehler beim Löschen: " + error.message, "error");
     } else {
-        alert(`Benutzer ${currentName} wurde restlos gelöscht.`);
+        showToast(`Benutzer ${currentName} wurde restlos gelöscht.`, "info");
         loadAdmin();
     }
 }
 
-    async function adminDeleteWork(hourId, userId) {
+   async function adminDeleteWork(hourId, userId) {
     if (!confirm("Möchtest du diesen Eintrag wirklich unwiderruflich löschen?")) return;
 
     try {
@@ -2061,7 +2108,7 @@ async function adminDeleteUser(userId, currentName) {
         
         if (error) throw error;
 
-        alert("Eintrag erfolgreich entfernt.");
+        showToast("Eintrag erfolgreich entfernt.", "info");
         
         // 1. Admin-Hauptliste neu laden (aktualisiert die Summen in der Zeile)
         await loadAdmin(); 
@@ -2071,7 +2118,7 @@ async function adminDeleteUser(userId, currentName) {
 
     } catch (err) {
         console.error("Löschfehler:", err);
-        alert("Fehler beim Löschen: " + err.message);
+        showToast("Fehler beim Löschen: " + err.message, "error");
     }
 }
 
@@ -2181,9 +2228,9 @@ async function adminDeleteUser(userId, currentName) {
 
     // --- EXPORT FUNKTIONEN ---
 
-  async function exportToPDF() {
+async function exportToPDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("PDF-Bibliothek fehlt. Bitte Seite neu laden.");
+        showToast("PDF-Bibliothek fehlt. Bitte Seite neu laden.", "error");
         return;
     }
 
@@ -2283,9 +2330,9 @@ async function adminDeleteUser(userId, currentName) {
     doc.save(`Hubertus_Abrechnung_${dateString}.pdf`);
 }
 
-    async function exportStandFeePDF() {
+   async function exportStandFeePDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("PDF-Bibliothek fehlt. Bitte Seite neu laden.");
+        showToast("PDF-Bibliothek fehlt. Bitte Seite neu laden.", "error");
         return;
     }
 
@@ -2296,14 +2343,16 @@ async function adminDeleteUser(userId, currentName) {
     const { data: profs, error } = await sb.from('profiles').select('*').order('full_name');
 
     if (error || !profs) {
-        return alert("Fehler beim Laden der Daten: " + (error?.message || "Keine Daten gefunden"));
+        showToast("Fehler beim Laden der Daten: " + (error?.message || "Keine Daten gefunden"), "error");
+        return;
     }
 
     // Nur freigeschaltete Mitglieder filtern, die Stand oder Leihwaffe angegeben haben
     const standMeldungen = profs.filter(p => p.is_approved && ((p.shooting_stand && p.shooting_stand !== "keiner") || (p.club_weapon && p.club_weapon !== "keine")));
 
     if (standMeldungen.length === 0) {
-        return alert("Bisher wurden keine Angaben zu Standgebühren oder Vereinswaffen gemacht.");
+        showToast("Bisher wurden keine Angaben zu Standgebühren oder Vereinswaffen gemacht.", "info");
+        return;
     }
 
     // Header & Design (Eins-zu-Eins aus exportToPDF übernommen)
@@ -2360,9 +2409,9 @@ async function adminDeleteUser(userId, currentName) {
     doc.save(`Standgebühren_SV_Hubertus_${dateString}.pdf`);
 }
 
-    async function exportGauMeldungenPDF() {
+   async function exportGauMeldungenPDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("PDF-Bibliothek fehlt. Bitte Seite neu laden.");
+        showToast("PDF-Bibliothek fehlt. Bitte Seite neu laden.", "error");
         return;
     }
 
@@ -2373,14 +2422,16 @@ async function adminDeleteUser(userId, currentName) {
     const { data: profs, error } = await sb.from('profiles').select('*').order('full_name');
 
     if (error || !profs) {
-        return alert("Fehler beim Laden der Daten: " + (error?.message || "Keine Daten gefunden"));
+        showToast("Fehler beim Laden der Daten: " + (error?.message || "Keine Daten gefunden"), "error");
+        return;
     }
 
     // Nur freigeschaltete Mitglieder mit Disziplinmeldungen filtern
     const meldungen = profs.filter(p => p.is_approved && p.disciplines && p.disciplines.trim() !== "");
 
     if (meldungen.length === 0) {
-        return alert("Bisher wurden keine Meisterschaftsmeldungen abgegeben.");
+        showToast("Bisher wurden keine Meisterschaftsmeldungen abgegeben.", "info");
+        return;
     }
 
     // Header & Design (Einheitlich mit den anderen PDF-Exporten)
@@ -2452,12 +2503,18 @@ async function adminDeleteUser(userId, currentName) {
     doc.save(`Gau_Meldungen_SV_Hubertus_${dateString}.pdf`);
 }
 
-    async function updatePassword() {
+       async function updatePassword() {
     const p1 = document.getElementById('new-pass').value;
     const p2 = document.getElementById('new-pass-confirm').value;
 
-    if (p1 !== p2) return alert("Passwörter stimmen nicht überein!");
-    if (p1.length < 8) return alert("Passwort muss mindestens 8 Zeichen lang sein!");
+    if (p1 !== p2) {
+        showToast("Passwörter stimmen nicht überein!", "error");
+        return;
+    }
+    if (p1.length < 8) {
+        showToast("Passwort muss mindestens 8 Zeichen lang sein!", "error");
+        return;
+    }
 
     // 3 von 4 Kriterien prüfen
     let criteria = 0;
@@ -2467,8 +2524,8 @@ async function adminDeleteUser(userId, currentName) {
     if (/[^A-Za-z0-9]/.test(p1)) criteria++;  // Sonderzeichen
 
     if (criteria < 3) {
-        return alert("Das Passwort muss mindestens 3 der folgenden 4 Kriterien erfüllen: " +
-                     "Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen.");
+        showToast("Das Passwort muss mindestens 3 der folgenden 4 Kriterien erfüllen: Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen.", "error");
+        return;
     }
 
     const { error } = await sb.auth.updateUser({ password: p1 });
@@ -2486,7 +2543,7 @@ function toggleAuthMode() {
     document.getElementById('auth-toggle').innerText = isRegistrationMode ? "Zurück zum Login" : "Noch kein Konto? Hier registrieren";
 }
 
-   async function handleAuth() {
+  async function handleAuth() {
     const email = document.getElementById('email').value;
     const pass = document.getElementById('password').value;
 
@@ -2494,16 +2551,31 @@ function toggleAuthMode() {
         const name = document.getElementById('reg-name').value;
         const confirm = document.getElementById('password-confirm').value;
 
-        if (!name || !email || !pass) return alert("Bitte alle Felder ausfüllen!");
-        if (pass !== confirm) return alert("Passwörter stimmen nicht überein!");
+        if (!name || !email || !pass) {
+            showToast("Bitte alle Felder ausfüllen!", "error");
+            return;
+        }
+        if (pass !== confirm) {
+            showToast("Passwörter stimmen nicht überein!", "error");
+            return;
+        }
         
-        if (pass.length < 8) return alert("Passwort muss mindestens 8 Zeichen haben!");
+        if (pass.length < 8) {
+            showToast("Passwort muss mindestens 8 Zeichen haben!", "error");
+            return;
+        }
         let criteria = (/[A-Z]/.test(pass)) + (/[a-z]/.test(pass)) + (/[0-9]/.test(pass)) + (/[^A-Za-z0-9]/.test(pass));
-        if (criteria < 3) return alert("3 von 4 Kriterien für das Passwort erforderlich!");
+        if (criteria < 3) {
+            showToast("3 von 4 Kriterien für das Passwort erforderlich!", "error");
+            return;
+        }
 
         // 1. Registrierung
         const { data, error } = await sb.auth.signUp({ email, password: pass });
-        if (error) return alert("Fehler: " + error.message);
+        if (error) {
+            showToast("Fehler: " + error.message, "error");
+            return;
+        }
 
         if (data.user) {
             // 2. Profil SOFORT anlegen (wichtig: await!)
@@ -2512,20 +2584,25 @@ function toggleAuthMode() {
             ]);
 
             if (profError) {
-                return alert("Fehler beim Speichern des Profils: " + profError.message);
+                showToast("Fehler beim Speichern des Profils: " + profError.message, "error");
+                return;
             }
 
             // 3. WICHTIG: Sofort ausloggen und Session löschen
             await sb.auth.signOut();
             
-            // Verhindert, dass Hintergrund-Scripts die App starten
-            alert("Registrierung erfolgreich! Bitte warte auf die Freigabe durch den Admin.");
-            window.location.replace(window.location.pathname); // Harter Reload ohne Session-Reste
+            showToast("Registrierung erfolgreich! Bitte warte auf die Freigabe durch den Admin.", "success");
+            setTimeout(() => {
+                window.location.replace(window.location.pathname); // Harter Reload ohne Session-Reste
+            }, 2000);
         }
     } else {
         // LOGIN-LOGIK
         const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-        if (error) return alert("Login fehlgeschlagen: " + error.message);
+        if (error) {
+            showToast("Login fehlgeschlagen: " + error.message, "error");
+            return;
+        }
 
         // Prüfung auf Freigabe (Sicherheits-Check)
         const { data: p } = await sb.from('profiles').select('is_approved').eq('id', data.user.id).maybeSingle();
@@ -2534,29 +2611,30 @@ function toggleAuthMode() {
             setupApp(data.user);
         } else {
             await sb.auth.signOut();
-            alert("Dein Konto wurde noch nicht freigeschaltet.");
-            location.reload();
+            showToast("Dein Konto wurde noch nicht freigeschaltet.", "info");
+            setTimeout(() => location.reload(), 2000);
         }
     }
 }
     
-    async function checkApproval(user) {
-        const { data: p } = await sb.from('profiles').select('is_approved').eq('id', user.id).maybeSingle();
-        if (p && p.is_approved) {
-            setupApp(user);
-        } else {
-            await sb.auth.signOut();
-            alert("Dein Konto wurde noch nicht vom Admin freigeschaltet.");
-            location.reload();
-        }
+   async function checkApproval(user) {
+    const { data: p } = await sb.from('profiles').select('is_approved').eq('id', user.id).maybeSingle();
+    if (p && p.is_approved) {
+        setupApp(user);
+    } else {
+        await sb.auth.signOut();
+        showToast("Dein Konto wurde noch nicht vom Admin freigeschaltet.", "info");
+        setTimeout(() => location.reload(), 2000);
     }
+}
 
-    // Erweitere loadAdmin() um die Freigabe-Funktion
-   async function approveMember(uid) {
+// Erweitere loadAdmin() um die Freigabe-Funktion
+async function approveMember(uid) {
     const { error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid);
-    if (error) alert("Fehler: " + error.message);
-    else {
-        alert("Mitglied freigeschaltet!");
+    if (error) {
+        showToast("Fehler: " + error.message, "error");
+    } else {
+        showToast("Mitglied freigeschaltet!", "success");
         loadAdmin(); // Liste aktualisieren
     }
 }
@@ -2602,12 +2680,12 @@ async function exportFullBackup() {
         
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+       document.body.removeChild(link);
         
-        alert("Vollständiges Backup wurde erstellt und heruntergeladen!");
-    } catch (err) {
-        alert("Kritischer Fehler beim Backup: " + err.message);
-    }
+    showToast("Vollständiges Backup wurde erstellt und heruntergeladen!", "success");
+} catch (err) {
+    showToast("Kritischer Fehler beim Backup: " + err.message, "error");
+}
 }
 
 let currentEditId = null; // Globale Variable, um zu wissen, ob wir gerade editieren
@@ -2646,9 +2724,10 @@ async function saveWork() {
     const category = document.getElementById('work-category').value;
     const details = document.getElementById('description').value;
     
-    if (!date || !hours) {
-        return alert("Bitte Datum und Stunden angeben!");
-    }
+  if (!date || !hours) {
+    showToast("Bitte Datum und Stunden angeben!", "error");
+    return;
+}
 
     const payload = { 
         date, 
@@ -2667,10 +2746,10 @@ async function saveWork() {
         res = await sb.from('work_hours').insert([{...payload, user_id: currentUser.id}]);
     }
 
-    if (res.error) {
-        alert("Fehler beim Speichern: " + res.error.message);
+  if (res.error) {
+        showToast("Fehler beim Speichern: " + res.error.message, "error");
     } else { 
-        alert(currentWorkEditId ? "Änderung gespeichert!" : "Arbeitszeit eingereicht!"); 
+        showToast(currentWorkEditId ? "Änderung gespeichert!" : "Arbeitszeit eingereicht!", "success"); 
         resetWorkForm(); // Formular leeren & ID zurücksetzen
         loadHistory(); 
     }
@@ -2688,11 +2767,14 @@ function resetWorkForm() {
     }
 }
 
-   async function rejectHours(id) {
+ async function rejectHours(id) {
     const reason = prompt("Bitte gib eine Begründung für die Ablehnung an:");
     
     if (reason === null) return; // Abbrechen
-    if (reason.trim() === "") return alert("Eine Begründung ist zwingend erforderlich.");
+    if (reason.trim() === "") {
+        showToast("Eine Begründung ist zwingend erforderlich.", "error");
+        return;
+    }
 
     const { error } = await sb
         .from('work_hours')
@@ -2703,9 +2785,9 @@ function resetWorkForm() {
         .eq('id', id);
 
     if (error) {
-        alert("Fehler: " + error.message);
+        showToast("Fehler: " + error.message, "error");
     } else {
-        alert("Eintrag abgelehnt und Begründung gespeichert.");
+        showToast("Eintrag abgelehnt und Begründung gespeichert.", "info");
         loadAdmin(); // Admin-Ansicht aktualisieren
     }
 }
@@ -2735,20 +2817,19 @@ async function deleteWork(id) {
             .delete()
             .eq('id', id);
 
-        if (error) {
+      if (error) {
             throw error;
         }
 
-        alert("Eintrag wurde gelöscht.");
+        showToast("Eintrag wurde gelöscht.", "info");
         
         // Ansicht aktualisieren
         loadHistory(); 
     } catch (error) {
         console.error("Fehler beim Löschen:", error);
-        alert("Fehler beim Löschen: " + error.message);
+        showToast("Fehler beim Löschen: " + error.message, "error");
     }
 }
-
    async function handleResetPassword() {
     const email = prompt("Bitte gib deine registrierte E-Mail-Adresse ein:");
     if (!email) return;
@@ -2758,15 +2839,15 @@ async function deleteWork(id) {
         redirectTo: window.location.origin + window.location.pathname + '?view=update-password',
     });
 
-    if (error) {
-        alert("Fehler: " + error.message);
+   if (error) {
+        showToast("Fehler: " + error.message, "error");
     } else {
-        alert("Eine E-Mail zum Zurücksetzen des Passworts wurde versendet. Bitte prüfe deinen Posteingang.");
+        showToast("Eine E-Mail zum Zurücksetzen des Passworts wurde versendet. Bitte prüfe deinen Posteingang.", "success");
     }
 }
 
 function showUpdatePasswordUI() {
-    alert("SYSTEM-CHECK: Funktion wird ausgeführt!");
+    showToast("SYSTEM-CHECK: Funktion wird ausgeführt!", "info");
 
     const loadingUI = document.getElementById('loading-ui');
     const authUI = document.getElementById('auth-ui');
@@ -2850,9 +2931,18 @@ async function executeMobilePasswordUpdate() {
     const p2TextField = document.getElementById('reset-pass-2-text');
     const p2 = p2Field.style.display !== 'none' ? p2Field.value : p2TextField.value;
 
-    if (!p1 || !p2) return alert("Bitte beide Felder ausfüllen!");
-    if (p1 !== p2) return alert("Passwörter stimmen nicht überein!");
-    if (p1.length < 8) return alert("Das Passwort muss mindestens 8 Zeichen lang sein!");
+    if (!p1 || !p2) {
+        showToast("Bitte beide Felder ausfüllen!", "error");
+        return;
+    }
+    if (p1 !== p2) {
+        showToast("Passwörter stimmen nicht überein!", "error");
+        return;
+    }
+    if (p1.length < 8) {
+        showToast("Das Passwort muss mindestens 8 Zeichen lang sein!", "error");
+        return;
+    }
 
     let criteria = 0;
     if (/[A-Z]/.test(p1)) criteria++;
@@ -2861,19 +2951,21 @@ async function executeMobilePasswordUpdate() {
     if (/[^A-Za-z0-9]/.test(p1)) criteria++;
 
     if (criteria < 3) {
-        return alert("Das Passwort muss mindestens 3 der folgenden 4 Kriterien erfüllen:\n" +
-                     "Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen.");
+        showToast("Das Passwort muss mindestens 3 der folgenden 4 Kriterien erfüllen: Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen.", "error");
+        return;
     }
 
     try {
         const { error } = await sb.auth.updateUser({ password: p1 });
         if (error) throw error;
 
-        alert("Passwort erfolgreich aktualisiert! Du wirst jetzt eingeloggt.");
-        window.location.href = window.location.origin + window.location.pathname;
+        showToast("Passwort erfolgreich aktualisiert! Du wirst jetzt eingeloggt.", "success");
+        setTimeout(() => {
+            window.location.href = window.location.origin + window.location.pathname;
+        }, 2000);
     } catch (err) {
         console.error("Fehler beim Passwort-Update:", err);
-        alert("Fehler: " + err.message);
+        showToast("Fehler: " + err.message, "error");
     }
 }
 
@@ -2898,10 +2990,10 @@ async function importICSPlan(icsText) {
         detectedDiscipline = "Luftgewehr";
     }
 
-    if (!detectedDiscipline) {
-        alert("Fehler: Disziplin konnte nicht eindeutig erkannt werden. Import abgebrochen.");
-        return;
-    }
+   if (!detectedDiscipline) {
+    showToast("Fehler: Disziplin konnte nicht eindeutig erkannt werden. Import abgebrochen.", "error");
+    return;
+}
 
     // 3. EVENTS PARSEN
     const events = [];
@@ -2978,7 +3070,7 @@ async function importICSPlan(icsText) {
         }
     }
 
-    alert(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`);
+ showToast(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`, "success");
 }
 
     // --- TRAININGS-ESSEN LOGIK ---
@@ -3153,17 +3245,20 @@ async function submitMealOrder(event, mealId) {
         remarks: remarks
     }, { onConflict: 'meal_id,user_id' });
 
-    if (error) {
-        alert("Fehler beim Speichern der Bestellung: " + error.message);
+   if (error) {
+        showToast("Fehler beim Speichern der Bestellung: " + error.message, "error");
     } else {
-        alert("Bestellung erfolgreich gespeichert!");
+        showToast("Bestellung erfolgreich gespeichert!", "success");
         loadMealsView();
     }
 }
 
 // 3. Neues Essen anlegen (Admin / Funktionär)
 async function saveNewMeal() {
-    if (!isAdmin && !isOfficial) return alert("Nur Funktionäre dürfen Essen anlegen.");
+    if (!isAdmin && !isOfficial) {
+        showToast("Nur Funktionäre dürfen Essen anlegen.", "error");
+        return;
+    }
 
     const title = document.getElementById('admin-meal-title').value.trim();
     const date = document.getElementById('admin-meal-date').value;
@@ -3171,15 +3266,16 @@ async function saveNewMeal() {
     const deadline = document.getElementById('admin-meal-deadline').value;
 
     if (!title || !date || !deadline) {
-        return alert("Bitte Titel, Datum und Anmeldefrist ausfüllen!");
+        showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
+        return;
     }
 
     const { error } = await sb.from('meals').insert([{ title, date, price, deadline }]);
 
     if (error) {
-        alert("Fehler beim Anlegen: " + error.message);
+        showToast("Fehler beim Anlegen: " + error.message, "error");
     } else {
-        alert("Essen erfolgreich veröffentlicht!");
+        showToast("Essen erfolgreich veröffentlicht!", "success");
         document.getElementById('admin-meal-title').value = "";
         document.getElementById('admin-meal-date').value = "";
         document.getElementById('admin-meal-price').value = "";
@@ -3232,14 +3328,20 @@ async function deleteMeal(mealId) {
 
 // 6. PDF-Export für das gewählte Essen
 async function exportMealPDF(mealId) {
-    if (!window.jspdf || !window.jspdf.jsPDF) return alert("PDF-Bibliothek fehlt.");
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast("PDF-Bibliothek fehlt.", "error");
+        return;
+    }
 
     const { data: meal, error } = await sb.from('meals')
         .select('*, meal_orders(*, profiles(full_name))')
         .eq('id', mealId)
         .single();
 
-    if (error || !meal) return alert("Fehler beim Laden der Daten.");
+    if (error || !meal) {
+        showToast("Fehler beim Laden der Daten.", "error");
+        return;
+    }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -3320,13 +3422,13 @@ async function exportMealPDF(mealId) {
         // Löscht alle Einträge in der Tabelle 'tournaments', deren Datum (date) kleiner (lt = less than) als das Stichtag-Datum ist
         const { error } = await sb.from('tournaments').delete().lt('date', cutoff);
         
-        if (error) throw error;
+      if (error) throw error;
         
-        alert(`Erfolgreich bereinigt! Alle Wettkämpfe vor dem ${cutoff} wurden gelöscht.`);
+        showToast(`Erfolgreich bereinigt! Alle Wettkämpfe vor dem ${cutoff} wurden gelöscht.`, "success");
         loadAllEvents(); // Aktualisiert die Ansichten sofort
         
     } catch (err) {
-        alert("Fehler beim Löschen: " + err.message);
+        showToast("Fehler beim Löschen: " + err.message, "error");
     }
 }
     // 1. Öffnet das Vorschau-Fenster und berechnet die Summe
@@ -3383,8 +3485,8 @@ async function executeGauSave() {
 
     const { error } = await sb.from('profiles').update({ disciplines: disciplines }).eq('id', userIdToSave); 
     
-    if (error) {
-        alert("Fehler beim Speichern: " + error.message);
+  if (error) {
+        showToast("Fehler beim Speichern: " + error.message, "error");
     } else {
         if (window.gauProfilesCache) {
             const p = window.gauProfilesCache.find(x => x.id === userIdToSave);
@@ -3392,7 +3494,8 @@ async function executeGauSave() {
         }
         
         const isSelf = userIdToSave === currentUser.id;
-        alert(isSelf ? "Deine Meldung zur Gaumeisterschaft wurde erfolgreich gespeichert!" : "Meldung für das ausgewählte Mitglied erfolgreich gespeichert!"); 
+        showToast(isSelf ? "Deine Meldung zur Gaumeisterschaft wurde erfolgreich gespeichert!" : "Meldung für das ausgewählte Mitglied erfolgreich gespeichert!", "success");
+    }
    // Falls der User gerade sein eigenes Profil updatet, direkt die Ansicht im Profil aktualisieren
         if (userIdToSave === currentUser.id) {
             updateProfileDisciplineOverview(disciplines);
@@ -3403,14 +3506,14 @@ async function executeGauSave() {
 async function updateRegStatus(isOpen) {
     const { error } = await sb.from('settings').upsert({ id: 1, is_reg_open: isOpen });
     if (error) {
-        alert("Fehler beim Umschalten: " + error.message);
+        showToast("Fehler beim Umschalten: " + error.message, "error");
         document.getElementById('admin-toggle-reg').checked = !isOpen; 
     } else {
         isRegOpen = isOpen;
         const tabGau = document.getElementById('tab-gau');
         if (tabGau) tabGau.style.display = isOpen ? 'block' : 'none';
         if (!isOpen && document.getElementById('view-gau').style.display === 'block') switchTab('home');
-        alert(isOpen ? "Der Reiter 'Gau-Meldung' ist nun für alle sichtbar!" : "Die Meldung wurde geschlossen. Der Reiter ist verschwunden.");
+        showToast(isOpen ? "Der Reiter 'Gau-Meldung' ist nun für alle sichtbar!" : "Die Meldung wurde geschlossen. Der Reiter ist verschwunden.", "info");
     }
 }
 
@@ -3431,13 +3534,13 @@ function renderDisciplineCheckboxes(sel) {
         // Setzt das 'disciplines'-Feld in der Tabelle 'profiles' für alle User auf NULL/leer
         const { error } = await sb.from('profiles').update({ disciplines: null }).not('disciplines', 'is', null);
         
-        if (error) throw error;
+      if (error) throw error;
         
-        alert("Alle Meisterschaftsmeldungen wurden erfolgreich zurückgesetzt.");
+        showToast("Alle Meisterschaftsmeldungen wurden erfolgreich zurückgesetzt.", "success");
         loadAdmin(); // Admin-Ansicht sofort aktualisieren
         
     } catch (err) {
-        alert("Fehler beim Zurücksetzen: " + err.message);
+        showToast("Fehler beim Zurücksetzen: " + err.message, "error");
     }
 }
 
@@ -3522,24 +3625,24 @@ function onGauMemberChange() {
     const { error } = await sb.from('profiles').update(payload).eq('id', userId);
 
     if (error) {
-        alert("Fehler beim Aktualisieren: " + error.message);
+    showToast("Fehler beim Aktualisieren: " + error.message, "error");
     } else {
         loadAdmin(); // Admin-Ansicht sofort neu laden
     }
 }
 
-    async function updateStandStatus(isOpen) {
+   async function updateStandStatus(isOpen) {
     // Da wir id: 1 schon per upsert verwenden, übergeben wir den Wert
     const { error } = await sb.from('settings').upsert({ id: 1, is_stand_open: isOpen });
     if (error) {
-        alert("Fehler beim Umschalten: " + error.message);
+        showToast("Fehler beim Umschalten: " + error.message, "error");
         document.getElementById('admin-toggle-stand').checked = !isOpen; 
     } else {
         isStandOpen = isOpen;
         const standSection = document.getElementById('stand-fee-section');
         if (standSection) standSection.style.display = isOpen ? 'block' : 'none';
         
-        alert(isOpen ? "Die Standgebühr-Auswahl ist nun für alle im Profil sichtbar!" : "Die Standgebühr-Auswahl wurde geschlossen.");
+        showToast(isOpen ? "Die Standgebühr-Auswahl ist nun für alle im Profil sichtbar!" : "Die Standgebühr-Auswahl wurde geschlossen.", "info");
     }
 }
 
@@ -3632,54 +3735,54 @@ async function initCleanupTeams() {
 async function executeTournamentCleanup() {
     const mode = document.getElementById('cleanup-mode').value;
 
-    if (mode === 'date') {
-        const dateLimit = document.getElementById('cleanup-date').value;
-        if (!dateLimit) {
-            alert("Bitte wähle ein Datum aus.");
-            return;
-        }
-
-        if (!confirm(`Möchtest du wirklich alle Turniere vor dem ${dateLimit} löschen?`)) return;
-
-        const { error } = await sb.from('tournaments').delete().lt('date', dateLimit);
-        if (error) {
-            alert("Fehler beim Löschen: " + error.message);
-        } else {
-            alert("Vergangene Turniere wurden erfolgreich gelöscht.");
-            loadAllEvents();
-            if (typeof loadAdmin === 'function') loadAdmin();
-        }
-
-    } else if (mode === 'team') {
-        const selectedTeam = document.getElementById('cleanup-team-select').value;
-        if (!selectedTeam) {
-            alert("Bitte wähle eine Mannschaft aus.");
-            return;
-        }
-
-        if (!confirm(`Möchtest du wirklich alle Turniere der Mannschaft "${selectedTeam}" löschen?`)) return;
-
-        const { error } = await sb.from('tournaments').delete().eq('team', selectedTeam);
-        if (error) {
-            alert("Fehler beim Löschen: " + error.message);
-        } else {
-            alert(`Alle Turniere der Mannschaft "${selectedTeam}" wurden erfolgreich gelöscht.`);
-            loadAllEvents();
-            if (typeof loadAdmin === 'function') loadAdmin();
-        }
-
-    } else if (mode === 'all_teams') {
-        if (!confirm("SICHERHEITSHINWEIS: Möchtest du wirklich ALLE Turniere ALLER Mannschaften unwiderruflich löschen?")) return;
-
-        const { error } = await sb.from('tournaments').delete().neq('id', 0);
-        if (error) {
-            alert("Fehler beim Löschen: " + error.message);
-        } else {
-            alert("Der gesamte Turnierplan wurde komplett geleert.");
-            loadAllEvents();
-            if (typeof loadAdmin === 'function') loadAdmin();
-        }
+   if (mode === 'date') {
+    const dateLimit = document.getElementById('cleanup-date').value;
+    if (!dateLimit) {
+        showToast("Bitte wähle ein Datum aus.", "error");
+        return;
     }
+
+    if (!confirm(`Möchtest du wirklich alle Turniere vor dem ${dateLimit} löschen?`)) return;
+
+    const { error } = await sb.from('tournaments').delete().lt('date', dateLimit);
+    if (error) {
+        showToast("Fehler beim Löschen: " + error.message, "error");
+    } else {
+        showToast("Vergangene Turniere wurden erfolgreich gelöscht.", "success");
+        loadAllEvents();
+        if (typeof loadAdmin === 'function') loadAdmin();
+    }
+
+} else if (mode === 'team') {
+    const selectedTeam = document.getElementById('cleanup-team-select').value;
+    if (!selectedTeam) {
+        showToast("Bitte wähle eine Mannschaft aus.", "error");
+        return;
+    }
+
+    if (!confirm(`Möchtest du wirklich alle Turniere der Mannschaft "${selectedTeam}" löschen?`)) return;
+
+    const { error } = await sb.from('tournaments').delete().eq('team', selectedTeam);
+    if (error) {
+        showToast("Fehler beim Löschen: " + error.message, "error");
+    } else {
+        showToast(`Alle Turniere der Mannschaft "${selectedTeam}" wurden erfolgreich gelöscht.`, "success");
+        loadAllEvents();
+        if (typeof loadAdmin === 'function') loadAdmin();
+    }
+
+} else if (mode === 'all_teams') {
+    if (!confirm("SICHERHEITSHINWEIS: Möchtest du wirklich ALLE Turniere ALLER Mannschaften unwiderruflich löschen?")) return;
+
+    const { error } = await sb.from('tournaments').delete().neq('id', 0);
+    if (error) {
+        showToast("Fehler beim Löschen: " + error.message, "error");
+    } else {
+        showToast("Der gesamte Turnierplan wurde komplett geleert.", "success");
+        loadAllEvents();
+        if (typeof loadAdmin === 'function') loadAdmin();
+    }
+}
 }
 
    // ==========================================
