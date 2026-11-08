@@ -305,6 +305,63 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .date-input:invalid {
     color: #999;
 }
+
+    /* --- ADMIN EXPLORER DESIGN --- */
+.admin-explorer-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+}
+
+.admin-explorer-card[open] {
+    border-color: var(--primary, #2e7d32);
+}
+
+.admin-explorer-header {
+    padding: 14px 18px;
+    font-weight: bold;
+    font-size: 15px;
+    color: #333;
+    background: #f8f9fa;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none; /* Entfernt den Standard-Pfeil */
+}
+
+/* Eigener benutzerdefinierter Pfeil */
+.admin-explorer-header::-webkit-details-marker {
+    display: none;
+}
+
+.admin-explorer-header::after {
+    content: "📁 ▶";
+    font-size: 13px;
+    color: #888;
+    transition: transform 0.2s;
+}
+
+.admin-explorer-card[open] .admin-explorer-header::after {
+    content: "📂 ▼";
+    color: var(--primary, #2e7d32);
+}
+
+.admin-explorer-card[open] .admin-explorer-header {
+    background: #e8f5e9;
+    color: var(--primary, #2e7d32);
+    border-bottom: 1px solid #c8e6c9;
+}
+
+.admin-explorer-body {
+    padding: 15px;
+    background: #fff;
+}
     
 </style>
 </head>
@@ -561,136 +618,215 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <!-- Wird dynamisch per JS befüllt -->
     </div>
 </div>
-       <!-- ADMIN VIEW -->
-<div id="view-admin" style="display:none;">
-    <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32;">
-        <h3 style="margin-top:0; color:#2e7d32;">Datensicherung</h3>
-        <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%;">📦 Vollständiges Backup erstellen (.json)</button>
-    </div>
-    <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); margin-bottom:20px; margin-top:10px;">📄 Stunden Report (PDF)</button>
-    <h4 style="margin-top:20px;">⏳ Offene Anträge</h4>
-    <table style="width:100%; border-collapse: collapse; max-width: 900px; border: 1px solid #ddd;">
-        <thead><tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;"><th style="padding:12px; width:180px;">Name/Datum</th><th style="padding:12px;">Beschreibung</th><th style="padding:12px; width:60px;">Dauer</th><th style="padding:12px; width:120px; text-align:center;">Aktion</th></tr></thead>
-        <tbody id="admin-pending-body-real"></tbody>
-    </table>
-    <h4 style="margin-top:30px;">👥 Mitglieder-Verwaltung</h4>
-    <table>
-        <thead><tr style="background:#eee; text-align:left;"><th style="padding:8px;">Name</th><th style="padding:8px; width:60px;">h</th><th style="padding:8px; width:140px;">Rollen</th></tr></thead>
-        <tbody id="admin-member-table-list"></tbody>
-    </table>
+<!-- ADMIN VIEW (EXPLORER DESIGN) -->
+<div id="view-admin" class="view-section" style="display:none;">
+    <h3 style="margin-bottom: 5px;">⚙️ Admin-Bereich</h3>
+    <p style="color:#666; font-size:13px; margin-top:0; margin-bottom:15px;">Wähle einen Ordner aus, um die Verwaltungsfunktionen zu öffnen.</p>
 
-    <!-- WETTKAMPFPLAN IMPORT & TURNIER-BEREINIGUNG -->
-    <div style="margin-bottom: 20px; border: 1px dashed #ccc; padding: 15px; margin-top: 30px; border-radius: 8px; background: #fff;">
-        <h4 style="margin-top: 0;">📅 Wettkampfplan importieren (.ics)</h4>
-        <input type="file" id="ics-upload" accept=".ics" onchange="handleICSUpload(event)" style="margin-bottom: 15px;">
-        
-        <hr style="margin: 15px 0;">
-        
-        <h4 style="margin-top: 0; color: var(--primary-dark);">🧹 Wettkampfplan löschen</h4>
-        <div style="margin-bottom: 10px;">
-            <label style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">Aktion / Modus wählen:</label>
-            <select id="cleanup-mode" onchange="toggleCleanupMode()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
-                <option value="date">Alle Wettkampfpläne vor einem bestimmten Datum löschen</option>
-                <option value="team">Alle Wettkampfpläne einer einzelnen Mannschaft löschen</option>
-                <option value="all_teams">Alle Wettkampfpläne ALLER Mannschaften löschen (Gesamter Plan)</option>
-            </select>
-        </div>
+    <!-- 1. OFFENE ANTRÄGE & DATENSICHERUNG -->
+    <details class="admin-explorer-card" open>
+        <summary class="admin-explorer-header">
+            <span>⏳ Offene Anträge & Datensicherung</span>
+        </summary>
+        <div class="admin-explorer-body">
+            <!-- Datensicherung -->
+            <div style="padding: 12px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32; margin-bottom: 15px;">
+                <h4 style="margin-top:0; color:#2e7d32; font-size:14px;">📦 System-Backup</h4>
+                <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%; border:none; padding:8px; border-radius:4px; font-weight:bold; cursor:pointer;">
+                    Vollständiges Backup erstellen (.json)
+                </button>
+            </div>
 
-        <!-- Modus A: Nach Datum -->
-        <div id="cleanup-box-date" style="margin-bottom: 10px;">
-            <label style="font-size: 12px; display: block; margin-bottom: 3px;">Datum auswählen (alle Termine davor werden gelöscht):</label>
-            <input type="date" id="cleanup-date" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
-        </div>
+            <!-- PDF Export Button -->
+            <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); color:white; border:none; padding:8px 15px; border-radius:4px; margin-bottom:15px; cursor:pointer;">
+                📄 Stunden Report (PDF)
+            </button>
 
-        <!-- Modus B: Einzelne Mannschaft -->
-        <div id="cleanup-box-team" style="display: none; margin-bottom: 10px;">
-            <label style="font-size: 12px; display: block; margin-bottom: 3px;">Mannschaft auswählen:</label>
-            <select id="cleanup-team-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;"></select>
-        </div>
-
-        <button onclick="executeTournamentCleanup()" style="background: var(--danger); color: white; border: none; border-radius: 4px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-weight: bold; width: 100%;">
-            🗑️ Ausgewählte Turniere bereinigen
-        </button>
-    </div>
-
-    <div style="margin-top:30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
-        <h4 style="margin-top:0;">⚙️ Meldung für Schützen freischalten</h4>
-        <label class="checkbox-wrapper" style="font-size: 15px; font-weight: bold; margin-bottom:15px;">
-            <input type="checkbox" id="admin-toggle-reg" onchange="updateRegStatus(this.checked)" style="width: 20px; height: 20px;"> 
-            Reiter "Gau-Meldung" für alle einblenden
-        </label>
-        <hr>
-        <h4 style="margin-top:15px;">📋 Übersicht Meisterschaftsmeldungen</h4>
-        <button onclick="exportGauMeldungenPDF()" style="background:var(--blue); margin-bottom:15px; width:auto; padding:8px 15px;">
-    📄 Gau-Meldungen PDF exportieren
-</button>
-        <table style="width:100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background:#eee; text-align:left;">
-                    <th style="padding:8px;">Schütze</th>
-                    <th style="padding:8px;">Gemeldete Disziplinen</th>
-                    <th style="padding:8px; width:90px;">Gesamt</th>
-                    <th style="padding:8px; width:180px;">Gau-Melde-Status</th>
-                </tr>
-            </thead>
-            <tbody id="admin-championship-list"></tbody>
-        </table>
-    </div>
-    <div style="margin-top: 15px;">
-        <button onclick="clearAllGauMelungen()" style="background: var(--danger); width: auto; padding: 8px 15px;">🗑️ Alle Meisterschaftsmeldungen zurücksetzen</button>
-    </div>
-    <div style="margin-top:20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
-        <h4 style="margin-top:0;">⚙️ Standgebühr-Auswahl für Schützen freischalten</h4>
-        <label class="checkbox-wrapper" style="font-size: 15px; font-weight: bold;">
-            <input type="checkbox" id="admin-toggle-stand" onchange="updateStandStatus(this.checked)" style="width: 20px; height: 20px;"> 
-            Bereich "Standgebühr & Vereinswaffen" in Profilen einblenden
-        </label>
-    </div>
-    <div style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
-    <h4 style="margin-top:0;">📋 Übersicht Standgebühren & Vereinswaffen</h4>
-    
-    <!-- HIER GEHÖRT DER BUTTON HIN -->
-    <button onclick="exportStandFeePDF()" style="background:var(--blue); margin-bottom:15px; width:auto; padding:8px 15px;">
-        📄 Standgebühren PDF exportieren
-    </button>
-    
-    <table style="width:100%; border-collapse: collapse;">
-        <thead>
-            <tr style="background:#eee; text-align:left;">
-                <th style="padding:8px;">Schütze</th>
-                <th style="padding:8px;">Stand-Nutzung</th>
-                <th style="padding:8px;">Vereinswaffe</th>
-                <th style="padding:8px; width:90px;">Gesamt</th>
-            </tr>
-        </thead>
-        <tbody id="admin-stand-list"></tbody>
-    </table>
-</div>
-
-<div style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
-    <h4>🍲 Trainings-Essen verwalten (Funktionäre / Admin)</h4>
-    
-    <!-- Formular zum Erstellen eines neuen Essens -->
-    <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px;">
-        <h5 style="margin-top:0;">Neues Essen anbieten</h5>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
-            <input type="text" id="admin-meal-title" placeholder="Gericht (z.B. Schnitzel mit Kartoffelsalat)">
-            <input type="date" id="admin-meal-date">
-            <input type="number" step="0.50" id="admin-meal-price" placeholder="Preis pro Portion (€)">
-            <div>
-                <label style="font-size:11px; display:block;">Anmeldefrist bis:</label>
-                <input type="datetime-local" id="admin-meal-deadline">
+            <!-- Offene Anträge Tabelle -->
+            <h4 style="margin-top:10px; margin-bottom:8px;">Offene Anträge</h4>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse: collapse; min-width: 600px; border: 1px solid #ddd;">
+                    <thead>
+                        <tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;">
+                            <th style="padding:10px; width:180px;">Name/Datum</th>
+                            <th style="padding:10px;">Beschreibung</th>
+                            <th style="padding:10px; width:60px;">Dauer</th>
+                            <th style="padding:10px; width:120px; text-align:center;">Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-pending-body-real"></tbody>
+                </table>
             </div>
         </div>
-        <button onclick="saveNewMeal()" style="background:var(--primary); color:white; margin-top:10px; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">
-            Essen veröffentlichen
-        </button>
-    </div>
+    </details>
 
-    <!-- Hier wird dynamisch für jedes Essen die Gesamtanzahl & der PDF-Export-Button generiert -->
-    <div id="admin-meals-list"></div>
-</div>
-    
+    <!-- 2. MITGLIEDER-VERWALTUNG -->
+    <details class="admin-explorer-card">
+        <summary class="admin-explorer-header">
+            <span>👥 Mitglieder-Verwaltung</span>
+        </summary>
+        <div class="admin-explorer-body">
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background:#eee; text-align:left;">
+                            <th style="padding:8px;">Name</th>
+                            <th style="padding:8px; width:60px;">h</th>
+                            <th style="padding:8px; width:140px; text-align:right;">Rollen / Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-member-table-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </details>
+
+    <!-- 3. WETTKAMPFPLAN IMPORT & BEREINIGUNG -->
+    <details class="admin-explorer-card">
+        <summary class="admin-explorer-header">
+            <span>📅 Wettkampfplan (.ics Import & Bereinigung)</span>
+        </summary>
+        <div class="admin-explorer-body">
+            <h4 style="margin-top: 0;">📅 Wettkampfplan importieren (.ics)</h4>
+            <input type="file" id="ics-upload" accept=".ics" onchange="handleICSUpload(event)" style="margin-bottom: 15px;">
+            
+            <hr style="margin: 15px 0;">
+            
+            <h4 style="margin-top: 0; color: var(--primary-dark, #1b5e20);">🧹 Wettkampfplan löschen</h4>
+            <div style="margin-bottom: 10px;">
+                <label style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">Aktion / Modus wählen:</label>
+                <select id="cleanup-mode" onchange="toggleCleanupMode()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
+                    <option value="date">Alle Wettkampfpläne vor einem bestimmten Datum löschen</option>
+                    <option value="team">Alle Wettkampfpläne einer einzelnen Mannschaft löschen</option>
+                    <option value="all_teams">Alle Wettkampfpläne ALLER Mannschaften löschen (Gesamter Plan)</option>
+                </select>
+            </div>
+
+            <!-- Modus A: Nach Datum -->
+            <div id="cleanup-box-date" style="margin-bottom: 10px;">
+                <label style="font-size: 12px; display: block; margin-bottom: 3px;">Datum auswählen (alle Termine davor werden gelöscht):</label>
+                <input type="date" id="cleanup-date" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
+            </div>
+
+            <!-- Modus B: Einzelne Mannschaft -->
+            <div id="cleanup-box-team" style="display: none; margin-bottom: 10px;">
+                <label style="font-size: 12px; display: block; margin-bottom: 3px;">Mannschaft auswählen:</label>
+                <select id="cleanup-team-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;"></select>
+            </div>
+
+            <button onclick="executeTournamentCleanup()" style="background: var(--danger, #d32f2f); color: white; border: none; border-radius: 4px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-weight: bold; width: 100%;">
+                🗑️ Ausgewählte Turniere bereinigen
+            </button>
+        </div>
+    </details>
+
+    <!-- 4. GAU-MEISTERSCHAFTEN -->
+    <details class="admin-explorer-card">
+        <summary class="admin-explorer-header">
+            <span>🏆 Gau-Meisterschaftsmeldungen</span>
+        </summary>
+        <div class="admin-explorer-body">
+            <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
+                <h4 style="margin-top:0;">⚙️ Freigabe</h4>
+                <label class="checkbox-wrapper" style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="admin-toggle-reg" onchange="updateRegStatus(this.checked)" style="width: 18px; height: 18px;"> 
+                    Reiter "Gau-Meldung" für alle Schützen einblenden
+                </label>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="margin:0;">📋 Übersicht Meldungen</h4>
+                <button onclick="exportGauMeldungenPDF()" style="background:var(--blue); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                    📄 Gau-Meldungen PDF exportieren
+                </button>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background:#eee; text-align:left;">
+                            <th style="padding:8px;">Schütze</th>
+                            <th style="padding:8px;">Gemeldete Disziplinen</th>
+                            <th style="padding:8px; width:90px;">Gesamt</th>
+                            <th style="padding:8px; width:180px;">Gau-Melde-Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-championship-list"></tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <button onclick="clearAllGauMelungen()" style="background: var(--danger, #d32f2f); color:white; border:none; padding: 8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">
+                    🗑️ Alle Meisterschaftsmeldungen zurücksetzen
+                </button>
+            </div>
+        </div>
+    </details>
+
+    <!-- 5. STANDGEBÜHREN & VEREINSWAFFEN -->
+    <details class="admin-explorer-card">
+        <summary class="admin-explorer-header">
+            <span>🎯 Standgebühren & Vereinswaffen</span>
+        </summary>
+        <div class="admin-explorer-body">
+            <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
+                <h4 style="margin-top:0;">⚙️ Freigabe</h4>
+                <label class="checkbox-wrapper" style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="admin-toggle-stand" onchange="updateStandStatus(this.checked)" style="width: 18px; height: 18px;"> 
+                    Bereich "Standgebühr & Vereinswaffen" in Profilen einblenden
+                </label>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="margin:0;">📋 Übersicht Gebühren</h4>
+                <button onclick="exportStandFeePDF()" style="background:var(--blue); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                    📄 Standgebühren PDF exportieren
+                </button>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background:#eee; text-align:left;">
+                            <th style="padding:8px;">Schütze</th>
+                            <th style="padding:8px;">Stand-Nutzung</th>
+                            <th style="padding:8px;">Vereinswaffe</th>
+                            <th style="padding:8px; width:90px;">Gesamt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-stand-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </details>
+
+    <!-- 6. TRAININGS-ESSEN -->
+    <details class="admin-explorer-card">
+        <summary class="admin-explorer-header">
+            <span>🍲 Trainings-Essen verwalten</span>
+        </summary>
+        <div class="admin-explorer-body">
+            <!-- Formular zum Erstellen eines neuen Essens -->
+            <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
+                <h5 style="margin-top:0; font-size:14px;">Neues Essen anbieten</h5>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                    <input type="text" id="admin-meal-title" placeholder="Gericht (z.B. Schnitzel)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                    <input type="date" id="admin-meal-date" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                    <input type="number" step="0.50" id="admin-meal-price" placeholder="Preis pro Portion (€)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                    <div>
+                        <label style="font-size:11px; display:block;">Anmeldefrist bis:</label>
+                        <input type="datetime-local" id="admin-meal-deadline" style="padding:6px; border:1px solid #ccc; border-radius:4px; width:100%;">
+                    </div>
+                </div>
+                <button onclick="saveNewMeal()" style="background:var(--primary); color:white; margin-top:10px; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    Essen veröffentlichen
+                </button>
+            </div>
+
+            <!-- Dynamische Liste der Essen + PDF-Exporte -->
+            <div id="admin-meals-list"></div>
+        </div>
+    </details>
 </div>
         
     </div> <!-- ENDE MAIN-APP -->
