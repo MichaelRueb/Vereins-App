@@ -362,6 +362,44 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding: 15px;
     background: #fff;
 }
+
+    /* --- TOAST NOTIFICATIONS --- */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.toast {
+    min-width: 250px;
+    padding: 12px 18px;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    pointer-events: auto;
+    animation: toastSlideIn 0.3s ease-out, toastFadeOut 0.4s ease-in 2.6s forwards;
+}
+
+.toast.success { background-color: #2e7d32; }
+.toast.error { background-color: #d32f2f; }
+.toast.info { background-color: #0288d1; }
+
+@keyframes toastSlideIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes toastFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
     
 </style>
 </head>
@@ -618,15 +656,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <!-- Wird dynamisch per JS befüllt -->
     </div>
 </div>
-<!-- ADMIN VIEW (EXPLORER DESIGN) -->
+<!-- ADMIN VIEW (EXPLORER DESIGN - ERWEITERT) -->
 <div id="view-admin" class="view-section" style="display:none;">
     <h3 style="margin-bottom: 5px;">⚙️ Admin-Bereich</h3>
     <p style="color:#666; font-size:13px; margin-top:0; margin-bottom:15px;">Wähle einen Ordner aus, um die Verwaltungsfunktionen zu öffnen.</p>
 
-    <!-- 1. OFFENE ANTRÄGE & DATENSICHERUNG -->
+    <!-- 1. OFFENE ANTRÄGE, STATISTIK & DATENSICHERUNG -->
     <details class="admin-explorer-card" open>
         <summary class="admin-explorer-header">
-            <span>⏳ Offene Anträge & Datensicherung</span>
+            <span>⏳ Offene Anträge & Stunden-Statistik</span>
         </summary>
         <div class="admin-explorer-body">
             <!-- Datensicherung -->
@@ -637,10 +675,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                 </button>
             </div>
 
-            <!-- PDF Export Button -->
-            <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--blue); color:white; border:none; padding:8px 15px; border-radius:4px; margin-bottom:15px; cursor:pointer;">
-                📄 Stunden Report (PDF)
-            </button>
+            <!-- Live-Statistik Dashboard (Stunden-Soll) -->
+            <div id="admin-stats-container"></div>
+
+            <!-- Export Buttons -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+                <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    📄 Stunden Report (PDF)
+                </button>
+                <button onclick="exportHoursCSV()" style="background:#0288d1; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    📊 Stunden Excel/CSV
+                </button>
+            </div>
 
             <!-- Offene Anträge Tabelle -->
             <h4 style="margin-top:10px; margin-bottom:8px;">Offene Anträge</h4>
@@ -666,6 +712,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <span>👥 Mitglieder-Verwaltung</span>
         </summary>
         <div class="admin-explorer-body">
+            <!-- Suchfeld sauber im Body platziert -->
+            <input type="text" id="admin-member-search" placeholder="🔍 Mitglied suchen..." oninput="filterAdminMembers()" style="width:100%; padding:8px 12px; border:1px solid #ccc; border-radius:6px; margin-bottom:12px; font-size:13px; box-sizing:border-box;">
+            
             <div style="overflow-x:auto;">
                 <table style="width:100%; border-collapse: collapse;">
                     <thead>
@@ -779,9 +828,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h4 style="margin:0;">📋 Übersicht Gebühren</h4>
-                <button onclick="exportStandFeePDF()" style="background:var(--blue); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
-                    📄 Standgebühren PDF exportieren
-                </button>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="exportStandFeePDF()" style="background:var(--blue); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        📄 PDF Export
+                    </button>
+                    <button onclick="exportStandFeeCSV()" style="background:#0288d1; color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        📊 CSV Export
+                    </button>
+                </div>
             </div>
 
             <div style="overflow-x:auto;">
@@ -3604,6 +3658,136 @@ async function executeTournamentCleanup() {
             if (typeof loadAdmin === 'function') loadAdmin();
         }
     }
+}
+
+    // Elegante Toast-Benachrichtigung anzeigen (Ersetzt alert)
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 3000);
+}
+
+// Echtzeit-Suche für die Mitglieder-Verwaltung im Admin-Bereich
+function filterAdminMembers() {
+    const input = document.getElementById('admin-member-search');
+    if (!input) return;
+    const filter = input.value.toLowerCase();
+    const rows = document.querySelectorAll('#admin-member-table-list > tr');
+
+    rows.forEach(row => {
+        // Unterzeilen für Details überspringen
+        if (row.id && row.id.startsWith('details-')) return;
+        
+        const nameCell = row.cells[0];
+        if (nameCell) {
+            const text = nameCell.textContent || nameCell.innerText;
+            const match = text.toLowerCase().indexOf(filter) > -1;
+            row.style.display = match ? '' : 'none';
+        }
+    });
+}
+
+    // Hilfsfunktion zum Erstellen und Herunterladen von CSV-Dateien (mit Excel UTF-8 BOM)
+function downloadCSV(filename, csvContent) {
+    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 1. CSV-Export: Arbeitsstunden
+async function exportHoursCSV() {
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
+
+    if (!profs) return showToast("Keine Profile gefunden", "error");
+
+    let csv = "Name;Mannschaft;Ist-Stunden;Soll (h);Status;Differenz (h)\n";
+    profs.forEach(p => {
+        const userHours = hours ? hours.filter(h => h.user_id === p.id) : [];
+        const total = userHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+        const diff = total - 10;
+        const status = diff >= 0 ? "Erfüllt" : "Offen";
+        csv += `"${p.full_name || 'Unbekannt'}";"${p.team || '-'}";"${total.toFixed(1).replace('.', ',')}";"10";"${status}";"${diff.toFixed(1).replace('.', ',')}"\n`;
+    });
+
+    const dateStr = new Date().toLocaleDateString('de-DE');
+    downloadCSV(`Arbeitsstunden_Hubertus_${dateStr}.csv`, csv);
+    showToast("Stunden-CSV erfolgreich heruntergeladen!");
+}
+
+// 2. CSV-Export: Standgebühren & Vereinswaffen
+async function exportStandFeeCSV() {
+    const { data: profs } = await sb.from('profiles').select('*').order('full_name');
+    const standMeldungen = profs ? profs.filter(p => p.is_approved && ((p.shooting_stand && p.shooting_stand !== "keiner") || (p.club_weapon && p.club_weapon !== "keine"))) : [];
+
+    if (standMeldungen.length === 0) return showToast("Keine Gebühren-Meldungen vorhanden", "info");
+
+    let csv = "Schütze;Stand-Nutzung;Vereinswaffe;Gesamtbetrag (€)\n";
+    standMeldungen.forEach(p => {
+        const details = getStandDetails(p.shooting_stand, p.club_weapon);
+        csv += `"${p.full_name || ''}";"${details.standText}";"${details.weaponText}";"${details.total.toFixed(2).replace('.', ',')}"\n`;
+    });
+
+    const dateStr = new Date().toLocaleDateString('de-DE');
+    downloadCSV(`Standgebühren_Hubertus_${dateStr}.csv`, csv);
+    showToast("Standgebühren-CSV erfolgreich heruntergeladen!");
+}
+
+// 3. Admin-Statistik im Arbeitsstunden-Ordner aktualisieren
+async function updateAdminStatsDashboard() {
+    const target = document.getElementById('admin-stats-container');
+    if (!target) return;
+
+    const { data: profs } = await sb.from('profiles').select('id').eq('is_approved', true);
+    const { data: hours } = await sb.from('work_hours').select('duration, user_id').eq('status', 'approved');
+
+    if (!profs || !hours) return;
+
+    const totalMembers = profs.length;
+    let fulfilledMembers = 0;
+    let totalHoursSum = 0;
+
+    profs.forEach(p => {
+        const uHours = hours.filter(h => h.user_id === p.id);
+        const sum = uHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+        totalHoursSum += sum;
+        if (sum >= 10) fulfilledMembers++;
+    });
+
+    const quotaPct = totalMembers > 0 ? Math.round((fulfilledMembers / totalMembers) * 100) : 0;
+
+    target.innerHTML = `
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:15px;">
+            <div style="background:#f4fbf7; border:1px solid #c8e6c9; border-radius:6px; padding:10px; text-align:center;">
+                <span style="font-size:11px; color:#555; font-weight:bold;">GESAMTSTUNDEN</span>
+                <div style="font-size:18px; font-weight:bold; color:var(--primary); margin-top:2px;">${totalHoursSum.toFixed(1)} h</div>
+            </div>
+            <div style="background:#f4fbf7; border:1px solid #c8e6c9; border-radius:6px; padding:10px; text-align:center;">
+                <span style="font-size:11px; color:#555; font-weight:bold;">SOLL ERFÜLLT</span>
+                <div style="font-size:18px; font-weight:bold; color:#2e7d32; margin-top:2px;">${fulfilledMembers} / ${totalMembers} (${quotaPct}%)</div>
+            </div>
+        </div>
+        <div style="background:#e0e0e0; border-radius:10px; height:8px; width:100%; overflow:hidden; margin-bottom:15px;">
+            <div style="background:var(--primary); height:100%; width:${quotaPct}%; transition:width 0.5s;"></div>
+        </div>
+    `;
 }
     
 </script>
