@@ -3333,9 +3333,8 @@ async function loadAdminMeals() {
                         <small>Gesamt: <strong>${totalPortions} Portionen</strong> (${totalPrice.toFixed(2).replace('.', ',')} €)</small>
                     </div>
                     <div style="display:flex; gap:8px;">
-                        <!-- HIER WIRD DER PDF-BUTTON PRO ESSEN GENERIERT -->
                         <button onclick="exportMealPDF('${m.id}')" style="background:#0288d1; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">📄 PDF Export</button>
-                        <button class="btn btn-sm btn-secondary" onclick="editMeal('${meal.id}')">✏️ Bearbeiten</button>
+                        <button onclick="editMeal('${m.id}')" style="background:#f57c00; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">✏️ Bearbeiten</button>
                         <button onclick="deleteMeal('${m.id}')" style="background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">🗑️ Löschen</button>
                     </div>
                 </div>
