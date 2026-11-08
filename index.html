@@ -3682,7 +3682,9 @@ async function executeTournamentCleanup() {
     }
 }
 
-    // Elegante Toast-Benachrichtigung anzeigen (Ersetzt alert)
+   // ==========================================
+// 1. ZENTRALE TOAST-BENACHRICHTIGUNG
+// ==========================================
 function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -3699,6 +3701,211 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         if (toast.parentNode) toast.parentNode.removeChild(toast);
     }, 3000);
+}
+
+
+// ==========================================
+// 2. PROFIL- & MEISTERMELDUNG-SPEICHERN
+// ==========================================
+
+// Profil-Daten (Name, Mannschaft etc.) speichern
+async function saveProfileData() {
+    const fullName = document.getElementById('pf-fullname')?.value.trim();
+    const team = document.getElementById('pf-team')?.value;
+
+    if (!fullName) return showToast("Bitte gib deinen vollständigen Namen ein.", "error");
+
+    const { error } = await sb.from('profiles').update({ 
+        full_name: fullName, 
+        team: team 
+    }).eq('id', currentUser.id);
+
+    if (error) {
+        showToast("Fehler beim Speichern des Profils: " + error.message, "error");
+    } else {
+        showToast("Profildaten erfolgreich aktualisiert!", "success");
+    }
+}
+
+// Gau-Disziplinen im Profil speichern
+async function saveDisciplineSelection() {
+    const checked = Array.from(document.querySelectorAll('.disc-checkbox:checked')).map(c => c.value);
+    const disciplinesString = checked.join(', ');
+
+    const { error } = await sb.from('profiles').update({ 
+        disciplines: disciplinesString,
+        gau_reported_at: new Date().toISOString()
+    }).eq('id', currentUser.id);
+
+    if (error) {
+        showToast("Fehler beim Speichern der Gau-Meldung: " + error.message, "error");
+    } else {
+        showToast("Meisterschaftsmeldung erfolgreich gespeichert!", "success");
+    }
+}
+
+// Standgebühr & Vereinswaffen im Profil speichern
+async function saveStandFeeSelection() {
+    const stand = document.getElementById('pf-stand-select')?.value;
+    const weapon = document.getElementById('pf-weapon-select')?.value;
+
+    const { error } = await sb.from('profiles').update({
+        shooting_stand: stand,
+        club_weapon: weapon
+    }).eq('id', currentUser.id);
+
+    if (error) {
+        showToast("Fehler beim Speichern der Standgebühren: " + error.message, "error");
+    } else {
+        showToast("Standgebühr & Vereinswaffen gespeichert!", "success");
+    }
+}
+
+
+// ==========================================
+// 3. ARBEITSSTUNDEN LOGIK
+// ==========================================
+
+// Neue Arbeitsstunden beantragen
+async function submitWorkHours(event) {
+    if (event) event.preventDefault();
+    
+    const date = document.getElementById('wh-date')?.value;
+    const duration = parseFloat(document.getElementById('wh-hours')?.value || 0);
+    const description = document.getElementById('wh-desc')?.value.trim();
+
+    if (!date || duration <= 0 || !description) {
+        return showToast("Bitte Datum, gültige Stundenanzahl und Beschreibung angeben.", "error");
+    }
+
+    const { error } = await sb.from('work_hours').insert([{
+        user_id: currentUser.id,
+        date: date,
+        duration: duration,
+        description: description,
+        status: 'pending'
+    }]);
+
+    if (error) {
+        showToast("Fehler beim Eintragen: " + error.message, "error");
+    } else {
+        showToast("Arbeitsstunden erfolgreich beantragt!", "success");
+        if (typeof loadUserHours === 'function') loadUserHours();
+    }
+}
+
+// Admin: Arbeitsstunden genehmigen oder ablehnen
+async function updateWorkHourStatus(hourId, newStatus) {
+    const { error } = await sb.from('work_hours').update({ status: newStatus }).eq('id', hourId);
+
+    if (error) {
+        showToast("Fehler beim Aktualisieren des Status: " + error.message, "error");
+    } else {
+        const text = newStatus === 'approved' ? 'Stunden genehmigt!' : 'Stunden abgelehnt.';
+        showToast(text, newStatus === 'approved' ? 'success' : 'info');
+        if (typeof loadAdmin === 'function') loadAdmin();
+    }
+}
+
+
+// ==========================================
+// 4. FAHRTENBUCH LOGIK
+// ==========================================
+
+// Fahrtenbuch-Eintrag speichern / aktualisieren
+async function saveMileageEntry(event) {
+    if (event) event.preventDefault();
+
+    const date = document.getElementById('ml-date')?.value;
+    const purpose = document.getElementById('ml-purpose')?.value.trim();
+    const distance = parseFloat(document.getElementById('ml-distance')?.value || 0);
+
+    if (!date || !purpose || distance <= 0) {
+        return showToast("Bitte Datum, Grund der Fahrt und Kilometer angeben.", "error");
+    }
+
+    let result;
+    if (currentMileageEditId) {
+        result = await sb.from('mileage_logs').update({ date, purpose, distance }).eq('id', currentMileageEditId);
+    } else {
+        result = await sb.from('mileage_logs').insert([{ user_id: currentUser.id, date, purpose, distance }]);
+    }
+
+    if (result.error) {
+        showToast("Fehler beim Speichern der Fahrt: " + result.error.message, "error");
+    } else {
+        showToast(currentMileageEditId ? "Fahrt aktualisiert!" : "Fahrt erfolgreich eingetragen!", "success");
+        currentMileageEditId = null;
+        if (typeof resetMileageForm === 'function') resetMileageForm();
+        if (typeof loadMileageHistory === 'function') loadMileageHistory();
+    }
+}
+
+// Fahrtenbuch-Eintrag löschen
+async function deleteMileageEntry(id) {
+    if (!confirm("Möchtest du diese Fahrt wirklich löschen?")) return;
+
+    const { error } = await sb.from('mileage_logs').delete().eq('id', id);
+    if (error) {
+        showToast("Fehler beim Löschen: " + error.message, "error");
+    } else {
+        showToast("Fahrt gelöscht.", "info");
+        if (typeof loadMileageHistory === 'function') loadMileageHistory();
+    }
+}
+
+
+// ==========================================
+// 5. TRAININGS-ESSEN LOGIK
+// ==========================================
+
+// Bestellung abschicken / aktualisieren
+async function submitMealOrder(event, mealId) {
+    if (event) event.preventDefault();
+
+    const portions = parseInt(document.getElementById(`portions-${mealId}`)?.value || 1);
+    const remarks = document.getElementById(`remarks-${mealId}`)?.value.trim() || '';
+
+    const { error } = await sb.from('meal_orders').upsert({
+        meal_id: mealId,
+        user_id: currentUser.id,
+        portions: portions,
+        remarks: remarks
+    }, { onConflict: 'meal_id,user_id' });
+
+    if (error) {
+        showToast("Fehler beim Speichern: " + error.message, "error");
+    } else {
+        showToast("Bestellung erfolgreich gespeichert!", "success");
+        if (typeof loadMealsView === 'function') loadMealsView();
+    }
+}
+
+// Admin: Neues Essen veröffentlichen
+async function saveNewMeal() {
+    if (!isAdmin && !isOfficial) return showToast("Nur Funktionäre dürfen Essen anlegen.", "error");
+
+    const title = document.getElementById('admin-meal-title')?.value.trim();
+    const date = document.getElementById('admin-meal-date')?.value;
+    const price = parseFloat(document.getElementById('admin-meal-price')?.value || 0);
+    const deadline = document.getElementById('admin-meal-deadline')?.value;
+
+    if (!title || !date || !deadline) {
+        return showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
+    }
+
+    const { error } = await sb.from('meals').insert([{ title, date, price, deadline }]);
+
+    if (error) {
+        showToast("Fehler beim Anlegen: " + error.message, "error");
+    } else {
+        showToast("Essen erfolgreich veröffentlicht!", "success");
+        document.getElementById('admin-meal-title').value = "";
+        document.getElementById('admin-meal-date').value = "";
+        document.getElementById('admin-meal-price').value = "";
+        document.getElementById('admin-meal-deadline').value = "";
+        if (typeof loadAdminMeals === 'function') loadAdminMeals();
+    }
 }
 
 // Echtzeit-Suche für die Mitglieder-Verwaltung im Admin-Bereich
