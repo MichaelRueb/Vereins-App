@@ -1970,6 +1970,9 @@ async function loadAdmin() {
     if (typeof loadAdminMeals === 'function') {
     loadAdminMeals();
 }
+    if (typeof updateAdminStatsDashboard === 'function') {
+    updateAdminStatsDashboard();
+}
 }
    async function viewUserDetail(uid) {
     const row = document.getElementById(`details-${uid}`);
@@ -2981,54 +2984,82 @@ async function importICSPlan(icsText) {
     // --- TRAININGS-ESSEN LOGIK ---
 
 // 1. Mitglieder-Ansicht laden (Bestellformulare + Übersicht der eigenen Bestellungen)
+// 1. Restzeit-Rechner für Essen
+function getMealDeadlineBadge(deadlineStr) {
+    const now = new Date();
+    const deadline = new Date(deadlineStr);
+    const diffMs = deadline - now;
+
+    if (diffMs <= 0) {
+        return `<span style="color:#d32f2f; font-weight:bold; font-size:12px;">⏰ Anmeldefrist abgelaufen</span>`;
+    }
+
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays >= 1) {
+        return `<span style="color:#2e7d32; font-weight:bold; font-size:12px;">⏰ Frist: Noch ${diffDays} Tag(e) und ${diffHours % 24} Std. offen</span>`;
+    } else {
+        return `<span style="color:#e65100; font-weight:bold; font-size:12px; background:#fff3e0; padding:2px 6px; border-radius:4px;">⚡ Dringend: Nur noch ${diffHours} Std. verbleibend!</span>`;
+    }
+}
+
+// 2. Erweiterte Mitglieder-Ansicht für Essen (inkl. Restzeit & Teilnehmerliste)
 async function loadMealsView() {
     const container = document.getElementById('meals-user-container');
     if (!container) return;
 
     container.innerHTML = "<p>Lade Essen...</p>";
 
-    // Geplante Essen abrufen
-    const { data: meals, error } = await sb.from('meals').select('*').order('date', { ascending: true });
+    const { data: meals, error } = await sb.from('meals').select('*, meal_orders(*, profiles(full_name))').order('date', { ascending: true });
     
     if (error || !meals || meals.length === 0) {
         container.innerHTML = "<p>Aktuell ist kein Essen nach dem Training geplant.</p>";
         return;
     }
 
-    // Eigene Bestellungen inklusive Details des Essens abrufen
     const { data: myOrders } = await sb.from('meal_orders').select('*, meals(*)').eq('user_id', currentUser.id);
-
     const now = new Date();
 
-    // 1. KARTEN FÜR ANGEBOTENE ESSEN
+    // ESSEN-KARTEN ERSTELLEN
     let mealsHtml = meals.map(meal => {
         const deadlineDate = new Date(meal.deadline);
         const isExpired = now > deadlineDate;
         const myOrder = myOrders ? myOrders.find(o => o.meal_id === meal.id) : null;
+        const allOrders = meal.meal_orders || [];
+        const totalPortions = allOrders.reduce((sum, o) => sum + o.portions, 0);
 
         const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
         const formattedDeadline = deadlineDate.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+        const timeBadge = getMealDeadlineBadge(meal.deadline);
+
+        // Teilnehmerliste rendern
+        const participantsList = allOrders.map(o => `• ${o.profiles?.full_name || 'Mitglied'} (${o.portions}x)`).join(', ');
 
         return `
             <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                <div style="display:flex; justify-between; align-items:flex-start;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
                         <h4 style="margin:0 0 5px 0; color:var(--primary);">${meal.title}</h4>
                         <p style="margin:0; font-size:14px; color:#555;">
                             📅 <strong>Termin:</strong> ${formattedDate} | 
-                            💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € pro Portion
+                            💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € / Portion
                         </p>
-                        <p style="margin:5px 0 0 0; font-size:12px; color:${isExpired ? '#d32f2f' : '#2e7d32'}; font-weight:bold;">
-                            ⏰ <strong>Anmeldefrist:</strong> ${formattedDeadline} Uhr ${isExpired ? '(Abgelaufen!)' : ''}
-                        </p>
+                        <p style="margin:5px 0 0 0;">${timeBadge}</p>
                     </div>
+                </div>
+
+                <!-- TEILNEHMER-ÜBERSICHT -->
+                <div style="margin-top:10px; background:#f9f9f9; padding:8px 12px; border-radius:6px; font-size:12px; color:#555;">
+                    <strong>👥 Angemeldete Schützen (${totalPortions} Portionen total):</strong><br>
+                    ${totalPortions > 0 ? participantsList : '<em>Bisher noch keine Anmeldungen.</em>'}
                 </div>
 
                 <hr style="margin:12px 0; border:0; border-top:1px solid #eee;">
 
                 ${isExpired ? `
                     <div style="background:#ffebee; color:#c62828; padding:10px; border-radius:4px; font-size:13px;">
-                        ${myOrder ? `Du hast <strong>${myOrder.portions} Portion(en)</strong> bestellt. (Frist abgelaufen, keine Änderungen mehr möglich)` : 'Die Anmeldefrist für dieses Essen ist leider abgelaufen.'}
+                        ${myOrder ? `Du hast <strong>${myOrder.portions} Portion(en)</strong> bestellt. (Frist abgelaufen)` : 'Die Anmeldefrist für dieses Essen ist leider abgelaufen.'}
                     </div>
                 ` : `
                     <form onsubmit="submitMealOrder(event, '${meal.id}')" style="display:flex; flex-direction:column; gap:10px;">
@@ -3038,9 +3069,9 @@ async function loadMealsView() {
                         </div>
                         <div>
                             <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">Bemerkungen / Sonderwünsche:</label>
-                            <input type="text" id="remarks-${meal.id}" placeholder="z.B. Keine Beilage, Vegetarisch..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px;">
+                            <input type="text" id="remarks-${meal.id}" placeholder="z.B. Keine Beilage, Vegetarisch..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
                         </div>
-                        <button type="submit" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; align-self:flex-start;">
+                        <button type="submit" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; align-self:flex-start; font-weight:bold;">
                             ${myOrder ? 'Bestellung aktualisieren' : 'Kostenpflichtig bestellen'}
                         </button>
                     </form>
@@ -3049,14 +3080,13 @@ async function loadMealsView() {
         `;
     }).join('');
 
-    // 2. LISTE DER EIGENEN BESTELLUNGEN (UNTER DEM FORMULAR)
+    // EIGENE BESTELLUNGEN UNTEN ANZEIGEN
     let myOrdersHtml = '';
     if (myOrders && myOrders.length > 0) {
         let grandTotal = 0;
         const rowsHtml = myOrders.map(o => {
             const m = o.meals;
             if (!m) return '';
-            
             const dateStr = new Date(m.date).toLocaleDateString('de-DE');
             const rowTotal = o.portions * parseFloat(m.price);
             grandTotal += rowTotal;
@@ -3081,7 +3111,7 @@ async function loadMealsView() {
         }).join('');
 
         myOrdersHtml = `
-            <div style="margin-top:30px; background:#fff; border:2px solid var(--primary); border-radius:8px; padding:15px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+            <div style="margin-top:25px; background:#fff; border:2px solid var(--primary); border-radius:8px; padding:15px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                 <h4 style="margin-top:0; color:var(--primary); display:flex; align-items:center; gap:8px;">
                     📋 Deine bestellten Essen
                 </h4>
@@ -3095,9 +3125,7 @@ async function loadMealsView() {
                                 <th style="padding:8px; text-align:right;">Gesamt</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${rowsHtml}
-                        </tbody>
+                        <tbody>${rowsHtml}</tbody>
                         <tfoot>
                             <tr style="background:#f4f4f4; font-weight:bold;">
                                 <td colspan="3" style="padding:10px 8px; text-align:right;">Gesamtsumme deiner Bestellungen:</td>
@@ -3106,12 +3134,6 @@ async function loadMealsView() {
                         </tfoot>
                     </table>
                 </div>
-            </div>
-        `;
-    } else {
-        myOrdersHtml = `
-            <div style="margin-top:25px; background:#f9f9f9; border:1px solid #ccc; border-radius:8px; padding:15px; text-align:center; color:#666; font-size:13px;">
-                📋 Du hast bisher noch kein Essen gebucht.
             </div>
         `;
     }
