@@ -3500,7 +3500,6 @@ async function executeGauSave() {
             updateProfileDisciplineOverview(disciplines);
         }
     }
-}
 
 async function updateRegStatus(isOpen) {
     const { error } = await sb.from('settings').upsert({ id: 1, is_reg_open: isOpen });
