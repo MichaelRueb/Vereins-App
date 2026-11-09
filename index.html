@@ -3163,7 +3163,7 @@ async function loadMealsView() {
 
     container.innerHTML = "<p>Lade Essen...</p>";
 
-    // Filter .eq('is_deleted', false) hinzugefügt:
+    // Lädt nur Essen, die NICHT als gelöscht markiert sind
     const { data: meals, error } = await sb
         .from('meals')
         .select('*, meal_orders(*, profiles(full_name))')
@@ -3179,7 +3179,6 @@ async function loadMealsView() {
     const { data: myOrders } = await sb.from('meal_orders').select('*, meals(*)').eq('user_id', currentUser.id);
     const now = new Date();
 
-    // ESSEN-KARTEN ERSTELLEN
     let mealsHtml = meals.map(meal => {
         const deadlineDate = new Date(meal.deadline);
         const isExpired = now > deadlineDate;
@@ -3188,8 +3187,6 @@ async function loadMealsView() {
         const totalPortions = allOrders.reduce((sum, o) => sum + o.portions, 0);
 
         const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
-
-        // Teilnehmerliste rendern
         const participantsList = allOrders.map(o => `• ${o.profiles?.full_name || 'Mitglied'} (${o.portions}x)`).join(', ');
 
         return `
@@ -3202,12 +3199,10 @@ async function loadMealsView() {
                             💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € / Portion
                         </p>
                         <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}">
-                            <!-- Sekundengenauer Countdown wird hier per JS befüllt -->
                         </p>
                     </div>
                 </div>
 
-                <!-- TEILNEHMER-ÜBERSICHT -->
                 <div style="margin-top:10px; background:#f9f9f9; padding:8px 12px; border-radius:6px; font-size:12px; color:#555;">
                     <strong>👥 Angemeldete Schützen (${totalPortions} Portionen total):</strong><br>
                     ${totalPortions > 0 ? participantsList : '<em>Bisher noch keine Anmeldungen.</em>'}
@@ -3238,7 +3233,6 @@ async function loadMealsView() {
         `;
     }).join('');
 
-    // EIGENE BESTELLUNGEN UNTEN ANZEIGEN (Nur für nicht gelöschte Essen)
     let myOrdersHtml = '';
     const activeMyOrders = myOrders ? myOrders.filter(o => o.meals && !o.meals.is_deleted) : [];
 
@@ -3298,10 +3292,9 @@ async function loadMealsView() {
     }
 
     container.innerHTML = mealsHtml + myOrdersHtml;
-
-    // Startet den sekundengenauen Live-Timer
     startMealCountdowns();
 }
+    
 // 2. Bestellung speichern (Mitglied)
 async function submitMealOrder(event, mealId) {
     event.preventDefault();
@@ -3388,15 +3381,15 @@ async function loadAdminMeals() {
     const container = document.getElementById('admin-meals-list');
     if (!container) return;
 
-    // Filter .eq('is_deleted', false) hinzugefügt:
-    const { data: meals } = await sb
+    // Lädt nur Essen, die NICHT als gelöscht markiert sind
+    const { data: meals, error } = await sb
         .from('meals')
         .select('*, meal_orders(*, profiles(full_name))')
         .eq('is_deleted', false)
         .order('date', { ascending: false });
 
-    if (!meals || meals.length === 0) {
-        container.innerHTML = "<p>Keine Essen vorhanden.</p>";
+    if (error || !meals || meals.length === 0) {
+        container.innerHTML = "<p>Keine aktiven Essen vorhanden.</p>";
         return;
     }
 
