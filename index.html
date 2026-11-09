@@ -3163,11 +3163,16 @@ async function loadMealsView() {
 
     container.innerHTML = "<p>Lade Essen...</p>";
 
-    const { data: meals, error } = await sb.from('meals').select('*, meal_orders(*, profiles(full_name))').order('date', { ascending: true });
+    // Filter .eq('is_deleted', false) hinzugefügt:
+    const { data: meals, error } = await sb
+        .from('meals')
+        .select('*, meal_orders(*, profiles(full_name))')
+        .eq('is_deleted', false)
+        .order('date', { ascending: true });
     
     if (error || !meals || meals.length === 0) {
         container.innerHTML = "<p>Aktuell ist kein Essen nach dem Training geplant.</p>";
-        if (mealTimerInterval) clearInterval(mealTimerInterval);
+        if (window.mealTimerInterval) clearInterval(window.mealTimerInterval);
         return;
     }
 
@@ -3233,13 +3238,14 @@ async function loadMealsView() {
         `;
     }).join('');
 
-    // EIGENE BESTELLUNGEN UNTEN ANZEIGEN
+    // EIGENE BESTELLUNGEN UNTEN ANZEIGEN (Nur für nicht gelöschte Essen)
     let myOrdersHtml = '';
-    if (myOrders && myOrders.length > 0) {
+    const activeMyOrders = myOrders ? myOrders.filter(o => o.meals && !o.meals.is_deleted) : [];
+
+    if (activeMyOrders.length > 0) {
         let grandTotal = 0;
-        const rowsHtml = myOrders.map(o => {
+        const rowsHtml = activeMyOrders.map(o => {
             const m = o.meals;
-            if (!m) return '';
             const dateStr = new Date(m.date).toLocaleDateString('de-DE');
             const rowTotal = o.portions * parseFloat(m.price);
             grandTotal += rowTotal;
@@ -3382,7 +3388,12 @@ async function loadAdminMeals() {
     const container = document.getElementById('admin-meals-list');
     if (!container) return;
 
-    const { data: meals } = await sb.from('meals').select('*, meal_orders(*, profiles(full_name))').order('date', { ascending: false });
+    // Filter .eq('is_deleted', false) hinzugefügt:
+    const { data: meals } = await sb
+        .from('meals')
+        .select('*, meal_orders(*, profiles(full_name))')
+        .eq('is_deleted', false)
+        .order('date', { ascending: false });
 
     if (!meals || meals.length === 0) {
         container.innerHTML = "<p>Keine Essen vorhanden.</p>";
