@@ -3401,9 +3401,21 @@ async function loadAdminMeals() {
 
 // 5. Essen löschen
 async function deleteMeal(mealId) {
-    if (!confirm("Möchtest du dieses Essen und alle zugehörigen Bestellungen wirklich löschen?")) return;
-    await sb.from('meals').delete().eq('id', mealId);
-    loadAdminMeals();
+    if (!confirm("Möchtest du dieses Essen wirklich in den Papierkorb verschieben?")) return;
+
+    const { error } = await sb
+        .from('meals')
+        .update({ is_deleted: true })
+        .eq('id', mealId);
+
+    if (error) {
+        showToast("Fehler beim Löschen: " + error.message, "error");
+    } else {
+        showToast("Essen in den Papierkorb verschoben.", "info");
+        loadAdminMeals();
+        if (typeof loadMealsView === 'function') loadMealsView();
+        if (typeof loadTrash === 'function') loadTrash();
+    }
 }
 
 // 6. PDF-Export für das gewählte Essen
