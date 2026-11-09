@@ -3102,6 +3102,48 @@ function getMealDeadlineBadge(deadlineStr) {
 }
 
 // 2. Erweiterte Mitglieder-Ansicht für Essen (inkl. Restzeit & Teilnehmerliste)
+let mealTimerInterval = null;
+
+function startMealCountdowns() {
+    if (mealTimerInterval) clearInterval(mealTimerInterval);
+
+    function updateTimers() {
+        const countdownElements = document.querySelectorAll('.meal-countdown');
+        if (countdownElements.length === 0) return;
+
+        const now = new Date().getTime();
+
+        countdownElements.forEach(el => {
+            const deadlineStr = el.getAttribute('data-deadline');
+            if (!deadlineStr) return;
+
+            const deadline = new Date(deadlineStr).getTime();
+            const diff = deadline - now;
+
+            if (diff <= 0) {
+                el.innerHTML = "<span style='color:#d32f2f; font-weight:bold;'>⛔ Frist abgelaufen!</span>";
+                return;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const pad = num => String(num).padStart(2, '0');
+
+            let timeString = "⏰ Frist: Noch ";
+            if (days > 0) timeString += `${days} Tag(e) `;
+            timeString += `${pad(hours)} Std. ${pad(minutes)} Min. ${pad(seconds)} Sek.`;
+
+            el.innerHTML = `<span style="color:#2e7d32; font-weight:bold;">${timeString}</span>`;
+        });
+    }
+
+    updateTimers();
+    mealTimerInterval = setInterval(updateTimers, 1000);
+}
+
 async function loadMealsView() {
     const container = document.getElementById('meals-user-container');
     if (!container) return;
@@ -3112,6 +3154,7 @@ async function loadMealsView() {
     
     if (error || !meals || meals.length === 0) {
         container.innerHTML = "<p>Aktuell ist kein Essen nach dem Training geplant.</p>";
+        if (mealTimerInterval) clearInterval(mealTimerInterval);
         return;
     }
 
@@ -3127,8 +3170,6 @@ async function loadMealsView() {
         const totalPortions = allOrders.reduce((sum, o) => sum + o.portions, 0);
 
         const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
-        const formattedDeadline = deadlineDate.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
-        const timeBadge = getMealDeadlineBadge(meal.deadline);
 
         // Teilnehmerliste rendern
         const participantsList = allOrders.map(o => `• ${o.profiles?.full_name || 'Mitglied'} (${o.portions}x)`).join(', ');
@@ -3142,7 +3183,9 @@ async function loadMealsView() {
                             📅 <strong>Termin:</strong> ${formattedDate} | 
                             💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € / Portion
                         </p>
-                        <p style="margin:5px 0 0 0;">${timeBadge}</p>
+                        <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}">
+                            <!-- Sekundengenauer Countdown wird hier per JS befüllt -->
+                        </p>
                     </div>
                 </div>
 
@@ -3236,6 +3279,9 @@ async function loadMealsView() {
     }
 
     container.innerHTML = mealsHtml + myOrdersHtml;
+
+    // Startet den sekundengenauen Live-Timer
+    startMealCountdowns();
 }
 // 2. Bestellung speichern (Mitglied)
 async function submitMealOrder(event, mealId) {
@@ -4200,6 +4246,56 @@ function resetMealForm() {
     const cancelBtn = document.getElementById('btn-cancel-meal-edit');
     if (saveBtn) saveBtn.innerText = "Essen veröffentlichen";
     if (cancelBtn) cancelBtn.style.display = "none";
+}
+
+    let mealTimerInterval = null;
+
+function startMealCountdowns() {
+    // Falls bereits ein Timer läuft, vorher stoppen
+    if (mealTimerInterval) clearInterval(mealTimerInterval);
+
+    function updateTimers() {
+        const countdownElements = document.querySelectorAll('.meal-countdown');
+        if (countdownElements.length === 0) return;
+
+        const now = new Date().getTime();
+
+        countdownElements.forEach(el => {
+            const deadlineStr = el.getAttribute('data-deadline');
+            if (!deadlineStr) return;
+
+            const deadline = new Date(deadlineStr).getTime();
+            const diff = deadline - now;
+
+            if (diff <= 0) {
+                el.innerHTML = "⛔ <strong style='color:#d32f2f;'>Frist abgelaufen!</strong>";
+                // Optional: Bestellen-Button deaktivieren, falls vorhanden
+                const card = el.closest('.meal-card');
+                const orderBtn = card ? card.querySelector('.btn-order-meal') : null;
+                if (orderBtn) orderBtn.disabled = true;
+                return;
+            }
+
+            // Umrechnung in Tage, Stunden, Minuten, Sekunden
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const pad = num => String(num).padStart(2, '0');
+
+            // Formatierte Anzeige
+            let timeString = "⏰ Frist: Noch ";
+            if (days > 0) timeString += `${days} Tag(e) `;
+            timeString += `${pad(hours)} Std. ${pad(minutes)} Min. ${pad(seconds)} Sek.`;
+
+            el.innerHTML = `<span style="color:#2e7d32; font-weight:bold;">${timeString}</span>`;
+        });
+    }
+
+    // Sofort einmal ausführen und dann im 1-Sekunden-Takt wiederholen
+    updateTimers();
+    mealTimerInterval = setInterval(updateTimers, 1000);
 }
     
 </script>
