@@ -4289,6 +4289,205 @@ function startMealCountdowns() {
     updateTimers();
     window.mealTimerInterval = setInterval(updateTimers, 1000);
 }
+
+    // Universelle Soft-Delete Funktion für jede beliebige Tabelle
+async function softDeleteItem(table, id, successMsg = "In den Papierkorb verschoben.") {
+    if (!confirm("Möchtest du diesen Eintrag wirklich in den Papierkorb verschieben?")) return false;
+
+    const { error } = await sb
+        .from(table)
+        .update({ is_deleted: true })
+        .eq('id', id);
+
+    if (error) {
+        showToast("Fehler beim Löschen: " + error.message, "error");
+        return false;
+    }
+
+    showToast(successMsg, "info");
+    return true;
+}
+
+// ---------------------------------------------------------------------
+// Angepasste Löschfunktionen für die einzelnen Bereiche
+// ---------------------------------------------------------------------
+
+// 🍲 ESSEN LÖSCHEN
+async function deleteMeal(mealId) {
+    const success = await softDeleteItem('meals', mealId, "Essen in den Papierkorb verschoben.");
+    if (success) {
+        loadAdminMeals();
+        if (typeof loadMealsView === 'function') loadMealsView();
+        if (typeof loadTrash === 'function') loadTrash();
+    }
+}
+
+// 🎯 TURNIERE LÖSCHEN
+async function deleteTournament(tournamentId) {
+    const success = await softDeleteItem('tournaments', tournamentId, "Turnier in den Papierkorb verschoben.");
+    if (success) {
+        loadAllEvents();
+        if (typeof loadAdmin === 'function') loadAdmin();
+        if (typeof loadTrash === 'function') loadTrash();
+    }
+}
+
+// 📅 KALENDER-EVENTS LÖSCHEN
+async function deleteCalendarEvent(eventId) {
+    const success = await softDeleteItem('calendar_events', eventId, "Termin in den Papierkorb verschoben.");
+    if (success) {
+        if (typeof loadCalendar === 'function') loadCalendar();
+        if (typeof loadTrash === 'function') loadTrash();
+    }
+}
+
+// ⏱️ ARBEITSZEITEN / FAHRTEN LÖSCHEN
+async function deleteWorkHour(id) {
+    const success = await softDeleteItem('work_hours', id, "Eintrag in den Papierkorb verschoben.");
+    if (success) {
+        if (typeof loadWorkHours === 'function') loadWorkHours();
+        if (typeof loadTrash === 'function') loadTrash();
+    }
+}
+
+    // Lädt alle gelöschten Elemente im Admin-Bereich
+async function loadTrash() {
+    if (!isAdmin) return;
+    const container = document.getElementById('admin-trash-list');
+    if (!container) return;
+
+    container.innerHTML = "<p>Lade Papierkorb...</p>";
+
+    // Parallele Abfrage aller relevanten Tabellen
+    const [
+        { data: deletedMeals },
+        { data: deletedTournaments },
+        { data: deletedEvents }
+    ] = await Promise.all([
+        sb.from('meals').select('*').eq('is_deleted', true),
+        sb.from('tournaments').select('*').eq('is_deleted', true),
+        sb.from('calendar_events').select('*').eq('is_deleted', true)
+    ]);
+
+    const meals = deletedMeals || [];
+    const tournaments = deletedTournaments || [];
+    const events = deletedEvents || [];
+
+    if (meals.length === 0 && tournaments.length === 0 && events.length === 0) {
+        container.innerHTML = "<p style='color:#777; font-style:italic;'>Der Papierkorb ist leer.</p>";
+        return;
+    }
+
+    let html = '<ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;">';
+
+    // 1. Gelöschte Essen
+    meals.forEach(m => {
+        const dateStr = new Date(m.date).toLocaleDateString('de-DE');
+        html += `
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
+                <div>
+                    <strong>🍲 [Essen] ${m.title}</strong><br>
+                    <small style="color:#666;">Termin: ${dateStr} | Preis: ${parseFloat(m.price).toFixed(2).replace('.', ',')} €</small>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="restoreItem('meals', '${m.id}')" style="background:#2e7d32; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        ↩️ Wiederherstellen
+                    </button>
+                    <button onclick="permanentlyDeleteItem('meals', '${m.id}')" style="background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        🔥 Endgültig löschen
+                    </button>
+                </div>
+            </li>`;
+    });
+
+    // 2. Gelöschte Turniere
+    tournaments.forEach(t => {
+        const dateStr = new Date(t.date).toLocaleDateString('de-DE');
+        html += `
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
+                <div>
+                    <strong>🎯 [Turnier] ${t.title || t.team}</strong><br>
+                    <small style="color:#666;">Datum: ${dateStr}</small>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="restoreItem('tournaments', '${t.id}')" style="background:#2e7d32; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        ↩️ Wiederherstellen
+                    </button>
+                    <button onclick="permanentlyDeleteItem('tournaments', '${t.id}')" style="background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        🔥 Endgültig löschen
+                    </button>
+                </div>
+            </li>`;
+    });
+
+    // 3. Gelöschte Kalender-Termine
+    events.forEach(e => {
+        const dateStr = new Date(e.date).toLocaleDateString('de-DE');
+        html += `
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
+                <div>
+                    <strong>📅 [Termin] ${e.title}</strong><br>
+                    <small style="color:#666;">Datum: ${dateStr}</small>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="restoreItem('calendar_events', '${e.id}')" style="background:#2e7d32; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        ↩️ Wiederherstellen
+                    </button>
+                    <button onclick="permanentlyDeleteItem('calendar_events', '${e.id}')" style="background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        🔥 Endgültig löschen
+                    </button>
+                </div>
+            </li>`;
+    });
+
+    html += '</ul>';
+    container.innerHTML = html;
+}
+
+// Stellt ein Gelöschtes Element wieder her (is_deleted = false)
+async function restoreItem(table, id) {
+    const { error } = await sb
+        .from(table)
+        .update({ is_deleted: false })
+        .eq('id', id);
+
+    if (error) {
+        showToast("Fehler beim Wiederherstellen: " + error.message, "error");
+    } else {
+        showToast("Eintrag erfolgreich wiederhergestellt!", "success");
+        loadTrash();
+        
+        // Aktualisiert alle betroffenen Ansichten
+        if (typeof loadAdminMeals === 'function') loadAdminMeals();
+        if (typeof loadMealsView === 'function') loadMealsView();
+        if (typeof loadAllEvents === 'function') loadAllEvents();
+        if (typeof loadCalendar === 'function') loadCalendar();
+    }
+}
+
+// Endgültiges Löschen aus der Datenbank (NUR FÜR ADMINS RECHTSSICHER GESCHÜTZT)
+async function permanentlyDeleteItem(table, id) {
+    if (!isAdmin) {
+        showToast("Zugriff verweigert: Nur Administratoren dürfen Einträge endgültig löschen!", "error");
+        return;
+    }
+
+    if (!confirm("SICHERHEITSHINWEIS: Möchtest du diesen Eintrag wirklich UNWIDERRUFLICH aus der Datenbank löschen?")) {
+        return;
+    }
+
+    const { error } = await sb
+        .from(table)
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        showToast("Fehler beim endgültigen Löschen: " + error.message, "error");
+    } else {
+        showToast("Eintrag unwiderruflich gelöscht.", "success");
+        loadTrash();
+    }
+}
     
 </script>
     
