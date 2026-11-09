@@ -886,6 +886,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <!-- Dynamische Liste der Essen + PDF-Exporte -->
             <div id="admin-meals-list"></div>
         </div>
+    <!-- PAPIERKORB (Im Admin-Bereich einbauen) -->
+<details class="admin-explorer-card" ontoggle="if(this.open) loadTrash()">
+    <summary class="admin-explorer-header">
+        <span>🗑️ Papierkorb & Wiederherstellung</span>
+    </summary>
+    <div class="admin-explorer-body">
+        <p style="font-size:12px; color:#666; margin-top:0;">
+            Gelöschte Elemente bleiben hier gespeichert. Nur Administratoren können Einträge endgültig entfernen.
+        </p>
+        <div id="admin-trash-list">
+            <p>Lade Papierkorb...</p>
+        </div>
+    </div>
+
     </details>
 </div>
         
