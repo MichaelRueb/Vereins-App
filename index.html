@@ -4248,11 +4248,10 @@ function resetMealForm() {
     if (cancelBtn) cancelBtn.style.display = "none";
 }
 
-    let mealTimerInterval = null;
 
 function startMealCountdowns() {
     // Falls bereits ein Timer läuft, vorher stoppen
-    if (mealTimerInterval) clearInterval(mealTimerInterval);
+    if (window.mealTimerInterval) clearInterval(window.mealTimerInterval);
 
     function updateTimers() {
         const countdownElements = document.querySelectorAll('.meal-countdown');
@@ -4268,15 +4267,10 @@ function startMealCountdowns() {
             const diff = deadline - now;
 
             if (diff <= 0) {
-                el.innerHTML = "⛔ <strong style='color:#d32f2f;'>Frist abgelaufen!</strong>";
-                // Optional: Bestellen-Button deaktivieren, falls vorhanden
-                const card = el.closest('.meal-card');
-                const orderBtn = card ? card.querySelector('.btn-order-meal') : null;
-                if (orderBtn) orderBtn.disabled = true;
+                el.innerHTML = "<span style='color:#d32f2f; font-weight:bold;'>⛔ Frist abgelaufen!</span>";
                 return;
             }
 
-            // Umrechnung in Tage, Stunden, Minuten, Sekunden
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -4284,7 +4278,6 @@ function startMealCountdowns() {
 
             const pad = num => String(num).padStart(2, '0');
 
-            // Formatierte Anzeige
             let timeString = "⏰ Frist: Noch ";
             if (days > 0) timeString += `${days} Tag(e) `;
             timeString += `${pad(hours)} Std. ${pad(minutes)} Min. ${pad(seconds)} Sek.`;
@@ -4293,9 +4286,8 @@ function startMealCountdowns() {
         });
     }
 
-    // Sofort einmal ausführen und dann im 1-Sekunden-Takt wiederholen
     updateTimers();
-    mealTimerInterval = setInterval(updateTimers, 1000);
+    window.mealTimerInterval = setInterval(updateTimers, 1000);
 }
     
 </script>
