@@ -3269,12 +3269,15 @@ async function saveMeal() {
     const title = document.getElementById('admin-meal-title').value.trim();
     const date = document.getElementById('admin-meal-date').value;
     const price = parseFloat(document.getElementById('admin-meal-price').value || 0);
-    const deadline = document.getElementById('admin-meal-deadline').value;
+    const rawDeadline = document.getElementById('admin-meal-deadline').value;
 
-    if (!title || !date || !deadline) {
+    if (!title || !date || !rawDeadline) {
         showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
         return;
     }
+
+    // Wandelt die lokale Datumseingabe inkl. Zeitzone korrekt in ISO (UTC) um
+    const deadline = new Date(rawDeadline).toISOString();
 
     const payload = { title, date, price, deadline };
 
@@ -3306,6 +3309,13 @@ async function saveMeal() {
             loadAdminMeals();
         }
     }
+}
+
+    function formatForDateTimeInput(dateString) {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    const pad = num => String(num).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 // 4. Admin-Übersicht für Essen laden (Generiert Liste + PDF-Export Buttons)
@@ -4165,6 +4175,7 @@ async function editMeal(mealId) {
     document.getElementById('admin-meal-price').value = meal.price || 0;
     document.getElementById('admin-meal-deadline').value = meal.deadline || '';
     document.getElementById('admin-meal-form-title').innerText = "Essen bearbeiten";
+    document.getElementById('admin-meal-deadline').value = formatForDateTimeInput(meal.deadline);
 
     // Buttons anpassen
     const saveBtn = document.getElementById('btn-save-meal');
