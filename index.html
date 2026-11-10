@@ -3183,28 +3183,10 @@ async function loadMealsView() {
         const isExpired = now > deadlineDate;
         const myOrder = myOrders ? myOrders.find(o => o.meal_id === meal.id) : null;
         const allOrders = meal.meal_orders || [];
-        
-        // Gesamtportionen berechnen
-        const totalPortions = allOrders.reduce((sum, o) => {
-            const hasG = o.is_guest_order || (o.guest_portions > 0) || (o.guest_name && o.guest_name.trim() !== '');
-            return sum + (o.portions || 0) + (hasG ? (o.guest_portions || 1) : 0);
-        }, 0);
+        const totalPortions = allOrders.reduce((sum, o) => sum + (o.portions || 0), 0);
 
         const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
-        
-        // Teilnehmerliste rendern
-        const participantsList = allOrders.map(o => {
-            let str = `• ${o.profiles?.full_name || 'Mitglied'} (${o.portions}x)`;
-            const isG = o.is_guest_order || (o.guest_portions > 0) || (o.guest_name && o.guest_name.trim() !== '');
-            if (isG) {
-                const gPortions = o.guest_portions || 1;
-                const gLabel = o.guest_name || 'Gast';
-                str += ` <em>[+ ${gPortions}x für ${gLabel}]</em>`;
-            }
-            return str;
-        }).join(', ');
-
-        const hasGuest = myOrder?.is_guest_order || (myOrder?.guest_portions > 0) || (myOrder?.guest_name && myOrder?.guest_name.trim() !== '') || false;
+        const participantsList = allOrders.map(o => `• ${o.profiles?.full_name || 'Mitglied'} (${o.portions}x)`).join(', ');
 
         return `
             <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
@@ -3215,7 +3197,8 @@ async function loadMealsView() {
                             📅 <strong>Termin:</strong> ${formattedDate} | 
                             💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € / Portion
                         </p>
-                        <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}"></p>
+                        <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}">
+                        </p>
                     </div>
                 </div>
 
@@ -3228,45 +3211,19 @@ async function loadMealsView() {
 
                 ${isExpired ? `
                     <div style="background:#ffebee; color:#c62828; padding:10px; border-radius:4px; font-size:13px;">
-                        ${myOrder ? `Du hast <strong>${(myOrder.portions || 0) + (hasGuest ? (myOrder.guest_portions || 1) : 0)} Portion(en)</strong> bestellt. (Frist abgelaufen)` : 'Die Anmeldefrist für dieses Essen ist leider abgelaufen.'}
+                        ${myOrder ? `Du hast <strong>${myOrder.portions} Portion(en)</strong> bestellt. (Frist abgelaufen)` : 'Die Anmeldefrist für dieses Essen ist leider abgelaufen.'}
                     </div>
                 ` : `
-                    <form onsubmit="submitMealOrder(event, '${meal.id}')" style="display:flex; flex-direction:column; gap:12px;">
+                    <form onsubmit="submitMealOrder(event, '${meal.id}')" style="display:flex; flex-direction:column; gap:10px;">
                         <div style="display:flex; gap:15px; align-items:center;">
-                            <label style="font-size:13px; font-weight:bold;">Deine Portionen:</label>
-                            <input type="number" name="portions" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:70px; padding:6px;">
+                            <label style="font-size:13px; font-weight:bold;">Portionen:</label>
+                            <input type="number" id="portions-${meal.id}" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:70px; padding:6px;">
                         </div>
                         <div>
-                            <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">Deine Bemerkung / Sonderwunsch:</label>
-                            <input type="text" name="remarks" placeholder="z.B. Ohne Zwiebeln..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
+                            <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">Bemerkungen / Sonderwünsche:</label>
+                            <input type="text" id="remarks-${meal.id}" placeholder="z.B. Keine Beilage, Vegetarisch..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
                         </div>
-
-                        <!-- GAST BESTELLUNG -->
-                        <div style="margin-top:5px; background:#f4f9f4; padding:10px; border-radius:6px; border:1px solid #c8e6c9;">
-                            <label style="font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:8px;">
-                                <input type="checkbox" name="has_guest" onchange="toggleGuestBox(this)" ${hasGuest ? 'checked' : ''} style="width:16px; height:16px;">
-                                👤 Ich möchte zusätzlich für ein Nicht-Mitglied / einen Gast mitbestellen
-                            </label>
-
-                            <div class="guest-box" style="display:${hasGuest ? 'block' : 'none'}; margin-top:10px; padding-top:10px; border-top:1px dashed #a5d6a7;">
-                                <div style="display:grid; grid-template-columns: 1fr 100px; gap:10px; margin-bottom:8px;">
-                                    <div>
-                                        <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Name des Gastes / Info:</label>
-                                        <input type="text" name="guest_name" placeholder="z.B. Anna (Partnerin)" value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
-                                    </div>
-                                    <div>
-                                        <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Gast Portionen:</label>
-                                        <input type="number" name="guest_portions" min="1" max="10" value="${myOrder?.guest_portions || 1}" style="width:100%; padding:6px; box-sizing:border-box;">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Hinweise / Sonderwunsch für Gast:</label>
-                                    <input type="text" name="guest_remarks" placeholder="z.B. Vegetarisch..." value="${myOrder?.guest_remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="submit" style="background:var(--primary); color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; align-self:flex-start; font-weight:bold; margin-top:5px;">
+                        <button type="submit" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; align-self:flex-start; font-weight:bold;">
                             ${myOrder ? 'Bestellung aktualisieren' : 'Kostenpflichtig bestellen'}
                         </button>
                     </form>
@@ -3275,7 +3232,6 @@ async function loadMealsView() {
         `;
     }).join('');
 
-    // EIGENE BESTELLUNGEN UNTEN ANZEIGEN
     let myOrdersHtml = '';
     const activeMyOrders = myOrders ? myOrders.filter(o => o.meals && !o.meals.is_deleted) : [];
 
@@ -3284,17 +3240,8 @@ async function loadMealsView() {
         const rowsHtml = activeMyOrders.map(o => {
             const m = o.meals;
             const dateStr = new Date(m.date).toLocaleDateString('de-DE');
-            const isG = o.is_guest_order || (o.guest_portions > 0) || (o.guest_name && o.guest_name.trim() !== '');
-            const gPortions = isG ? (o.guest_portions || 1) : 0;
-
-            const totalItemPortions = (o.portions || 0) + gPortions;
-            const rowTotal = totalItemPortions * parseFloat(m.price);
+            const rowTotal = o.portions * parseFloat(m.price);
             grandTotal += rowTotal;
-
-            let details = `Eigen: ${o.portions}x (${o.remarks || 'kein Wunsch'})`;
-            if (isG) {
-                details += `<br><small style="color:#0288d1;">👤 Gast: ${o.guest_name || 'Gast'} (${gPortions}x${o.guest_remarks ? ', ' + o.guest_remarks : ''})</small>`;
-            }
 
             return `
                 <tr>
@@ -3303,10 +3250,10 @@ async function loadMealsView() {
                         <small style="color:#666;">📅 ${dateStr}</small>
                     </td>
                     <td style="padding:10px 8px; border-bottom:1px solid #eee; text-align:center;">
-                        <strong>${totalItemPortions}</strong>
+                        <strong>${o.portions}</strong>
                     </td>
                     <td style="padding:10px 8px; border-bottom:1px solid #eee; font-size:12px; color:#555;">
-                        ${details}
+                        ${o.remarks || '-'}
                     </td>
                     <td style="padding:10px 8px; border-bottom:1px solid #eee; text-align:right; font-weight:bold; color:var(--primary);">
                         ${rowTotal.toFixed(2).replace('.', ',')} €
@@ -3326,7 +3273,7 @@ async function loadMealsView() {
                             <tr style="background:#e8f5e9; color:#2e7d32;">
                                 <th style="padding:8px;">Gericht & Termin</th>
                                 <th style="padding:8px; text-align:center;">Portionen</th>
-                                <th style="padding:8px;">Details & Bemerkungen</th>
+                                <th style="padding:8px;">Bemerkung</th>
                                 <th style="padding:8px; text-align:right;">Gesamt</th>
                             </tr>
                         </thead>
@@ -3350,32 +3297,20 @@ async function loadMealsView() {
 // 2. Bestellung speichern (Mitglied)
 async function submitMealOrder(e, mealId) {
     e.preventDefault();
-    const form = e.target; // Greift direkt auf das betroffene Formular zu
 
-    const portions = parseInt(form.elements['portions']?.value || 1);
-    const remarks = form.elements['remarks']?.value.trim() || '';
-    const isChecked = form.elements['has_guest']?.checked || false;
-    const guestName = form.elements['guest_name']?.value.trim() || '';
-    const guestPortions = parseInt(form.elements['guest_portions']?.value || 0);
-    const guestRemarks = form.elements['guest_remarks']?.value.trim() || '';
+    const portionsEl = document.getElementById(`portions-${mealId}`);
+    const remarksEl = document.getElementById(`remarks-${mealId}`);
 
-    // Automatische Erfassung: Häkchen ODER eingetragener Name/Portionen
-    const isGuest = isChecked || guestName !== '' || guestPortions > 0;
+    const portions = parseInt(portionsEl?.value || 1);
+    const remarks = remarksEl ? remarksEl.value.trim() : '';
 
     const payload = {
         meal_id: mealId,
         user_id: currentUser.id,
         portions: portions,
-        remarks: remarks,
-        is_guest_order: isGuest,
-        guest_name: isGuest ? (guestName || 'Gast') : null,
-        guest_portions: isGuest ? (guestPortions > 0 ? guestPortions : 1) : 0,
-        guest_remarks: isGuest ? (guestRemarks || null) : null
+        remarks: remarks
     };
 
-    console.log("Sende folgende Daten an Supabase:", payload);
-
-    // 1. Prüfen, ob bereits eine Bestellung vorliegt
     const { data: existingOrder } = await sb
         .from('meal_orders')
         .select('id')
@@ -3383,25 +3318,25 @@ async function submitMealOrder(e, mealId) {
         .eq('user_id', currentUser.id)
         .maybeSingle();
 
-    let res;
+    let error;
 
     if (existingOrder) {
-        res = await sb
+        const res = await sb
             .from('meal_orders')
             .update(payload)
-            .eq('id', existingOrder.id)
-            .select();
+            .eq('id', existingOrder.id);
+        error = res.error;
     } else {
-        res = await sb
+        const res = await sb
             .from('meal_orders')
-            .insert([payload])
-            .select();
+            .insert([payload]);
+        error = res.error;
     }
 
-    if (res.error) {
-        showToast("Fehler beim Speichern: " + res.error.message, "error");
+    if (error) {
+        showToast("Fehler beim Speichern: " + error.message, "error");
     } else {
-        showToast("Bestellung & Gast erfolgreich gespeichert!", "success");
+        showToast("Bestellung erfolgreich gespeichert!", "success");
         await loadMealsView();
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
     }
@@ -3545,50 +3480,25 @@ async function exportMealPDF(mealId) {
 
     let totalPortionsAll = 0;
     let grandTotalSum = 0;
-    let rowsHtml = '';
 
-    orders.forEach(o => {
-        const memberName = o.profiles?.full_name || 'Mitglied';
-        
-        // 1. Zeile: Hauptmitglied
-        if (o.portions > 0) {
-            const rowTotal = o.portions * pricePerPortion;
-            totalPortionsAll += o.portions;
-            grandTotalSum += rowTotal;
+    const rowsHtml = orders.map(o => {
+        const name = o.profiles?.full_name || 'Mitglied';
+        const portions = o.portions || 1;
+        const remarks = o.remarks || '-';
+        const rowTotal = portions * pricePerPortion;
 
-            rowsHtml += `
-                <tr>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">${memberName}</td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${o.portions} Portion(en)</td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">-</td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">${o.remarks || '-'}</td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd; text-align:right; font-weight:bold;">${rowTotal.toFixed(2).replace('.', ',')} €</td>
-                </tr>
-            `;
-        }
+        totalPortionsAll += portions;
+        grandTotalSum += rowTotal;
 
-        // 2. Zeile: Gast-Bestellung
-        const isG = o.is_guest_order || (o.guest_portions > 0) || (o.guest_name && o.guest_name.trim() !== '');
-        const gPortions = o.guest_portions || 1;
-
-        if (isG) {
-            const guestTotal = gPortions * pricePerPortion;
-            totalPortionsAll += gPortions;
-            grandTotalSum += guestTotal;
-
-            const guestLabel = o.guest_name ? `Gast: ${o.guest_name}` : 'Gast (Nicht-Mitglied)';
-
-            rowsHtml += `
-                <tr style="background:#f9f9f9;">
-                    <td style="padding:8px; border-bottom:1px solid #ddd; padding-left:20px; font-style:italic;">↳ ${memberName} (für Gast)</td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${gPortions} Portion(en)</td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd; font-weight:bold; color:#0288d1;">${guestLabel}</td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd;">${o.guest_remarks || '-'}</td>
-                    <td style="padding:8px; border-bottom:1px solid #ddd; text-align:right; font-weight:bold;">${guestTotal.toFixed(2).replace('.', ',')} €</td>
-                </tr>
-            `;
-        }
-    });
+        return `
+            <tr>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">${name}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${portions} Portion(en)</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">${remarks}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd; text-align:right; font-weight:bold;">${rowTotal.toFixed(2).replace('.', ',')} €</td>
+            </tr>
+        `;
+    }).join('');
 
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -3619,19 +3529,17 @@ async function exportMealPDF(mealId) {
                     <tr>
                         <th>Mitglied</th>
                         <th style="text-align: center;">Anzahl</th>
-                        <th>Gast-Info</th>
                         <th>Bemerkung / Sonderwunsch</th>
                         <th style="text-align: right;">Betrag</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${rowsHtml.length > 0 ? rowsHtml : '<tr><td colspan="5" style="padding:10px; text-align:center;">Keine Bestellungen vorhanden.</td></tr>'}
+                    ${rowsHtml.length > 0 ? rowsHtml : '<tr><td colspan="4" style="padding:10px; text-align:center;">Keine Bestellungen vorhanden.</td></tr>'}
                 </tbody>
                 <tfoot>
                     <tr>
                         <td><strong>GESAMTSUMME</strong></td>
                         <td style="text-align: center;"><strong>${totalPortionsAll} Portionen</strong></td>
-                        <td>-</td>
                         <td>-</td>
                         <td style="text-align: right; color: #2e7d32;"><strong>${grandTotalSum.toFixed(2).replace('.', ',')} €</strong></td>
                     </tr>
@@ -4656,13 +4564,7 @@ async function permanentlyDeleteItem(table, id) {
     }
 }
 
-   function toggleGuestBox(checkbox) {
-    const form = checkbox.closest('form');
-    const guestBox = form ? form.querySelector('.guest-box') : null;
-    if (guestBox) {
-        guestBox.style.display = checkbox.checked ? 'block' : 'none';
-    }
-}
+  
     
 </script>
     
