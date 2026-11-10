@@ -3457,78 +3457,105 @@ async function deleteMeal(mealId) {
 
 // 6. PDF-Export für das gewählte Essen
 async function exportMealPDF(mealId) {
-    if (!window.jspdf || !window.jspdf.jsPDF) {
-        showToast("PDF-Bibliothek fehlt.", "error");
-        return;
-    }
-
-    const { data: meal, error } = await sb.from('meals')
+    // 1. Essen und Bestellungen inkl. guest_name aus Supabase abfragen
+    const { data: meal, error } = await sb
+        .from('meals')
         .select('*, meal_orders(*, profiles(full_name))')
         .eq('id', mealId)
         .single();
 
     if (error || !meal) {
-        showToast("Fehler beim Laden der Daten.", "error");
+        showToast("Fehler beim Erstellen der PDF: " + error?.message, "error");
         return;
     }
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    // Header & Design (Einheitlich im Grün-Design)
-    doc.setFontSize(22);
-    doc.setTextColor(46, 125, 50);
-    doc.setFont("helvetica", "bold");
-    doc.text("SV Hubertus 1955 e.V. Strullendorf", 105, 20, { align: "center" });
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    const dateString = new Date(meal.date).toLocaleDateString('de-DE');
-    doc.text(`Bestellliste: ${meal.title} am ${dateString}`, 105, 28, { align: "center" });
-    doc.line(14, 35, 196, 35);
-
     const orders = meal.meal_orders || [];
-    let totalPortions = 0;
-    let grandTotal = 0;
-    const tableRows = [];
+    const dateStr = new Date(meal.date).toLocaleDateString('de-DE');
+    const pricePerPortion = parseFloat(meal.price);
 
-    orders.forEach(o => {
-        totalPortions += o.portions;
-        const price = o.portions * parseFloat(meal.price);
-        grandTotal += price;
+    let totalPortionsAll = 0;
+    let grandTotalSum = 0;
 
-        tableRows.push([
-            { content: o.profiles?.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
-            { content: `${o.portions} Portion(en)`, styles: { halign: 'center', fillColor: [245, 245, 245] } },
-            { content: o.remarks || '-', styles: { fillColor: [245, 245, 245] } },
-            { content: `${price.toFixed(2).replace('.', ',')} €`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245], textColor: [46, 125, 50] } }
-        ]);
-    });
+    // 2. Tabellenzeilen mit der neuen Gast-Spalte generieren
+    const rowsHtml = orders.map(o => {
+        const name = o.profiles?.full_name || 'Mitglied';
+        const portions = o.portions || 1;
+        const guest = o.guest_name || '-';
+        const remarks = o.remarks || '-';
+        const rowTotal = portions * pricePerPortion;
 
-    // Summenzeile am Ende der Tabelle
-    tableRows.push([
-        { content: 'GESAMTSUMME', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
-        { content: `${totalPortions} Portionen`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [240, 240, 240] } },
-        { content: '', styles: { fillColor: [240, 240, 240] } },
-        { content: `${grandTotal.toFixed(2).replace('.', ',')} €`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 240, 240], textColor: [46, 125, 50] } }
-    ]);
+        totalPortionsAll += portions;
+        grandTotalSum += rowTotal;
 
-    doc.autoTable({
-        startY: 40,
-        head: [['Mitglied', 'Anzahl', 'Bemerkung / Sonderwunsch', 'Betrag']],
-        body: tableRows,
-        theme: 'grid',
-        headStyles: { fillColor: [46, 125, 50] },
-        columnStyles: {
-            0: { cellWidth: 50 },
-            1: { cellWidth: 30, halign: 'center' },
-            2: { cellWidth: 'auto' },
-            3: { cellWidth: 30, halign: 'right' }
-        }
-    });
+        return `
+            <tr>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">${name}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${portions}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">${guest}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd;">${remarks}</td>
+                <td style="padding:8px; border-bottom:1px solid #ddd; text-align:right; font-weight:bold;">${rowTotal.toFixed(2).replace('.', ',')} €</td>
+            </tr>
+        `;
+    }).join('');
 
-    doc.save(`Bestellung_${meal.title.replace(/\s+/g, '_')}_${dateString}.pdf`);
+    // 3. Druckfenster / PDF-Layout öffnen
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Bestellliste - ${meal.title}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+                h2 { margin-bottom: 5px; color: #2e7d32; }
+                h3 { margin-top: 0; color: #555; }
+                p { font-size: 14px; color: #666; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+                th { background-color: #e8f5e9; color: #2e7d32; text-align: left; padding: 8px; border-bottom: 2px solid #a5d6a7; }
+                tfoot tr { background-color: #f5f5f5; font-weight: bold; }
+                @media print {
+                    @page { margin: 15mm; }
+                }
+            </style>
+        </head>
+        <body>
+            <h2>SV Hubertus 1955 e.V. Strullendorf</h2>
+            <h3>Bestellliste: ${meal.title} am ${dateStr}</h3>
+            <p>Preis pro Portion: ${pricePerPortion.toFixed(2).replace('.', ',')} €</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mitglied</th>
+                        <th style="text-align: center;">Anzahl</th>
+                        <th>Gast / Für wen</th>
+                        <th>Bemerkung / Sonderwunsch</th>
+                        <th style="text-align: right;">Betrag</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml.length > 0 ? rowsHtml : '<tr><td colspan="5" style="padding:10px; text-align:center;">Keine Bestellungen vorhanden.</td></tr>'}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td><strong>GESAMTSUMME</strong></td>
+                        <td style="text-align: center;"><strong>${totalPortionsAll} Portionen</strong></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td style="text-align: right; color: #2e7d32;"><strong>${grandTotalSum.toFixed(2).replace('.', ',')} €</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
 
     function handleICSUpload(event) {
