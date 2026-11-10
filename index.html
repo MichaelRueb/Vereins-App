@@ -3312,30 +3312,41 @@ async function loadMealsView() {
 async function submitMealOrder(e, mealId) {
     e.preventDefault();
 
-    const portions = parseInt(document.getElementById(`portions-${mealId}`).value || 1);
-    const remarks = document.getElementById(`remarks-${mealId}`).value.trim();
-    const guestName = document.getElementById(`guest-${mealId}`).value.trim();
+    // 1. Elemente aus dem Formular auslesen
+    const portionsEl = document.getElementById(`portions-${mealId}`);
+    const remarksEl = document.getElementById(`remarks-${mealId}`);
+    const guestEl = document.getElementById(`guest-${mealId}`);
+
+    const portions = parseInt(portionsEl?.value || 1);
+    const remarks = remarksEl ? remarksEl.value.trim() : '';
+    const guestName = guestEl ? guestEl.value.trim() : '';
+
+    // Diagnose in der Browser-Konsole (F12)
+    console.log("Gesendete Daten:", { mealId, portions, remarks, guestName });
 
     const payload = {
         meal_id: mealId,
         user_id: currentUser.id,
         portions: portions,
         remarks: remarks,
-        guest_name: guestName
+        guest_name: guestName || null
     };
 
+    // 2. In Supabase speichern (Upsert überschreibt den alten null-Wert)
     const { error } = await sb
         .from('meal_orders')
         .upsert([payload], { onConflict: 'meal_id,user_id' });
 
     if (error) {
-        showToast("Fehler beim Speichern der Bestellung: " + error.message, "error");
+        showToast("Fehler beim Speichern: " + error.message, "error");
     } else {
-        showToast("Bestellung erfolgreich gespeichert!", "success");
-        loadMealsView();
+        showToast("Bestellung & Gast erfolgreich gespeichert!", "success");
+        // Ansichten neu laden
+        if (typeof loadMealsView === 'function') loadMealsView();
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
     }
 }
+    
 // 3. Neues Essen anlegen (Admin / Funktionär)
 async function saveMeal() {
     if (!isAdmin && !isOfficial) {
