@@ -3463,6 +3463,10 @@ async function deleteMeal(mealId) {
 
 // 6. PDF-Export für das gewählte Essen
 async function exportMealPDF(mealId) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // 1. Essen und Bestellungen aus Supabase abfragen
     const { data: meal, error } = await sb
         .from('meals')
         .select('*, meal_orders(*, profiles(full_name))')
@@ -3470,18 +3474,37 @@ async function exportMealPDF(mealId) {
         .single();
 
     if (error || !meal) {
-        showToast("Fehler beim Erstellen der PDF: " + error?.message, "error");
+        showToast("Fehler beim Erstellen der PDF: " + (error?.message || "Essen nicht gefunden"), "error");
         return;
     }
 
     const orders = meal.meal_orders || [];
+    if (orders.length === 0) {
+        showToast("Keine Bestellungen zum Exportieren vorhanden!", "info");
+        return;
+    }
+
     const dateStr = new Date(meal.date).toLocaleDateString('de-DE');
     const pricePerPortion = parseFloat(meal.price);
 
+    // 2. Kopfbereich der PDF aufbauen
+    doc.setFontSize(18);
+    doc.setTextColor(46, 125, 50); // SV Hubertus grün
+    doc.text("SV Hubertus 1955 e.V. Strullendorf", 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(50);
+    doc.text(`Bestellliste: ${meal.title} am ${dateStr}`, 14, 28);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Preis pro Portion: ${pricePerPortion.toFixed(2).replace('.', ',')} €`, 14, 34);
+
+    // 3. Tabellendaten und Summen berechnen
     let totalPortionsAll = 0;
     let grandTotalSum = 0;
 
-    const rowsHtml = orders.map(o => {
+    const tableRows = orders.map(o => {
         const name = o.profiles?.full_name || 'Mitglied';
         const portions = o.portions || 1;
         const remarks = o.remarks || '-';
@@ -3490,67 +3513,39 @@ async function exportMealPDF(mealId) {
         totalPortionsAll += portions;
         grandTotalSum += rowTotal;
 
-        return `
-            <tr>
-                <td style="padding:8px; border-bottom:1px solid #ddd;">${name}</td>
-                <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${portions} Portion(en)</td>
-                <td style="padding:8px; border-bottom:1px solid #ddd;">${remarks}</td>
-                <td style="padding:8px; border-bottom:1px solid #ddd; text-align:right; font-weight:bold;">${rowTotal.toFixed(2).replace('.', ',')} €</td>
-            </tr>
-        `;
-    }).join('');
+        return [
+            name,
+            `${portions} Portion(en)`,
+            remarks,
+            `${rowTotal.toFixed(2).replace('.', ',')} €`
+        ];
+    });
 
-    const pdfWindow = window.open('', '_blank');
-    pdfWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Bestellliste - ${meal.title}</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-                h2 { margin-bottom: 5px; color: #2e7d32; }
-                h3 { margin-top: 0; color: #555; }
-                p { font-size: 14px; color: #666; }
-                table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-                th { background-color: #e8f5e9; color: #2e7d32; text-align: left; padding: 8px; border-bottom: 2px solid #a5d6a7; }
-                tfoot tr { background-color: #f5f5f5; font-weight: bold; }
-                @media print {
-                    @page { margin: 15mm; }
-                }
-            </style>
-        </head>
-        <body>
-            <h2>SV Hubertus 1955 e.V. Strullendorf</h2>
-            <h3>Bestellliste: ${meal.title} am ${dateStr}</h3>
-            <p>Preis pro Portion: ${pricePerPortion.toFixed(2).replace('.', ',')} €</p>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Mitglied</th>
-                        <th style="text-align: center;">Anzahl</th>
-                        <th>Bemerkung / Sonderwunsch</th>
-                        <th style="text-align: right;">Betrag</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rowsHtml.length > 0 ? rowsHtml : '<tr><td colspan="4" style="padding:10px; text-align:center;">Keine Bestellungen vorhanden.</td></tr>'}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td><strong>GESAMTSUMME</strong></td>
-                        <td style="text-align: center;"><strong>${totalPortionsAll} Portionen</strong></td>
-                        <td>-</td>
-                        <td style="text-align: right; color: #2e7d32;"><strong>${grandTotalSum.toFixed(2).replace('.', ',')} €</strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </body>
-        </html>
-    `);
-    
-    pdfWindow.document.close();
-    pdfWindow.focus();
+    // Summenzeile am Ende der Tabelle anfügen
+    tableRows.push([
+        { content: 'GESAMTSUMME', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: `${totalPortionsAll} Portionen`, styles: { halign: 'center', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: '-', styles: { fillColor: [240, 240, 240] } },
+        { content: `${grandTotalSum.toFixed(2).replace('.', ',')} €`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } }
+    ]);
+
+    // 4. Tabelle rendern
+    doc.autoTable({
+        head: [['Mitglied', 'Anzahl', 'Bemerkung / Sonderwunsch', 'Betrag']],
+        body: tableRows,
+        startY: 42,
+        theme: 'grid',
+        headStyles: { fillColor: [46, 125, 50], fontSize: 10 },
+        styles: { fontSize: 9 },
+        columnStyles: { 
+            1: { halign: 'center' },
+            3: { halign: 'right' }
+        }
+    });
+
+    // 5. PDF direkt im Browser herunterladen
+    const safeTitle = meal.title.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+    doc.save(`Bestellliste_${safeTitle}_${dateStr.replace(/\./g, '-')}.pdf`);
 }
 
 function handleICSUpload(event) {
