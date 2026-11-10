@@ -3500,8 +3500,8 @@ async function exportMealPDF(mealId) {
         `;
     }).join('');
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
+    const pdfWindow = window.open('', '_blank');
+    pdfWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
@@ -3549,12 +3549,8 @@ async function exportMealPDF(mealId) {
         </html>
     `);
     
-    printWindow.document.close();
-    printWindow.focus();
-    
-    setTimeout(() => {
-        printWindow.print();
-    }, 250);
+    pdfWindow.document.close();
+    pdfWindow.focus();
 }
 
 function handleICSUpload(event) {
