@@ -3312,7 +3312,7 @@ async function loadMealsView() {
 async function submitMealOrder(e, mealId) {
     e.preventDefault();
 
-    // 1. Elemente aus dem Formular auslesen
+    // Elements sicher abfragen
     const portionsEl = document.getElementById(`portions-${mealId}`);
     const remarksEl = document.getElementById(`remarks-${mealId}`);
     const guestEl = document.getElementById(`guest-${mealId}`);
@@ -3321,28 +3321,45 @@ async function submitMealOrder(e, mealId) {
     const remarks = remarksEl ? remarksEl.value.trim() : '';
     const guestName = guestEl ? guestEl.value.trim() : '';
 
-    // Diagnose in der Browser-Konsole (F12)
-    console.log("Gesendete Daten:", { mealId, portions, remarks, guestName });
-
     const payload = {
         meal_id: mealId,
         user_id: currentUser.id,
         portions: portions,
         remarks: remarks,
-        guest_name: guestName || null
+        guest_name: guestName
     };
 
-    // 2. In Supabase speichern (Upsert überschreibt den alten null-Wert)
-    const { error } = await sb
+    // 1. Prüfen, ob bereits eine Bestellung für dieses Essen existiert
+    const { data: existingOrder } = await sb
         .from('meal_orders')
-        .upsert([payload], { onConflict: 'meal_id,user_id' });
+        .select('id')
+        .eq('meal_id', mealId)
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+    let error;
+
+    if (existingOrder) {
+        // Bestehende Bestellung aktualisieren (inkl. guest_name)
+        const res = await sb
+            .from('meal_orders')
+            .update(payload)
+            .eq('id', existingOrder.id);
+        error = res.error;
+    } else {
+        // Neue Bestellung eintragen
+        const res = await sb
+            .from('meal_orders')
+            .insert([payload]);
+        error = res.error;
+    }
 
     if (error) {
+        console.error("Supabase-Fehler:", error);
         showToast("Fehler beim Speichern: " + error.message, "error");
     } else {
-        showToast("Bestellung & Gast erfolgreich gespeichert!", "success");
-        // Ansichten neu laden
-        if (typeof loadMealsView === 'function') loadMealsView();
+        showToast("Bestellung & Gast gespeichert!", "success");
+        await loadMealsView();
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
     }
 }
