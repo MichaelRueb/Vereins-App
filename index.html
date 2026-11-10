@@ -3350,33 +3350,38 @@ async function loadMealsView() {
 // 2. Bestellung speichern (Mitglied)
 async function submitMealOrder(e, mealId) {
     e.preventDefault();
+    const form = e.target; // Greift direkt auf das aktuell abgeschickte Formular zu
 
-    const portionsEl = document.getElementById(`portions-${mealId}`);
-    const remarksEl = document.getElementById(`remarks-${mealId}`);
-    const hasGuestEl = document.getElementById(`has-guest-${mealId}`);
-    const guestNameEl = document.getElementById(`guest-name-${mealId}`);
-    const guestPortionsEl = document.getElementById(`guest-portions-${mealId}`);
-    const guestRemarksEl = document.getElementById(`guest-remarks-${mealId}`);
+    // Werte präzise aus den Feldern des abgeschickten Formulars auslesen
+    const portionsInput = form.querySelector(`[id^="portions-"]`);
+    const remarksInput = form.querySelector(`[id^="remarks-"]`);
+    const hasGuestInput = form.querySelector(`[id^="has-guest-"]`);
+    const guestNameInput = form.querySelector(`[id^="guest-name-"]`);
+    const guestPortionsInput = form.querySelector(`[id^="guest-portions-"]`);
+    const guestRemarksInput = form.querySelector(`[id^="guest-remarks-"]`);
 
-    const isChecked = hasGuestEl ? hasGuestEl.checked : false;
-    const guestName = guestNameEl ? guestNameEl.value.trim() : '';
-    const guestPortions = guestPortionsEl ? (parseInt(guestPortionsEl.value) || 0) : 0;
-    const guestRemarks = guestRemarksEl ? guestRemarksEl.value.trim() : '';
+    const isChecked = hasGuestInput ? hasGuestInput.checked : false;
+    const guestName = guestNameInput ? guestNameInput.value.trim() : '';
+    const guestPortions = guestPortionsInput ? (parseInt(guestPortionsInput.value) || 0) : 0;
+    const guestRemarks = guestRemarksInput ? guestRemarksInput.value.trim() : '';
 
-    // Automatische Gast-Erkennung (Häkchen ODER Name ODER Portionen > 0)
+    // Gast liegt vor, wenn das Häkchen gesetzt ist ODER Daten eingetragen wurden
     const isGuest = isChecked || guestName !== '' || guestPortions > 0;
 
     const payload = {
         meal_id: mealId,
         user_id: currentUser.id,
-        portions: parseInt(portionsEl?.value || 1),
-        remarks: remarksEl ? remarksEl.value.trim() : '',
+        portions: parseInt(portionsInput?.value || 1),
+        remarks: remarksInput ? remarksInput.value.trim() : '',
         is_guest_order: isGuest,
         guest_name: isGuest ? (guestName || 'Gast') : null,
         guest_portions: isGuest ? (guestPortions > 0 ? guestPortions : 1) : 0,
         guest_remarks: isGuest ? (guestRemarks || null) : null
     };
 
+    console.log("Sende an Supabase:", payload);
+
+    // 1. Bestehende Bestellung für den User prüfen
     const { data: existingOrder } = await sb
         .from('meal_orders')
         .select('id')
@@ -3387,12 +3392,14 @@ async function submitMealOrder(e, mealId) {
     let error;
 
     if (existingOrder) {
+        // Update inklusive Gast-Feldern
         const res = await sb
             .from('meal_orders')
             .update(payload)
             .eq('id', existingOrder.id);
         error = res.error;
     } else {
+        // Neu-Eintrag
         const res = await sb
             .from('meal_orders')
             .insert([payload]);
@@ -3400,6 +3407,7 @@ async function submitMealOrder(e, mealId) {
     }
 
     if (error) {
+        console.error("Supabase-Fehler:", error);
         showToast("Fehler beim Speichern: " + error.message, "error");
     } else {
         showToast("Bestellung & Gast erfolgreich gespeichert!", "success");
