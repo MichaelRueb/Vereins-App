@@ -3476,7 +3476,7 @@ async function exportMealPDF(mealId) {
     let totalPortionsAll = 0;
     let grandTotalSum = 0;
 
-    // 2. Tabellenzeilen mit der neuen Gast-Spalte generieren
+    // 2. Tabellenzeilen mit Gast-Spalte generieren
     const rowsHtml = orders.map(o => {
         const name = o.profiles?.full_name || 'Mitglied';
         const portions = o.portions || 1;
@@ -3498,7 +3498,7 @@ async function exportMealPDF(mealId) {
         `;
     }).join('');
 
-    // 3. Druckfenster / PDF-Layout öffnen
+    // 3. Druckfenster öffnen & befüllen
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
         <!DOCTYPE html>
@@ -3546,19 +3546,20 @@ async function exportMealPDF(mealId) {
                     </tr>
                 </tfoot>
             </table>
-
-            <script>
-                window.onload = function() {
-                    window.print();
-                };
-            </script>
         </body>
         </html>
     `);
+    
     printWindow.document.close();
+    printWindow.focus();
+    
+    // Druckdialog nach kurzem Rendern auslösen
+    setTimeout(() => {
+        printWindow.print();
+    }, 250);
 }
 
-    function handleICSUpload(event) {
+function handleICSUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
