@@ -3234,34 +3234,34 @@ async function loadMealsView() {
                     <form onsubmit="submitMealOrder(event, '${meal.id}')" style="display:flex; flex-direction:column; gap:12px;">
                         <div style="display:flex; gap:15px; align-items:center;">
                             <label style="font-size:13px; font-weight:bold;">Deine Portionen:</label>
-                            <input type="number" id="portions-${meal.id}" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:70px; padding:6px;">
+                            <input type="number" name="portions" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:70px; padding:6px;">
                         </div>
                         <div>
                             <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">Deine Bemerkung / Sonderwunsch:</label>
-                            <input type="text" id="remarks-${meal.id}" placeholder="z.B. Ohne Zwiebeln..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
+                            <input type="text" name="remarks" placeholder="z.B. Ohne Zwiebeln..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
                         </div>
 
                         <!-- GAST BESTELLUNG -->
                         <div style="margin-top:5px; background:#f4f9f4; padding:10px; border-radius:6px; border:1px solid #c8e6c9;">
                             <label style="font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:8px;">
-                                <input type="checkbox" id="has-guest-${meal.id}" onchange="toggleGuestBox('${meal.id}')" ${hasGuest ? 'checked' : ''} style="width:16px; height:16px;">
+                                <input type="checkbox" name="has_guest" onchange="toggleGuestBox(this)" ${hasGuest ? 'checked' : ''} style="width:16px; height:16px;">
                                 👤 Ich möchte zusätzlich für ein Nicht-Mitglied / einen Gast mitbestellen
                             </label>
 
-                            <div id="guest-box-${meal.id}" style="display:${hasGuest ? 'block' : 'none'}; margin-top:10px; padding-top:10px; border-top:1px dashed #a5d6a7;">
+                            <div class="guest-box" style="display:${hasGuest ? 'block' : 'none'}; margin-top:10px; padding-top:10px; border-top:1px dashed #a5d6a7;">
                                 <div style="display:grid; grid-template-columns: 1fr 100px; gap:10px; margin-bottom:8px;">
                                     <div>
                                         <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Name des Gastes / Info:</label>
-                                        <input type="text" id="guest-name-${meal.id}" placeholder="z.B. Anna (Partnerin)" value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
+                                        <input type="text" name="guest_name" placeholder="z.B. Anna (Partnerin)" value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
                                     </div>
                                     <div>
                                         <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Gast Portionen:</label>
-                                        <input type="number" id="guest-portions-${meal.id}" min="1" max="10" value="${myOrder?.guest_portions || 1}" style="width:100%; padding:6px; box-sizing:border-box;">
+                                        <input type="number" name="guest_portions" min="1" max="10" value="${myOrder?.guest_portions || 1}" style="width:100%; padding:6px; box-sizing:border-box;">
                                     </div>
                                 </div>
                                 <div>
                                     <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:3px;">Hinweise / Sonderwunsch für Gast:</label>
-                                    <input type="text" id="guest-remarks-${meal.id}" placeholder="z.B. Vegetarisch..." value="${myOrder?.guest_remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
+                                    <input type="text" name="guest_remarks" placeholder="z.B. Vegetarisch..." value="${myOrder?.guest_remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
                                 </div>
                             </div>
                         </div>
@@ -3350,37 +3350,32 @@ async function loadMealsView() {
 // 2. Bestellung speichern (Mitglied)
 async function submitMealOrder(e, mealId) {
     e.preventDefault();
+    const form = e.target; // Greift direkt auf das betroffene Formular zu
 
-    // 1. Eingabefelder direkt und sicher über die mealId auslesen
-    const portionsEl = document.getElementById(`portions-${mealId}`);
-    const remarksEl = document.getElementById(`remarks-${mealId}`);
-    const hasGuestEl = document.getElementById(`has-guest-${mealId}`);
-    const guestNameEl = document.getElementById(`guest-name-${mealId}`);
-    const guestPortionsEl = document.getElementById(`guest-portions-${mealId}`);
-    const guestRemarksEl = document.getElementById(`guest-remarks-${mealId}`);
+    const portions = parseInt(form.elements['portions']?.value || 1);
+    const remarks = form.elements['remarks']?.value.trim() || '';
+    const isChecked = form.elements['has_guest']?.checked || false;
+    const guestName = form.elements['guest_name']?.value.trim() || '';
+    const guestPortions = parseInt(form.elements['guest_portions']?.value || 0);
+    const guestRemarks = form.elements['guest_remarks']?.value.trim() || '';
 
-    const isChecked = hasGuestEl ? hasGuestEl.checked : false;
-    const guestName = guestNameEl ? guestNameEl.value.trim() : '';
-    const guestPortions = guestPortionsEl ? (parseInt(guestPortionsEl.value) || 0) : 0;
-    const guestRemarks = guestRemarksEl ? guestRemarksEl.value.trim() : '';
-
-    // Gast-Bestellung erkennen
+    // Automatische Erfassung: Häkchen ODER eingetragener Name/Portionen
     const isGuest = isChecked || guestName !== '' || guestPortions > 0;
 
     const payload = {
         meal_id: mealId,
         user_id: currentUser.id,
-        portions: parseInt(portionsEl?.value || 1),
-        remarks: remarksEl ? remarksEl.value.trim() : '',
+        portions: portions,
+        remarks: remarks,
         is_guest_order: isGuest,
         guest_name: isGuest ? (guestName || 'Gast') : null,
         guest_portions: isGuest ? (guestPortions > 0 ? guestPortions : 1) : 0,
         guest_remarks: isGuest ? (guestRemarks || null) : null
     };
 
-    console.log("Gesendete Daten an Supabase:", payload);
+    console.log("Sende folgende Daten an Supabase:", payload);
 
-    // 2. Bestehende Bestellung prüfen
+    // 1. Prüfen, ob bereits eine Bestellung vorliegt
     const { data: existingOrder } = await sb
         .from('meal_orders')
         .select('id')
@@ -3391,7 +3386,6 @@ async function submitMealOrder(e, mealId) {
     let res;
 
     if (existingOrder) {
-        // .select() erzwingt die Rückgabe der geänderten Zeile
         res = await sb
             .from('meal_orders')
             .update(payload)
@@ -3404,13 +3398,8 @@ async function submitMealOrder(e, mealId) {
             .select();
     }
 
-    console.log("Antwort von Supabase:", res);
-
     if (res.error) {
         showToast("Fehler beim Speichern: " + res.error.message, "error");
-    } else if (!res.data || res.data.length === 0) {
-        // Falls RLS das Update stumm blockiert hat
-        showToast("Fehler: Supabase RLS lässt Aktualisierung nicht zu!", "error");
     } else {
         showToast("Bestellung & Gast erfolgreich gespeichert!", "success");
         await loadMealsView();
@@ -4667,10 +4656,10 @@ async function permanentlyDeleteItem(table, id) {
     }
 }
 
-    function toggleGuestBox(mealId) {
-    const checkbox = document.getElementById(`has-guest-${mealId}`);
-    const guestBox = document.getElementById(`guest-box-${mealId}`);
-    if (guestBox && checkbox) {
+   function toggleGuestBox(checkbox) {
+    const form = checkbox.closest('form');
+    const guestBox = form ? form.querySelector('.guest-box') : null;
+    if (guestBox) {
         guestBox.style.display = checkbox.checked ? 'block' : 'none';
     }
 }
