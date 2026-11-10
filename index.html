@@ -3205,8 +3205,7 @@ async function loadMealsView() {
                             📅 <strong>Termin:</strong> ${formattedDate} | 
                             💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € / Portion
                         </p>
-                        <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}">
-                        </p>
+                        <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}"></p>
                     </div>
                 </div>
 
@@ -3224,12 +3223,12 @@ async function loadMealsView() {
                 ` : `
                     <form onsubmit="submitMealOrder(event, '${meal.id}')" style="display:flex; flex-direction:column; gap:10px;">
                         <div style="display:flex; gap:15px; align-items:center;">
-                            <label style="font-size:13px; font-weight:bold;">Portionen gesamt:</label>
+                            <label style="font-size:13px; font-weight:bold;">Portionen:</label>
                             <input type="number" id="portions-${meal.id}" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:70px; padding:6px;">
                         </div>
                         <div>
                             <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">👤 Für Gast mitbestellt (Name / Info):</label>
-                            <input type="text" id="guest-${meal.id}" placeholder="z.B. Partner / Kind / Name des Gastes..." value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
+                            <input type="text" id="guest-${meal.id}" placeholder="z.B. Partner / OC / Name des Gastes..." value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
                         </div>
                         <div>
                             <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">Bemerkungen / Sonderwünsche:</label>
@@ -3312,7 +3311,6 @@ async function loadMealsView() {
 async function submitMealOrder(e, mealId) {
     e.preventDefault();
 
-    // Elements sicher abfragen
     const portionsEl = document.getElementById(`portions-${mealId}`);
     const remarksEl = document.getElementById(`remarks-${mealId}`);
     const guestEl = document.getElementById(`guest-${mealId}`);
@@ -3329,7 +3327,7 @@ async function submitMealOrder(e, mealId) {
         guest_name: guestName
     };
 
-    // 1. Prüfen, ob bereits eine Bestellung für dieses Essen existiert
+    // Prüfen, ob bereits eine Bestellung vorliegt
     const { data: existingOrder } = await sb
         .from('meal_orders')
         .select('id')
@@ -3340,14 +3338,12 @@ async function submitMealOrder(e, mealId) {
     let error;
 
     if (existingOrder) {
-        // Bestehende Bestellung aktualisieren (inkl. guest_name)
         const res = await sb
             .from('meal_orders')
             .update(payload)
             .eq('id', existingOrder.id);
         error = res.error;
     } else {
-        // Neue Bestellung eintragen
         const res = await sb
             .from('meal_orders')
             .insert([payload]);
@@ -3355,10 +3351,9 @@ async function submitMealOrder(e, mealId) {
     }
 
     if (error) {
-        console.error("Supabase-Fehler:", error);
         showToast("Fehler beim Speichern: " + error.message, "error");
     } else {
-        showToast("Bestellung & Gast gespeichert!", "success");
+        showToast("Bestellung & Gast erfolgreich gespeichert!", "success");
         await loadMealsView();
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
     }
