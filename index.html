@@ -3375,6 +3375,14 @@ async function cancelMealOrder(mealId) {
     }
 }
 
+// Hilfsfunktion: Findet das Beschreibungsfeld garantiert (über ID oder Platzhalter)
+function getMealDescInput() {
+    return document.getElementById('admin-meal-description') || 
+           document.getElementById('meal-description') || 
+           document.querySelector('input[placeholder*="Beschreibung"]') || 
+           document.querySelector('input[placeholder*="Inhalt"]');
+}
+
 // 6. Neues Essen anlegen / speichern (Admin / Funktionär)
 async function saveMeal() {
     if (!isAdmin && !isOfficial) {
@@ -3388,8 +3396,8 @@ async function saveMeal() {
     const price = parseFloat(document.getElementById('admin-meal-price')?.value || 0);
     const rawDeadline = document.getElementById('admin-meal-deadline')?.value;
     
-    const descEl = document.getElementById('admin-meal-description') || document.getElementById('meal-description');
-    const description = descEl ? descEl.value.trim() : '';
+    const descInput = getMealDescInput();
+    const description = descInput ? descInput.value.trim() : '';
 
     if (!title || !date || !rawDeadline) {
         showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
@@ -3441,8 +3449,9 @@ function resetMealForm() {
     setVal('admin-meal-date');
     setVal('admin-meal-price');
     setVal('admin-meal-deadline');
-    setVal('admin-meal-description');
-    setVal('meal-description');
+    
+    const descInput = getMealDescInput();
+    if (descInput) descInput.value = '';
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Neues Essen anbieten";
@@ -3465,7 +3474,6 @@ async function editMeal(mealId) {
     document.getElementById('admin-meal-id').value = meal.id;
     document.getElementById('admin-meal-title').value = meal.title || '';
     
-    // Datum sauber für input type="date" formatieren (YYYY-MM-DD)
     if (meal.date) {
         document.getElementById('admin-meal-date').value = meal.date.split('T')[0];
     } else {
@@ -3475,8 +3483,11 @@ async function editMeal(mealId) {
     document.getElementById('admin-meal-price').value = meal.price || '';
     document.getElementById('admin-meal-deadline').value = formatForDateTimeInput(meal.deadline);
     
-    const descEl = document.getElementById('admin-meal-description') || document.getElementById('meal-description');
-    if (descEl) descEl.value = meal.description || '';
+    // Befüllt das Beschreibungsfeld garantiert
+    const descInput = getMealDescInput();
+    if (descInput) {
+        descInput.value = meal.description || '';
+    }
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Essen bearbeiten";
