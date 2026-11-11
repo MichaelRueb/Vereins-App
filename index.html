@@ -3532,6 +3532,7 @@ async function exportMealPDF(mealId) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
+    // 1. Essen und Bestellungen aus Supabase abfragen
     const { data: meal, error } = await sb
         .from('meals')
         .select('*, meal_orders(*, profiles(full_name))')
@@ -3552,8 +3553,9 @@ async function exportMealPDF(mealId) {
     const dateStr = new Date(meal.date).toLocaleDateString('de-DE');
     const pricePerPortion = parseFloat(meal.price);
 
+    // 2. Kopfbereich der PDF aufbauen
     doc.setFontSize(18);
-    doc.setTextColor(46, 125, 50);
+    doc.setTextColor(46, 125, 50); // SV Hubertus grün
     doc.text("SV Hubertus 1955 e.V. Strullendorf", 14, 20);
     
     doc.setFontSize(12);
@@ -3564,6 +3566,7 @@ async function exportMealPDF(mealId) {
     doc.setTextColor(100);
     doc.text(`Preis pro Portion: ${pricePerPortion.toFixed(2).replace('.', ',')} €`, 14, 34);
 
+    // 3. Tabellendaten und Summen berechnen
     let totalPortionsAll = 0;
     let grandTotalSum = 0;
 
@@ -3584,6 +3587,7 @@ async function exportMealPDF(mealId) {
         ];
     });
 
+    // Summenzeile am Ende der Tabelle anfügen
     tableRows.push([
         { content: 'GESAMTSUMME', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
         { content: `${totalPortionsAll} Portionen`, styles: { halign: 'center', fontStyle: 'bold', fillColor: [240, 240, 240] } },
@@ -3591,6 +3595,7 @@ async function exportMealPDF(mealId) {
         { content: `${grandTotalSum.toFixed(2).replace('.', ',')} €`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } }
     ]);
 
+    // 4. Tabelle rendern
     doc.autoTable({
         head: [['Mitglied', 'Anzahl', 'Bemerkung / Sonderwunsch', 'Betrag']],
         body: tableRows,
@@ -3604,6 +3609,7 @@ async function exportMealPDF(mealId) {
         }
     });
 
+    // 5. PDF direkt im Browser herunterladen
     const safeTitle = meal.title.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
     doc.save(`Bestellliste_${safeTitle}_${dateStr.replace(/\./g, '-')}.pdf`);
 }
