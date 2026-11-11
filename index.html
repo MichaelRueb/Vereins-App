@@ -853,40 +853,40 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </div>
     </details>
 
-   <!-- 6. TRAININGS-ESSEN -->
-    <details class="admin-explorer-card">
-        <summary class="admin-explorer-header">
-            <span>🍲 Trainings-Essen verwalten</span>
-        </summary>
-        <div class="admin-explorer-body">
-            <!-- Formular zum Erstellen / Bearbeiten eines Essens -->
-            <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
-                <input type="hidden" id="admin-meal-id" value="">
-                <h5 id="admin-meal-form-title" style="margin-top:0; font-size:14px;">Neues Essen anbieten</h5>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
-                    <input type="text" id="admin-meal-title" placeholder="Gericht (z.B. Schnitzel)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
-                    <input type="text" id="meal-description" placeholder="Inhalt / Beschreibung der Portion (z.B. 1 Paar Blaue Zipfel mit 1 Scheibe Brot)" style="width:100%; padding:8px; margin-bottom:10px; box-sizing:border-box;">
-                    <input type="date" id="admin-meal-date" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
-                    <input type="number" step="0.50" id="admin-meal-price" placeholder="Preis pro Portion (€)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
-                    <div>
-                        <label style="font-size:11px; display:block;">Anmeldefrist bis:</label>
-                        <input type="datetime-local" id="admin-meal-deadline" style="padding:6px; border:1px solid #ccc; border-radius:4px; width:100%;">
-                    </div>
-                </div>
-                <div style="margin-top:10px; display:flex; gap:10px;">
-                    <button id="btn-save-meal" onclick="saveMeal()" style="background:var(--primary); color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">
-                        Essen veröffentlichen
-                    </button>
-                    <button id="btn-cancel-meal-edit" onclick="resetMealForm()" style="display:none; background:#6c757d; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">
-                        Abbrechen
-                    </button>
+  <!-- 6. TRAININGS-ESSEN -->
+<details class="admin-explorer-card">
+    <summary class="admin-explorer-header">
+        <span>🍲 Trainings-Essen verwalten</span>
+    </summary>
+    <div class="admin-explorer-body">
+        <!-- Formular zum Erstellen / Bearbeiten eines Essens -->
+        <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
+            <input type="hidden" id="admin-meal-id" value="">
+            <h5 id="admin-meal-form-title" style="margin-top:0; font-size:14px;">Neues Essen anbieten</h5>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                <input type="text" id="admin-meal-title" placeholder="Gericht (z.B. Schnitzel)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                <input type="text" id="admin-meal-description" placeholder="Inhalt / Beschreibung der Portion (z.B. 1 Paar Blaue Zipfel mit 1 Scheibe Brot)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                <input type="date" id="admin-meal-date" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                <input type="number" step="0.50" id="admin-meal-price" placeholder="Preis pro Portion (€)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                <div>
+                    <label style="font-size:11px; display:block;">Anmeldefrist bis:</label>
+                    <input type="datetime-local" id="admin-meal-deadline" style="padding:6px; border:1px solid #ccc; border-radius:4px; width:100%;">
                 </div>
             </div>
-
-            <!-- Dynamische Liste der Essen + PDF-Exporte -->
-            <div id="admin-meals-list"></div>
+            <div style="margin-top:10px; display:flex; gap:10px;">
+                <button id="admin-meal-submit-btn" onclick="saveMeal()" style="background:var(--primary); color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    Essen veröffentlichen
+                </button>
+                <button id="btn-cancel-meal-edit" onclick="resetMealForm()" style="display:none; background:#6c757d; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    Abbrechen
+                </button>
+            </div>
         </div>
-    </details> <!-- Hier endet das Essen-Accordion -->
+
+        <!-- Dynamische Liste der Essen + PDF-Exporte -->
+        <div id="admin-meals-list"></div>
+    </div>
+</details>
 
     <!-- 7. PAPIERKORB & WIEDERHERSTELLUNG (Eigenständiger Ordner) -->
     <details class="admin-explorer-card" ontoggle="if(this.open) loadTrash()">
@@ -3200,8 +3200,8 @@ async function loadMealsView() {
                             💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € / Portion
                         </p>
                         ${meal.description ? `
-                            <p style="margin:4px 0 0 0; font-size:13px; color:#444;">
-                                ℹ️ <strong>Inhalt / Portion:</strong> ${meal.description}
+                            <p style="margin:5px 0 0 0; font-size:13px; color:#2e7d32; font-weight:bold;">
+                                ℹ️ <strong>Portionsinhalt:</strong> ${meal.description}
                             </p>
                         ` : ''}
                         <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}"></p>
@@ -3261,6 +3261,7 @@ async function loadMealsView() {
                 <tr>
                     <td style="padding:10px 8px; border-bottom:1px solid #eee;">
                         <strong>${m.title}</strong><br>
+                        ${m.description ? `<small style="color:#2e7d32; font-weight:bold;">ℹ️ ${m.description}</small><br>` : ''}
                         <small style="color:#666;">📅 ${dateStr}</small>
                     </td>
                     <td style="padding:10px 8px; border-bottom:1px solid #eee; text-align:center;">
