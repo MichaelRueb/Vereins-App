@@ -3499,7 +3499,14 @@ async function loadAdminMeals() {
 
     container.innerHTML = meals.map(m => {
         const orders = m.meal_orders || [];
-        const totalPortions = orders.reduce((sum, o) => sum + o.portions, 0);
+        
+        // Korrekte Addition von eigenen Portionen + Gast-Portionen
+        const totalPortions = orders.reduce((sum, o) => {
+            const own = o.portions || 0;
+            const guest = o.is_guest_order ? (o.guest_portions || 0) : 0;
+            return sum + own + guest;
+        }, 0);
+
         const totalPrice = totalPortions * parseFloat(m.price);
 
         return `
@@ -3556,7 +3563,6 @@ async function exportMealPDF(mealId) {
     const dateStr = new Date(meal.date).toLocaleDateString('de-DE');
     const pricePerPortion = parseFloat(meal.price);
 
-    // Filtert Emojis heraus, um Darstellungsfehler in jsPDF zu vermeiden
     const cleanText = str => (str || '').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
 
     doc.setFontSize(18);
@@ -3574,23 +3580,47 @@ async function exportMealPDF(mealId) {
     let totalPortionsAll = 0;
     let grandTotalSum = 0;
 
-    const tableRows = orders.map(o => {
+    const tableRows = [];
+
+    orders.forEach(o => {
         const name = o.profiles?.full_name || 'Mitglied';
-        const portions = o.portions || 1;
-        const remarks = cleanText(o.remarks) || '-';
-        const rowTotal = portions * pricePerPortion;
+        const ownPortions = o.portions || 0;
+        
+        // 1. Eigene Portionen Zeile hinzufügen (falls vorhanden)
+        if (ownPortions > 0) {
+            const ownTotal = ownPortions * pricePerPortion;
+            totalPortionsAll += ownPortions;
+            grandTotalSum += ownTotal;
 
-        totalPortionsAll += portions;
-        grandTotalSum += rowTotal;
+            tableRows.push([
+                name,
+                `${ownPortions} Portion(en)`,
+                cleanText(o.remarks) || '-',
+                `${ownTotal.toFixed(2).replace('.', ',')} €`
+            ]);
+        }
 
-        return [
-            name,
-            `${portions} Portion(en)`,
-            remarks,
-            `${rowTotal.toFixed(2).replace('.', ',')} €`
-        ];
+        // 2. Gast-Portionen als separate Zeile hinzufügen (falls angehakt)
+        if (o.is_guest_order && o.guest_portions > 0) {
+            const guestPortions = o.guest_portions;
+            const guestTotal = guestPortions * pricePerPortion;
+            totalPortionsAll += guestPortions;
+            grandTotalSum += guestTotal;
+
+            const guestLabel = `Gast: ${cleanText(o.guest_name) || 'Unbekannt'}`;
+            const guestRemarksClean = cleanText(o.guest_remarks);
+            const combinedRemarks = guestRemarksClean ? `${guestLabel} (${guestRemarksClean})` : guestLabel;
+
+            tableRows.push([
+                { content: `${name} (Gast)`, styles: { fontStyle: 'italic', textColor: [80, 80, 80] } },
+                `${guestPortions} Portion(en)`,
+                combinedRemarks,
+                `${guestTotal.toFixed(2).replace('.', ',')} €`
+            ]);
+        }
     });
 
+    // Summenzeile
     tableRows.push([
         { content: 'GESAMTSUMME', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
         { content: `${totalPortionsAll} Portionen`, styles: { halign: 'center', fontStyle: 'bold', fillColor: [240, 240, 240] } },
@@ -3599,7 +3629,7 @@ async function exportMealPDF(mealId) {
     ]);
 
     doc.autoTable({
-        head: [['Mitglied', 'Anzahl', 'Bemerkung / Sonderwunsch', 'Betrag']],
+        head: [['Mitglied / Gast', 'Anzahl', 'Bemerkung / Namen', 'Betrag']],
         body: tableRows,
         startY: 42,
         theme: 'grid',
