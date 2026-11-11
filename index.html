@@ -3092,9 +3092,8 @@ async function importICSPlan(icsText) {
  showToast(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`, "success");
 }
 
-    // --- TRAININGS-ESSEN LOGIK ---
+   // --- TRAININGS-ESSEN LOGIK ---
 
-// 1. Mitglieder-Ansicht laden (Bestellformulare + Übersicht der eigenen Bestellungen)
 // 1. Restzeit-Rechner für Essen
 function getMealDeadlineBadge(deadlineStr) {
     const now = new Date();
@@ -3115,7 +3114,7 @@ function getMealDeadlineBadge(deadlineStr) {
     }
 }
 
-// 2. Erweiterte Mitglieder-Ansicht für Essen (inkl. Restzeit & Teilnehmerliste)
+// 2. Countdown-Timer für Essen
 let mealTimerInterval = null;
 
 function startMealCountdowns() {
@@ -3158,7 +3157,7 @@ function startMealCountdowns() {
     mealTimerInterval = setInterval(updateTimers, 1000);
 }
 
-// 1. Ansicht für Schützen / Mitglieder laden
+// 3. Ansicht für Schützen / Mitglieder laden
 async function loadMealsView() {
     const container = document.getElementById('meals-user-container');
     if (!container) return;
@@ -3309,7 +3308,7 @@ async function loadMealsView() {
     startMealCountdowns();
 }
 
-// 2. Bestellung speichern (Mitglied)
+// 4. Bestellung speichern (Mitglied)
 async function submitMealOrder(e, mealId) {
     e.preventDefault();
 
@@ -3357,7 +3356,7 @@ async function submitMealOrder(e, mealId) {
     }
 }
 
-// 3. Bestellung stornieren (Mitglied)
+// 5. Bestellung stornieren (Mitglied)
 async function cancelMealOrder(mealId) {
     if (!confirm("Möchtest du deine Bestellung wirklich stornieren?")) return;
 
@@ -3376,7 +3375,7 @@ async function cancelMealOrder(mealId) {
     }
 }
 
-// 4. Neues Essen anlegen / speichern (Admin / Funktionär)
+// 6. Neues Essen anlegen / speichern (Admin / Funktionär)
 async function saveMeal() {
     if (!isAdmin && !isOfficial) {
         showToast("Nur Funktionäre dürfen Essen verwalten.", "error");
@@ -3389,7 +3388,6 @@ async function saveMeal() {
     const price = parseFloat(document.getElementById('admin-meal-price')?.value || 0);
     const rawDeadline = document.getElementById('admin-meal-deadline')?.value;
     
-    // Greift flexibel auf admin-meal-description ODER meal-description zu
     const descEl = document.getElementById('admin-meal-description') || document.getElementById('meal-description');
     const description = descEl ? descEl.value.trim() : '';
 
@@ -3431,7 +3429,7 @@ async function saveMeal() {
     }
 }
 
-// Hilfsfunktion: Formular im Admin-Bereich zurücksetzen
+// 7. Formular im Admin-Bereich zurücksetzen
 function resetMealForm() {
     const setVal = (id, val = '') => {
         const el = document.getElementById(id);
@@ -3444,7 +3442,7 @@ function resetMealForm() {
     setVal('admin-meal-price');
     setVal('admin-meal-deadline');
     setVal('admin-meal-description');
-    setVal('meal-description'); // Leert auch das Feld id="meal-description"
+    setVal('meal-description');
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Neues Essen anbieten";
@@ -3456,7 +3454,7 @@ function resetMealForm() {
     if (submitBtn) submitBtn.textContent = "Essen veröffentlichen";
 }
 
-// Hilfsfunktion: Essen zur Bearbeitung in Formular laden
+// 8. Essen zur Bearbeitung in Formular laden
 async function editMeal(mealId) {
     const { data: meal, error } = await sb.from('meals').select('*').eq('id', mealId).single();
     if (error || !meal) {
@@ -3465,9 +3463,16 @@ async function editMeal(mealId) {
     }
     
     document.getElementById('admin-meal-id').value = meal.id;
-    document.getElementById('admin-meal-title').value = meal.title;
-    document.getElementById('admin-meal-date').value = meal.date;
-    document.getElementById('admin-meal-price').value = meal.price;
+    document.getElementById('admin-meal-title').value = meal.title || '';
+    
+    // Datum sauber für input type="date" formatieren (YYYY-MM-DD)
+    if (meal.date) {
+        document.getElementById('admin-meal-date').value = meal.date.split('T')[0];
+    } else {
+        document.getElementById('admin-meal-date').value = '';
+    }
+
+    document.getElementById('admin-meal-price').value = meal.price || '';
     document.getElementById('admin-meal-deadline').value = formatForDateTimeInput(meal.deadline);
     
     const descEl = document.getElementById('admin-meal-description') || document.getElementById('meal-description');
@@ -3490,7 +3495,7 @@ function formatForDateTimeInput(dateString) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// 5. Admin-Übersicht für Essen laden
+// 9. Admin-Übersicht für Essen laden
 async function loadAdminMeals() {
     const container = document.getElementById('admin-meals-list');
     if (!container) return;
@@ -3530,7 +3535,7 @@ async function loadAdminMeals() {
     }).join('');
 }
 
-// 6. Essen in Papierkorb verschieben
+// 10. Essen in Papierkorb verschieben
 async function deleteMeal(mealId) {
     if (!confirm("Möchtest du dieses Essen wirklich in den Papierkorb verschieben?")) return;
 
@@ -3549,7 +3554,7 @@ async function deleteMeal(mealId) {
     }
 }
 
-// 7. PDF-Export für das gewählte Essen
+// 11. PDF-Export für das gewählte Essen
 async function exportMealPDF(mealId) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
