@@ -3383,13 +3383,15 @@ async function saveMeal() {
         return;
     }
 
-    const mealId = document.getElementById('admin-meal-id').value;
-    const title = document.getElementById('admin-meal-title').value.trim();
-    const date = document.getElementById('admin-meal-date').value;
-    const price = parseFloat(document.getElementById('admin-meal-price').value || 0);
-    const rawDeadline = document.getElementById('admin-meal-deadline').value;
-    const descriptionEl = document.getElementById('admin-meal-description');
-    const description = descriptionEl ? descriptionEl.value.trim() : '';
+    const mealId = document.getElementById('admin-meal-id')?.value;
+    const title = document.getElementById('admin-meal-title')?.value.trim();
+    const date = document.getElementById('admin-meal-date')?.value;
+    const price = parseFloat(document.getElementById('admin-meal-price')?.value || 0);
+    const rawDeadline = document.getElementById('admin-meal-deadline')?.value;
+    
+    // Greift flexibel auf admin-meal-description ODER meal-description zu
+    const descEl = document.getElementById('admin-meal-description') || document.getElementById('meal-description');
+    const description = descEl ? descEl.value.trim() : '';
 
     if (!title || !date || !rawDeadline) {
         showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
@@ -3431,14 +3433,26 @@ async function saveMeal() {
 
 // Hilfsfunktion: Formular im Admin-Bereich zurücksetzen
 function resetMealForm() {
-    if (document.getElementById('admin-meal-id')) document.getElementById('admin-meal-id').value = '';
-    if (document.getElementById('admin-meal-title')) document.getElementById('admin-meal-title').value = '';
-    if (document.getElementById('admin-meal-date')) document.getElementById('admin-meal-date').value = '';
-    if (document.getElementById('admin-meal-price')) document.getElementById('admin-meal-price').value = '';
-    if (document.getElementById('admin-meal-deadline')) document.getElementById('admin-meal-deadline').value = '';
-    if (document.getElementById('admin-meal-description')) document.getElementById('admin-meal-description').value = '';
-    
-    const submitBtn = document.getElementById('admin-meal-submit-btn');
+    const setVal = (id, val = '') => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    };
+
+    setVal('admin-meal-id');
+    setVal('admin-meal-title');
+    setVal('admin-meal-date');
+    setVal('admin-meal-price');
+    setVal('admin-meal-deadline');
+    setVal('admin-meal-description');
+    setVal('meal-description'); // Leert auch das Feld id="meal-description"
+
+    const formTitle = document.getElementById('admin-meal-form-title');
+    if (formTitle) formTitle.textContent = "Neues Essen anbieten";
+
+    const cancelBtn = document.getElementById('btn-cancel-meal-edit');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+
+    const submitBtn = document.getElementById('admin-meal-submit-btn') || document.getElementById('btn-save-meal');
     if (submitBtn) submitBtn.textContent = "Essen veröffentlichen";
 }
 
@@ -3449,16 +3463,23 @@ async function editMeal(mealId) {
         showToast("Fehler beim Laden des Essens zum Bearbeiten", "error");
         return;
     }
+    
     document.getElementById('admin-meal-id').value = meal.id;
     document.getElementById('admin-meal-title').value = meal.title;
     document.getElementById('admin-meal-date').value = meal.date;
     document.getElementById('admin-meal-price').value = meal.price;
     document.getElementById('admin-meal-deadline').value = formatForDateTimeInput(meal.deadline);
-    if (document.getElementById('admin-meal-description')) {
-        document.getElementById('admin-meal-description').value = meal.description || '';
-    }
     
-    const submitBtn = document.getElementById('admin-meal-submit-btn');
+    const descEl = document.getElementById('admin-meal-description') || document.getElementById('meal-description');
+    if (descEl) descEl.value = meal.description || '';
+
+    const formTitle = document.getElementById('admin-meal-form-title');
+    if (formTitle) formTitle.textContent = "Essen bearbeiten";
+
+    const cancelBtn = document.getElementById('btn-cancel-meal-edit');
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+
+    const submitBtn = document.getElementById('admin-meal-submit-btn') || document.getElementById('btn-save-meal');
     if (submitBtn) submitBtn.textContent = "Essen aktualisieren";
 }
 
