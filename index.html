@@ -3407,7 +3407,10 @@ async function saveMeal() {
     const date = document.getElementById('admin-meal-date')?.value;
     const price = parseFloat(document.getElementById('admin-meal-price')?.value || 0);
     const rawDeadline = document.getElementById('admin-meal-deadline')?.value;
-    const description = getMealDescriptionValue();
+    
+    // Liest das Beschreibungsfeld direkt über seine eindeutige ID aus
+    const descInput = document.getElementById('admin-meal-description');
+    const description = descInput ? descInput.value.trim() : '';
 
     if (!title || !date || !rawDeadline) {
         showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
@@ -3459,7 +3462,7 @@ function resetMealForm() {
     setVal('admin-meal-date');
     setVal('admin-meal-price');
     setVal('admin-meal-deadline');
-    setMealDescriptionValue('');
+    setVal('admin-meal-description'); // Leert das Beschreibungsfeld
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Neues Essen anbieten";
@@ -3467,7 +3470,7 @@ function resetMealForm() {
     const cancelBtn = document.getElementById('btn-cancel-meal-edit');
     if (cancelBtn) cancelBtn.style.display = 'none';
 
-    const submitBtn = document.getElementById('admin-meal-submit-btn') || document.getElementById('btn-save-meal');
+    const submitBtn = document.getElementById('admin-meal-submit-btn');
     if (submitBtn) submitBtn.textContent = "Essen veröffentlichen";
 }
 
@@ -3479,31 +3482,37 @@ async function editMeal(mealId) {
         return;
     }
     
-    document.getElementById('admin-meal-id').value = meal.id;
-    document.getElementById('admin-meal-title').value = meal.title || '';
+    // Befüllt alle Felder, inklusive der Beschreibung
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val ?? '';
+    };
+
+    setVal('admin-meal-id', meal.id);
+    setVal('admin-meal-title', meal.title);
+    setVal('admin-meal-price', meal.price);
+    setVal('admin-meal-description', meal.description);
     
+    // Datumsfelder formatieren
     if (meal.date) {
-        document.getElementById('admin-meal-date').value = meal.date.split('T')[0];
+        setVal('admin-meal-date', meal.date.split('T')[0]);
     } else {
-        document.getElementById('admin-meal-date').value = '';
+        setVal('admin-meal-date', '');
     }
+    setVal('admin-meal-deadline', formatForDateTimeInput(meal.deadline));
 
-    document.getElementById('admin-meal-price').value = meal.price || '';
-    document.getElementById('admin-meal-deadline').value = formatForDateTimeInput(meal.deadline);
-    
-    // Befüllt das Beschreibungsfeld garantiert in allen verfügbaren Inputs
-    setMealDescriptionValue(meal.description || '');
-
+    // UI-Elemente anpassen
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Essen bearbeiten";
 
     const cancelBtn = document.getElementById('btn-cancel-meal-edit');
     if (cancelBtn) cancelBtn.style.display = 'inline-block';
 
-    const submitBtn = document.getElementById('admin-meal-submit-btn') || document.getElementById('btn-save-meal');
+    const submitBtn = document.getElementById('admin-meal-submit-btn');
     if (submitBtn) submitBtn.textContent = "Essen aktualisieren";
 }
 
+// Hilfsfunktion: Wandelt Supabase-Timestamps in datetime-local um
 function formatForDateTimeInput(dateString) {
     if (!dateString) return '';
     const d = new Date(dateString);
