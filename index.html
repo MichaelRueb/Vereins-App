@@ -3101,6 +3101,10 @@ function startMealCountdowns() {
 }
 
 // 3. Ansicht für Schützen / Mitglieder laden
+// ==========================================
+// ESSENS-ANSICHT (OPTIMIERT FÜR MEHRERE GÄSTE)
+// ==========================================
+
 async function loadMealsView() {
     const container = document.getElementById('meals-user-container');
     if (!container) return;
@@ -3128,7 +3132,7 @@ async function loadMealsView() {
         const myOrder = myOrders ? myOrders.find(o => o.meal_id === meal.id) : null;
         const allOrders = meal.meal_orders || [];
         
-        // Gesamte Portionen (Eigene + Gast) für die Statistik berechnen
+        // Gesamte Portionen (Eigene + Gäste) für die Statistik berechnen
         const totalPortions = allOrders.reduce((sum, o) => {
             const own = o.portions || 0;
             const guest = o.is_guest_order ? (o.guest_portions || 0) : 0;
@@ -3137,12 +3141,12 @@ async function loadMealsView() {
 
         const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
         
-        // Teilnehmer-Liste für die Anzeige aufbauen (inkl. Gast-Infos falls vorhanden)
+        // Teilnehmer-Liste für die Anzeige aufbauen
         const participantsList = allOrders.map(o => {
             const name = o.profiles?.full_name || 'Mitglied';
             let text = `${name} (${o.portions}x)`;
             if (o.is_guest_order && o.guest_portions > 0) {
-                text += ` + Gast: ${o.guest_name || 'Unbekannt'} (${o.guest_portions}x)`;
+                text += ` + ${o.guest_portions} Gast/Gäste: ${o.guest_name || 'Unbekannt'}`;
             }
             return `• ${text}`;
         }).join('<br>');
@@ -3198,21 +3202,21 @@ async function loadMealsView() {
                         <div style="background:#f4fbf7; padding:12px; border-radius:6px; border:1px solid #c8e6c9; display:flex; flex-direction:column; gap:8px;">
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:bold; color:var(--primary);">
                                 <input type="checkbox" id="toggle-guest-${meal.id}" ${isGuestChecked} onchange="toggleGuestInputs('${meal.id}')" style="width:18px; height:18px; cursor:pointer;">
-                                <span>➕ Zusätzliche Portion für einen Gast mitbestellen</span>
+                                <span>➕ Portion(en) für Gäste mitbestellen</span>
                             </label>
 
                             <div id="guest-container-${meal.id}" style="${guestFieldsDisplay} flex-direction:column; gap:8px; margin-top:5px; padding-left:22px; border-left:2px solid #81c784;">
                                 <div style="display:flex; gap:15px; align-items:center;">
-                                    <label style="font-size:12px; font-weight:bold;">Gast-Portionen:</label>
-                                    <input type="number" id="guest-portions-${meal.id}" min="1" max="5" value="${myOrder && myOrder.guest_portions ? myOrder.guest_portions : 1}" style="width:60px; padding:4px; border:1px solid #ccc; border-radius:4px;">
+                                    <label style="font-size:12px; font-weight:bold;">Anzahl Gäste:</label>
+                                    <input type="number" id="guest-portions-${meal.id}" min="1" max="10" value="${myOrder && myOrder.guest_portions ? myOrder.guest_portions : 2}" style="width:60px; padding:4px; border:1px solid #ccc; border-radius:4px;">
                                 </div>
                                 <div>
-                                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:2px;">Name des Gastes:</label>
-                                    <input type="text" id="guest-name-${meal.id}" placeholder="z.B. Max Mustermann" value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+                                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:2px;">Namen der Gäste:</label>
+                                    <input type="text" id="guest-name-${meal.id}" placeholder="z.B. Max Mustermann, Anna Schmidt" value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; font-size:13px;">
                                 </div>
                                 <div>
-                                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:2px;">Bemerkung zum Gast (optional):</label>
-                                    <input type="text" id="guest-remarks-${meal.id}" placeholder="z.B. Sonderwunsch für Gast..." value="${myOrder?.guest_remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+                                    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:2px;">Bemerkung zu den Gästen (optional):</label>
+                                    <input type="text" id="guest-remarks-${meal.id}" placeholder="z.B. Sonderwünsche..." value="${myOrder?.guest_remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; font-size:13px;">
                                 </div>
                             </div>
                         </div>
@@ -3238,7 +3242,6 @@ async function loadMealsView() {
     startMealCountdowns();
 }
 
-    // Blendet die Gast-Eingabefelder ein oder aus, wenn die Checkbox geklickt wird
 function toggleGuestInputs(mealId) {
     const checkbox = document.getElementById(`toggle-guest-${mealId}`);
     const container = document.getElementById(`guest-container-${mealId}`);
@@ -3246,14 +3249,12 @@ function toggleGuestInputs(mealId) {
         container.style.display = 'flex';
     } else {
         container.style.display = 'none';
-        // Felder leeren, wenn Haken weggenommen wird
         document.getElementById(`guest-name-${mealId}`).value = '';
-        document.getElementById(`guest-portions-${mealId}`).value = '1';
+        document.getElementById(`guest-portions-${mealId}`).value = '2';
         document.getElementById(`guest-remarks-${mealId}`).value = '';
     }
 }
 
-// Speichert die Bestellung direkt in die exakten Supabase-Spalten
 async function submitMealOrderDirect(event, mealId) {
     if (event) event.preventDefault();
 
