@@ -865,6 +865,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                 <h5 id="admin-meal-form-title" style="margin-top:0; font-size:14px;">Neues Essen anbieten</h5>
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
                     <input type="text" id="admin-meal-title" placeholder="Gericht (z.B. Schnitzel)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                    <input type="text" id="meal-description" placeholder="Inhalt / Beschreibung der Portion (z.B. 1 Paar Blaue Zipfel mit 1 Scheibe Brot)" style="width:100%; padding:8px; margin-bottom:10px; box-sizing:border-box;">
                     <input type="date" id="admin-meal-date" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
                     <input type="number" step="0.50" id="admin-meal-price" placeholder="Preis pro Portion (€)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
                     <div>
@@ -3157,6 +3158,7 @@ function startMealCountdowns() {
     mealTimerInterval = setInterval(updateTimers, 1000);
 }
 
+// 1. Ansicht für Schützen / Mitglieder laden
 async function loadMealsView() {
     const container = document.getElementById('meals-user-container');
     if (!container) return;
@@ -3197,8 +3199,12 @@ async function loadMealsView() {
                             📅 <strong>Termin:</strong> ${formattedDate} | 
                             💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € / Portion
                         </p>
-                        <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}">
-                        </p>
+                        ${meal.description ? `
+                            <p style="margin:4px 0 0 0; font-size:13px; color:#444;">
+                                ℹ️ <strong>Inhalt / Portion:</strong> ${meal.description}
+                            </p>
+                        ` : ''}
+                        <p style="margin:5px 0 0 0;" class="meal-countdown" data-deadline="${meal.deadline}"></p>
                     </div>
                 </div>
 
@@ -3223,9 +3229,17 @@ async function loadMealsView() {
                             <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">Bemerkungen / Sonderwünsche:</label>
                             <input type="text" id="remarks-${meal.id}" placeholder="z.B. Keine Beilage, Vegetarisch..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box;">
                         </div>
-                        <button type="submit" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; align-self:flex-start; font-weight:bold;">
-                            ${myOrder ? 'Bestellung aktualisieren' : 'Kostenpflichtig bestellen'}
-                        </button>
+                        
+                        <div style="display:flex; gap:10px; align-items:center; margin-top:5px;">
+                            <button type="submit" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                                ${myOrder ? 'Bestellung aktualisieren' : 'Kostenpflichtig bestellen'}
+                            </button>
+                            ${myOrder ? `
+                                <button type="button" onclick="cancelMealOrder('${meal.id}')" style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                                    ❌ Bestellung stornieren
+                                </button>
+                            ` : ''}
+                        </div>
                     </form>
                 `}
             </div>
@@ -3293,7 +3307,7 @@ async function loadMealsView() {
     container.innerHTML = mealsHtml + myOrdersHtml;
     startMealCountdowns();
 }
-    
+
 // 2. Bestellung speichern (Mitglied)
 async function submitMealOrder(e, mealId) {
     e.preventDefault();
@@ -3341,8 +3355,27 @@ async function submitMealOrder(e, mealId) {
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
     }
 }
-    
-// 3. Neues Essen anlegen (Admin / Funktionär)
+
+// 3. Bestellung stornieren (Mitglied)
+async function cancelMealOrder(mealId) {
+    if (!confirm("Möchtest du deine Bestellung wirklich stornieren?")) return;
+
+    const { error } = await sb
+        .from('meal_orders')
+        .delete()
+        .eq('meal_id', mealId)
+        .eq('user_id', currentUser.id);
+
+    if (error) {
+        showToast("Fehler beim Stornieren: " + error.message, "error");
+    } else {
+        showToast("Bestellung erfolgreich storniert!", "info");
+        await loadMealsView();
+        if (typeof loadAdminMeals === 'function') loadAdminMeals();
+    }
+}
+
+// 4. Neues Essen anlegen / speichern (Admin / Funktionär)
 async function saveMeal() {
     if (!isAdmin && !isOfficial) {
         showToast("Nur Funktionäre dürfen Essen verwalten.", "error");
@@ -3354,19 +3387,18 @@ async function saveMeal() {
     const date = document.getElementById('admin-meal-date').value;
     const price = parseFloat(document.getElementById('admin-meal-price').value || 0);
     const rawDeadline = document.getElementById('admin-meal-deadline').value;
+    const descriptionEl = document.getElementById('admin-meal-description');
+    const description = descriptionEl ? descriptionEl.value.trim() : '';
 
     if (!title || !date || !rawDeadline) {
         showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
         return;
     }
 
-    // Wandelt die lokale Datumseingabe inkl. Zeitzone korrekt in ISO (UTC) um
     const deadline = new Date(rawDeadline).toISOString();
-
-    const payload = { title, date, price, deadline };
+    const payload = { title, date, price, deadline, description };
 
     if (mealId) {
-        // Bestehenden Eintrag aktualisieren
         const { error } = await sb
             .from('meals')
             .update(payload)
@@ -3378,9 +3410,9 @@ async function saveMeal() {
             showToast("Essen erfolgreich aktualisiert!", "success");
             resetMealForm();
             loadAdminMeals();
+            if (typeof loadMealsView === 'function') loadMealsView();
         }
     } else {
-        // Neuer Eintrag
         const { error } = await sb
             .from('meals')
             .insert([payload]);
@@ -3391,23 +3423,56 @@ async function saveMeal() {
             showToast("Essen erfolgreich veröffentlicht!", "success");
             resetMealForm();
             loadAdminMeals();
+            if (typeof loadMealsView === 'function') loadMealsView();
         }
     }
 }
 
-    function formatForDateTimeInput(dateString) {
+// Hilfsfunktion: Formular im Admin-Bereich zurücksetzen
+function resetMealForm() {
+    if (document.getElementById('admin-meal-id')) document.getElementById('admin-meal-id').value = '';
+    if (document.getElementById('admin-meal-title')) document.getElementById('admin-meal-title').value = '';
+    if (document.getElementById('admin-meal-date')) document.getElementById('admin-meal-date').value = '';
+    if (document.getElementById('admin-meal-price')) document.getElementById('admin-meal-price').value = '';
+    if (document.getElementById('admin-meal-deadline')) document.getElementById('admin-meal-deadline').value = '';
+    if (document.getElementById('admin-meal-description')) document.getElementById('admin-meal-description').value = '';
+    
+    const submitBtn = document.getElementById('admin-meal-submit-btn');
+    if (submitBtn) submitBtn.textContent = "Essen veröffentlichen";
+}
+
+// Hilfsfunktion: Essen zur Bearbeitung in Formular laden
+async function editMeal(mealId) {
+    const { data: meal, error } = await sb.from('meals').select('*').eq('id', mealId).single();
+    if (error || !meal) {
+        showToast("Fehler beim Laden des Essens zum Bearbeiten", "error");
+        return;
+    }
+    document.getElementById('admin-meal-id').value = meal.id;
+    document.getElementById('admin-meal-title').value = meal.title;
+    document.getElementById('admin-meal-date').value = meal.date;
+    document.getElementById('admin-meal-price').value = meal.price;
+    document.getElementById('admin-meal-deadline').value = formatForDateTimeInput(meal.deadline);
+    if (document.getElementById('admin-meal-description')) {
+        document.getElementById('admin-meal-description').value = meal.description || '';
+    }
+    
+    const submitBtn = document.getElementById('admin-meal-submit-btn');
+    if (submitBtn) submitBtn.textContent = "Essen aktualisieren";
+}
+
+function formatForDateTimeInput(dateString) {
     if (!dateString) return '';
     const d = new Date(dateString);
     const pad = num => String(num).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// 4. Admin-Übersicht für Essen laden (Generiert Liste + PDF-Export Buttons)
+// 5. Admin-Übersicht für Essen laden
 async function loadAdminMeals() {
     const container = document.getElementById('admin-meals-list');
     if (!container) return;
 
-    // Lädt nur Essen, die NICHT als gelöscht markiert sind
     const { data: meals, error } = await sb
         .from('meals')
         .select('*, meal_orders(*, profiles(full_name))')
@@ -3429,6 +3494,7 @@ async function loadAdminMeals() {
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
                         <strong>${m.title}</strong> (${new Date(m.date).toLocaleDateString('de-DE')})<br>
+                        ${m.description ? `<small style="color:#555;">Inhalt: ${m.description}</small><br>` : ''}
                         <small>Gesamt: <strong>${totalPortions} Portionen</strong> (${totalPrice.toFixed(2).replace('.', ',')} €)</small>
                     </div>
                     <div style="display:flex; gap:8px;">
@@ -3442,7 +3508,7 @@ async function loadAdminMeals() {
     }).join('');
 }
 
-// 5. Essen löschen
+// 6. Essen in Papierkorb verschieben
 async function deleteMeal(mealId) {
     if (!confirm("Möchtest du dieses Essen wirklich in den Papierkorb verschieben?")) return;
 
@@ -3461,12 +3527,11 @@ async function deleteMeal(mealId) {
     }
 }
 
-// 6. PDF-Export für das gewählte Essen
+// 7. PDF-Export für das gewählte Essen
 async function exportMealPDF(mealId) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // 1. Essen und Bestellungen aus Supabase abfragen
     const { data: meal, error } = await sb
         .from('meals')
         .select('*, meal_orders(*, profiles(full_name))')
@@ -3487,9 +3552,8 @@ async function exportMealPDF(mealId) {
     const dateStr = new Date(meal.date).toLocaleDateString('de-DE');
     const pricePerPortion = parseFloat(meal.price);
 
-    // 2. Kopfbereich der PDF aufbauen
     doc.setFontSize(18);
-    doc.setTextColor(46, 125, 50); // SV Hubertus grün
+    doc.setTextColor(46, 125, 50);
     doc.text("SV Hubertus 1955 e.V. Strullendorf", 14, 20);
     
     doc.setFontSize(12);
@@ -3500,7 +3564,6 @@ async function exportMealPDF(mealId) {
     doc.setTextColor(100);
     doc.text(`Preis pro Portion: ${pricePerPortion.toFixed(2).replace('.', ',')} €`, 14, 34);
 
-    // 3. Tabellendaten und Summen berechnen
     let totalPortionsAll = 0;
     let grandTotalSum = 0;
 
@@ -3521,7 +3584,6 @@ async function exportMealPDF(mealId) {
         ];
     });
 
-    // Summenzeile am Ende der Tabelle anfügen
     tableRows.push([
         { content: 'GESAMTSUMME', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
         { content: `${totalPortionsAll} Portionen`, styles: { halign: 'center', fontStyle: 'bold', fillColor: [240, 240, 240] } },
@@ -3529,7 +3591,6 @@ async function exportMealPDF(mealId) {
         { content: `${grandTotalSum.toFixed(2).replace('.', ',')} €`, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } }
     ]);
 
-    // 4. Tabelle rendern
     doc.autoTable({
         head: [['Mitglied', 'Anzahl', 'Bemerkung / Sonderwunsch', 'Betrag']],
         body: tableRows,
@@ -3543,7 +3604,6 @@ async function exportMealPDF(mealId) {
         }
     });
 
-    // 5. PDF direkt im Browser herunterladen
     const safeTitle = meal.title.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
     doc.save(`Bestellliste_${safeTitle}_${dateStr.replace(/\./g, '-')}.pdf`);
 }
