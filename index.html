@@ -3092,7 +3092,7 @@ async function importICSPlan(icsText) {
  showToast(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`, "success");
 }
 
-   // --- TRAININGS-ESSEN LOGIK ---
+  // --- TRAININGS-ESSEN LOGIK ---
 
 // 1. Restzeit-Rechner für Essen
 function getMealDeadlineBadge(deadlineStr) {
@@ -3279,7 +3279,7 @@ async function loadMealsView() {
         myOrdersHtml = `
             <div style="margin-top:25px; background:#fff; border:2px solid var(--primary); border-radius:8px; padding:15px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                 <h4 style="margin-top:0; color:var(--primary); display:flex; align-items:center; gap:8px;">
-                    📋 Deine bestellten Essen
+                    📋 Deine bestestellten Essen
                 </h4>
                 <div style="overflow-x:auto;">
                     <table style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">
@@ -3375,12 +3375,24 @@ async function cancelMealOrder(mealId) {
     }
 }
 
-// Hilfsfunktion: Findet das Beschreibungsfeld garantiert (über ID oder Platzhalter)
-function getMealDescInput() {
-    return document.getElementById('admin-meal-description') || 
-           document.getElementById('meal-description') || 
-           document.querySelector('input[placeholder*="Beschreibung"]') || 
-           document.querySelector('input[placeholder*="Inhalt"]');
+// Hilfsfunktion: Greift garantiert auf das Beschreibungs-Eingabefeld zu
+function setMealDescriptionValue(val = '') {
+    const el1 = document.getElementById('admin-meal-description');
+    if (el1) el1.value = val;
+    const el2 = document.getElementById('meal-description');
+    if (el2) el2.value = val;
+    const el3 = document.querySelector('input[placeholder*="Beschreibung"]');
+    if (el3) el3.value = val;
+}
+
+function getMealDescriptionValue() {
+    const el1 = document.getElementById('admin-meal-description');
+    if (el1) return el1.value.trim();
+    const el2 = document.getElementById('meal-description');
+    if (el2) return el2.value.trim();
+    const el3 = document.querySelector('input[placeholder*="Beschreibung"]');
+    if (el3) return el3.value.trim();
+    return '';
 }
 
 // 6. Neues Essen anlegen / speichern (Admin / Funktionär)
@@ -3395,9 +3407,7 @@ async function saveMeal() {
     const date = document.getElementById('admin-meal-date')?.value;
     const price = parseFloat(document.getElementById('admin-meal-price')?.value || 0);
     const rawDeadline = document.getElementById('admin-meal-deadline')?.value;
-    
-    const descInput = getMealDescInput();
-    const description = descInput ? descInput.value.trim() : '';
+    const description = getMealDescriptionValue();
 
     if (!title || !date || !rawDeadline) {
         showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
@@ -3449,9 +3459,7 @@ function resetMealForm() {
     setVal('admin-meal-date');
     setVal('admin-meal-price');
     setVal('admin-meal-deadline');
-    
-    const descInput = getMealDescInput();
-    if (descInput) descInput.value = '';
+    setMealDescriptionValue('');
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Neues Essen anbieten";
@@ -3483,11 +3491,8 @@ async function editMeal(mealId) {
     document.getElementById('admin-meal-price').value = meal.price || '';
     document.getElementById('admin-meal-deadline').value = formatForDateTimeInput(meal.deadline);
     
-    // Befüllt das Beschreibungsfeld garantiert
-    const descInput = getMealDescInput();
-    if (descInput) {
-        descInput.value = meal.description || '';
-    }
+    // Befüllt das Beschreibungsfeld garantiert in allen verfügbaren Inputs
+    setMealDescriptionValue(meal.description || '');
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Essen bearbeiten";
@@ -3502,6 +3507,7 @@ async function editMeal(mealId) {
 function formatForDateTimeInput(dateString) {
     if (!dateString) return '';
     const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
     const pad = num => String(num).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -3648,7 +3654,7 @@ async function exportMealPDF(mealId) {
     const safeTitle = meal.title.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
     doc.save(`Bestellliste_${safeTitle}_${dateStr.replace(/\./g, '-')}.pdf`);
 }
-
+    
 function handleICSUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
