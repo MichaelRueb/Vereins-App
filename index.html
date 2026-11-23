@@ -173,7 +173,7 @@
         text-align: left; 
     }
 
-    /* AKTION-BUTTONS IN TABELLEN (FIX FÜR DAS BILD) */
+    /* AKTION-BUTTONS IN TABELLEN */
     .action-btn-container {
         display: flex;
         gap: 6px;
@@ -213,26 +213,26 @@
 
     /* FORTSCHRITT & KALENDER */
    .progress-container {
-    width: 100%;
-    background: #e0e0e0;
-    border-radius: 8px;
-    height: 20px;
-    position: relative;
-    margin-bottom: 20px;
-}
-.progress-bar {
-    height: 100%;
-    border-radius: 8px;
-    transition: width 0.4s ease;
-}
-.progress-text {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    font-size: 12px;
-    line-height: 20px;
-    font-weight: bold;
-} 
+        width: 100%;
+        background: #e0e0e0;
+        border-radius: 8px;
+        height: 20px;
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .progress-bar {
+        height: 100%;
+        border-radius: 8px;
+        transition: width 0.4s ease;
+    }
+    .progress-text {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        font-size: 12px;
+        line-height: 20px;
+        font-weight: bold;
+    } 
 
     .calendar-grid { 
         display: grid; 
@@ -254,25 +254,25 @@
         cursor: pointer; 
     }
     
-/* Grundstyling für die Punkte */
-.event-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    margin: 1px;
-}
+    /* Grundstyling für die Punkte */
+    .event-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin: 1px;
+    }
 
-   /* Farben für die Mannschaften & Verein */
-.team-verein { background-color: #FFD700 !important; } 
-.team-lg-1 { background-color: #3498db !important; }    
-.team-lg-2 { background-color: #2980b9 !important; }    
-.team-lp-1 { background-color: #e74c3c !important; }    
-.team-lp-2 { background-color: #c0392b !important; }    
-.team-auflage { background-color: #9b59b6 !important; } 
-.team-gk { background-color: #7f8c8d !important; }
-.team-spopi { background-color: #e67e22 !important; }
-.team-default { background-color: #bdc3c7 !important; }
+    /* Farben für die Mannschaften & Verein */
+    .team-verein { background-color: #FFD700 !important; } 
+    .team-lg-1 { background-color: #3498db !important; }    
+    .team-lg-2 { background-color: #2980b9 !important; }    
+    .team-lp-1 { background-color: #e74c3c !important; }    
+    .team-lp-2 { background-color: #c0392b !important; }    
+    .team-auflage { background-color: #9b59b6 !important; } 
+    .team-gk { background-color: #7f8c8d !important; }
+    .team-spopi { background-color: #e67e22 !important; }
+    .team-default { background-color: #bdc3c7 !important; }
 
     /* HILFSKLASSEN */
     .mileage-sum { 
@@ -295,270 +295,269 @@
     }
 
     /* Fix für versetzte Checkboxen in der Admin-Liste */
-.admin-role-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 4px;
-}
+    .admin-role-wrapper {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+    }
 
-.admin-role-wrapper label {
-    font-size: 0.85em;
-    font-weight: bold;
-    margin: 0;
-}
+    .admin-role-wrapper label {
+        font-size: 0.85em;
+        font-weight: bold;
+        margin: 0;
+    }
 
-.admin-role-wrapper input[type="checkbox"] {
-    width: 18px !important;
-    height: 18px !important;
-    margin: 0 !important;
-    cursor: pointer;
-}
+    .admin-role-wrapper input[type="checkbox"] {
+        width: 18px !important;
+        height: 18px !important;
+        margin: 0 !important;
+        cursor: pointer;
+    }
 
-/* Verhindert, dass die Tabellen-Buttons die 100% Breite der globalen Buttons erben */
-td .action-btn-container {
-    display: flex;
-    gap: 5px;
-    justify-content: flex-start;
-}
+    /* Verhindert, dass die Tabellen-Buttons die 100% Breite der globalen Buttons erben */
+    td .action-btn-container {
+        display: flex;
+        gap: 5px;
+        justify-content: flex-start;
+    }
 
-td button.btn-edit, 
-td button.btn-del {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    border-radius: 6px;
-}
+    td button.btn-edit, 
+    td button.btn-del {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        border-radius: 6px;
+    }
 
-.btn-edit { background: var(--accent) !important; }
-.btn-del { background: var(--danger) !important; }
+    .btn-edit { background: var(--accent) !important; }
+    .btn-del { background: var(--danger) !important; }
 
-/* Spezifischer Fix für Datumsfelder */
-input[type="date"] {
-    -webkit-appearance: none;
-    min-height: 48px;
-    line-height: normal;
-    display: block;
-}
+    /* Spezifischer Fix für Datumsfelder */
+    input[type="date"] {
+        -webkit-appearance: none;
+        min-height: 48px;
+        line-height: normal;
+        display: block;
+    }
 
-input[type="date"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-    filter: invert(0.5);
-    opacity: 0.8;
-}
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        filter: invert(0.5);
+        opacity: 0.8;
+    }
 
     .date-input {
-    display: block !important;
-    width: 100% !important;
-    min-height: 50px !important;
-    padding: 12px !important;
-    margin: 8px 0 !important;
-    font-size: 16px !important;
-    background-color: #ffffff !important;
-    border: 1px solid #ccc !important;
-    color: #000000 !important;
-    appearance: auto !important;
-    -webkit-appearance: auto !important;
-}
+        display: block !important;
+        width: 100% !important;
+        min-height: 50px !important;
+        padding: 12px !important;
+        margin: 8px 0 !important;
+        font-size: 16px !important;
+        background-color: #ffffff !important;
+        border: 1px solid #ccc !important;
+        color: #000000 !important;
+        appearance: auto !important;
+        -webkit-appearance: auto !important;
+    }
 
-.date-input:invalid {
-    color: #999;
-}
+    .date-input:invalid {
+        color: #999;
+    }
 
     /* --- ADMIN EXPLORER DESIGN --- */
-.admin-explorer-card {
-    background: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    overflow: hidden;
-    transition: all 0.2s ease-in-out;
-}
+    .admin-explorer-card {
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        overflow: hidden;
+        transition: all 0.2s ease-in-out;
+    }
 
-.admin-explorer-card[open] {
-    border-color: var(--primary, #2e7d32);
-}
+    .admin-explorer-card[open] {
+        border-color: var(--primary, #2e7d32);
+    }
 
-.admin-explorer-header {
-    padding: 14px 18px;
-    font-weight: bold;
-    font-size: 15px;
-    color: #333;
-    background: #f8f9fa;
-    cursor: pointer;
-    user-select: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    list-style: none;
-}
+    .admin-explorer-header {
+        padding: 14px 18px;
+        font-weight: bold;
+        font-size: 15px;
+        color: #333;
+        background: #f8f9fa;
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        list-style: none;
+    }
 
-.admin-explorer-header::-webkit-details-marker {
-    display: none;
-}
+    .admin-explorer-header::-webkit-details-marker {
+        display: none;
+    }
 
-.admin-explorer-header::after {
-    content: "📁 ▶";
-    font-size: 13px;
-    color: #888;
-    transition: transform 0.2s;
-}
+    .admin-explorer-header::after {
+        content: "📁 ▶";
+        font-size: 13px;
+        color: #888;
+        transition: transform 0.2s;
+    }
 
-.admin-explorer-card[open] .admin-explorer-header::after {
-    content: "📂 ▼";
-    color: var(--primary, #2e7d32);
-}
+    .admin-explorer-card[open] .admin-explorer-header::after {
+        content: "📂 ▼";
+        color: var(--primary, #2e7d32);
+    }
 
-.admin-explorer-card[open] .admin-explorer-header {
-    background: #e8f5e9;
-    color: var(--primary, #2e7d32);
-    border-bottom: 1px solid #c8e6c9;
-}
+    .admin-explorer-card[open] .admin-explorer-header {
+        background: #e8f5e9;
+        color: var(--primary, #2e7d32);
+        border-bottom: 1px solid #c8e6c9;
+    }
 
-.admin-explorer-body {
-    padding: 15px;
-    background: #fff;
-}
+    .admin-explorer-body {
+        padding: 15px;
+        background: #fff;
+    }
 
     /* --- ZENTRALES DIALOG-MODAL (ERSATZ FÜR CONFIRM / PROMPT) --- */
-#app-dialog-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 10000;
-    justify-content: center;
-    align-items: center;
-    padding: 16px;
-    box-sizing: border-box;
-}
+    #app-dialog-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+        padding: 16px;
+        box-sizing: border-box;
+    }
 
-.app-dialog-box {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 22px;
-    width: 100%;
-    max-width: 460px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
-    box-sizing: border-box;
-}
+    .app-dialog-box {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 22px;
+        width: 100%;
+        max-width: 460px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+        box-sizing: border-box;
+    }
 
-.app-dialog-title {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-    color: #1b5e20;
-}
+    .app-dialog-title {
+        margin: 0 0 10px 0;
+        font-size: 18px;
+        color: #1b5e20;
+    }
 
-.app-dialog-message {
-    margin: 0 0 14px 0;
-    font-size: 14px;
-    line-height: 1.45;
-    color: #333;
-    white-space: pre-line;
-}
+    .app-dialog-message {
+        margin: 0 0 14px 0;
+        font-size: 14px;
+        line-height: 1.45;
+        color: #333;
+        white-space: pre-line;
+    }
 
-.app-dialog-details {
-    background: #f6f8f7;
-    border: 1px solid #e0e6e2;
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 14px;
-    font-size: 13px;
-    color: #444;
-    display: none;
-}
+    .app-dialog-details {
+        background: #f6f8f7;
+        border: 1px solid #e0e6e2;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
+        font-size: 13px;
+        color: #444;
+        display: none;
+    }
 
-.app-dialog-input-wrap {
-    margin-bottom: 16px;
-    display: none;
-}
+    .app-dialog-input-wrap {
+        margin-bottom: 16px;
+        display: none;
+    }
 
-.app-dialog-input {
-    width: 100%;
-    padding: 10px 12px;
-    margin: 0;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 15px;
-    box-sizing: border-box;
-}
+    .app-dialog-input {
+        width: 100%;
+        padding: 10px 12px;
+        margin: 0;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 15px;
+        box-sizing: border-box;
+    }
 
-.app-dialog-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
+    .app-dialog-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
 
-.app-dialog-btn {
-    width: auto !important;
-    min-width: 100px;
-    margin: 0 !important;
-    padding: 10px 16px !important;
-    font-size: 14px !important;
-    border-radius: 8px;
-}
+    .app-dialog-btn {
+        width: auto !important;
+        min-width: 100px;
+        margin: 0 !important;
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+        border-radius: 8px;
+    }
 
-.app-dialog-btn-cancel {
-    background: #757575 !important;
-}
+    .app-dialog-btn-cancel {
+        background: #757575 !important;
+    }
 
-.app-dialog-btn-confirm {
-    background: var(--primary) !important;
-}
+    .app-dialog-btn-confirm {
+        background: var(--primary) !important;
+    }
 
-.app-dialog-btn-danger {
-    background: var(--danger) !important;
-}
+    .app-dialog-btn-danger {
+        background: var(--danger) !important;
+    }
 
     /* --- TOAST NOTIFICATIONS --- */
-#toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 10001;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: none;
-}
+    #toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 10001;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+    }
 
-.toast {
-    min-width: 250px;
-    padding: 12px 18px;
-    border-radius: 6px;
-    color: #fff;
-    font-weight: bold;
-    font-size: 13px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    pointer-events: auto;
-    animation: toastSlideIn 0.3s ease-out, toastFadeOut 0.4s ease-in 2.6s forwards;
-}
+    .toast {
+        min-width: 250px;
+        padding: 12px 18px;
+        border-radius: 6px;
+        color: #fff;
+        font-weight: bold;
+        font-size: 13px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        pointer-events: auto;
+        animation: toastSlideIn 0.3s ease-out, toastFadeOut 0.4s ease-in 2.6s forwards;
+    }
 
-.toast.success { background-color: #2e7d32; }
-.toast.error { background-color: #d32f2f; }
-.toast.info { background-color: #0288d1; }
+    .toast.success { background-color: #2e7d32; }
+    .toast.error { background-color: #d32f2f; }
+    .toast.info { background-color: #0288d1; }
 
-@keyframes toastSlideIn {
-    from { transform: translateY(100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
+    @keyframes toastSlideIn {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
 
-@keyframes toastFadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
-    
+    @keyframes toastFadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
 </style>
 </head>
 <body>
@@ -715,67 +714,67 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             </div>
         </div>
 
-      <!-- FAHRTENBUCH VIEW -->
-<div id="view-mileage" style="display:none;">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <h3 style="margin:0;">🚗 Fahrtenbuch</h3>
-        <div style="display:flex; align-items:center; gap:8px;">
-            <label for="mileage-year-filter" style="font-size:13px; font-weight:bold;">Jahr:</label>
-            <select id="mileage-year-filter" onchange="loadMileageHistory()" style="width:auto; padding:6px 10px; margin:0; font-size:13px; font-weight:bold;"></select>
-        </div>
-    </div>
-    <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
-        <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
-        <input type="hidden" id="edit-ml-id">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="date" id="ml-date">
-            <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
-            <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
-            <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
-        </div>
-        <datalist id="purpose-suggestions"></datalist>
-        <datalist id="start-suggestions"></datalist>
-        <datalist id="end-suggestions"></datalist>
-        <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
-            <label class="checkbox-wrapper">
-                <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt
-            </label>
-            <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
-        </div>
-        <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">
-            Gesamtstrecke: 0,00 km
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
-            <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
-        </div>
-    </div>
+        <!-- FAHRTENBUCH VIEW -->
+        <div id="view-mileage" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <h3 style="margin:0;">🚗 Fahrtenbuch</h3>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label for="mileage-year-filter" style="font-size:13px; font-weight:bold;">Jahr:</label>
+                    <select id="mileage-year-filter" onchange="loadMileageHistory()" style="width:auto; padding:6px 10px; margin:0; font-size:13px; font-weight:bold;"></select>
+                </div>
+            </div>
+            <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
+                <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
+                <input type="hidden" id="edit-ml-id">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="date" id="ml-date">
+                    <input type="text" id="ml-purpose" list="purpose-suggestions" placeholder="Zweck (z.B. Training)">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:10px;">
+                    <input type="text" id="ml-start" list="start-suggestions" placeholder="Von..." onchange="checkFavRoute()">
+                    <input type="text" id="ml-end" list="end-suggestions" placeholder="Nach..." onchange="checkFavRoute()">
+                </div>
+                <datalist id="purpose-suggestions"></datalist>
+                <datalist id="start-suggestions"></datalist>
+                <datalist id="end-suggestions"></datalist>
+                <div style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px;">
+                    <label class="checkbox-wrapper">
+                        <input type="checkbox" id="ml-roundtrip" checked onchange="calcTotalKm()"> Hin- & Rückfahrt
+                    </label>
+                    <input type="number" id="ml-km-single" step="0.1" placeholder="km (einfach)" oninput="calcTotalKm()" style="width: 120px; margin:0;">
+                </div>
+                <div id="ml-result" style="text-align: center; margin: 10px 0; font-weight: bold; color: var(--primary-dark);">
+                    Gesamtstrecke: 0,00 km
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="saveMileage()" style="width: auto; padding: 10px 20px;">Fahrt speichern</button>
+                    <button id="ml-cancel-btn" onclick="resetMileageForm()" style="background:#777; display:none; width: auto; padding: 10px 20px;">Abbrechen</button>
+                </div>
+            </div>
 
-    <div style="margin-top: 20px; margin-bottom: 20px;">
-        <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
-    </div>
+            <div style="margin-top: 20px; margin-bottom: 20px;">
+                <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
+            </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-        <div class="mileage-sum" id="mileage-sum-display" style="margin:0;">Gesamt aktueller Monat: 0,00 km</div>
-        <div class="mileage-sum" id="mileage-year-display" style="margin:0; background: #e3f2fd; color: #0277bd;">Gesamt aktuelles Jahr: 0,00 km</div>
-    </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div class="mileage-sum" id="mileage-sum-display" style="margin:0;">Gesamt aktueller Monat: 0,00 km</div>
+                <div class="mileage-sum" id="mileage-year-display" style="margin:0; background: #e3f2fd; color: #0277bd;">Gesamt aktuelles Jahr: 0,00 km</div>
+            </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Datum</th>
-                <th>Zweck / Route</th>
-                <th>KM</th>
-                <th>Aktion</th>
-            </tr>
-        </thead>
-        <tbody id="mileage-history-body"></tbody>
-    </table>
-</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Zweck / Route</th>
+                        <th>KM</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="mileage-history-body"></tbody>
+            </table>
+        </div>
 
-      <!-- PROFIL VIEW -->
+        <!-- PROFIL VIEW -->
         <div id="view-profile" style="display:none;">
             <h3>Profil</h3>
             <input type="text" id="prof-name" placeholder="Name">
@@ -833,288 +832,305 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
-       <!-- GAU MELDUNG VIEW -->
-<div id="view-gau" style="display:none;">
-    <div class="card" style="background:#fff3e0; border: 2px solid var(--accent);">
-        <h3 style="margin-top:0; color:var(--accent);">🎯 Meldung Gaumeisterschaft</h3>
-        
-        <div id="gau-admin-selector-container" style="display:none; margin-bottom: 15px; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #ccc;">
-            <label for="gau-member-select" style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">👤 Schütze auswählen (Funktionärs-Modus):</label>
-            <select id="gau-member-select" onchange="onGauMemberChange()" style="margin: 0;"></select>
-        </div>
+        <!-- GAU MELDUNG VIEW -->
+        <div id="view-gau" style="display:none;">
+            <div class="card" style="background:#fff3e0; border: 2px solid var(--accent);">
+                <h3 style="margin-top:0; color:var(--accent);">🎯 Meldung Gaumeisterschaft</h3>
+                
+                <div id="gau-admin-selector-container" style="display:none; margin-bottom: 15px; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #ccc;">
+                    <label for="gau-member-select" style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">👤 Schütze auswählen (Funktionärs-Modus):</label>
+                    <select id="gau-member-select" onchange="onGauMemberChange()" style="margin: 0;"></select>
+                </div>
 
-        <p style="font-size:14px; margin-bottom:15px;">Die Meldung ist aktuell geöffnet. Bitte wähle alle Disziplinen aus, in denen angetreten werden soll:</p>
-        <div id="discipline-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom: 20px;"></div>
-        
-<button onclick="openGauConfirmation()" style="background:var(--accent);">Meldung prüfen & speichern</button>
-    </div>
-<div id="gau-confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:450px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
-        <h3 style="margin-top:0; color:var(--accent);">📋 Zusammenfassung der Meldung</h3>
-        <p style="font-size:13px; color:#666; margin-bottom:10px;" id="gau-modal-subtitle">Bitte überprüfe deine Auswahl:</p>
-        
-        <div id="gau-modal-list" style="background:#f9f9f9; padding:12px; border-radius:8px; max-height:200px; overflow-y:auto; font-size:13px; margin-bottom:15px; border:1px solid #eee;"></div>
-        
-        <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:16px; margin-bottom:20px; padding: 10px; background:#e8f5e9; border-radius:8px; color:var(--primary-dark);">
-            <span>Gesamtbetrag (Startgeld):</span>
-            <span id="gau-modal-total">0,00 €</span>
+                <p style="font-size:14px; margin-bottom:15px;">Die Meldung ist aktuell geöffnet. Bitte wähle alle Disziplinen aus, in denen angetreten werden soll:</p>
+                <div id="discipline-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom: 20px;"></div>
+                
+                <button onclick="openGauConfirmation()" style="background:var(--accent);">Meldung prüfen & speichern</button>
+            </div>
+            <div id="gau-confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+                <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:450px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+                    <h3 style="margin-top:0; color:var(--accent);">📋 Zusammenfassung der Meldung</h3>
+                    <p style="font-size:13px; color:#666; margin-bottom:10px;" id="gau-modal-subtitle">Bitte überprüfe deine Auswahl:</p>
+                    
+                    <div id="gau-modal-list" style="background:#f9f9f9; padding:12px; border-radius:8px; max-height:200px; overflow-y:auto; font-size:13px; margin-bottom:15px; border:1px solid #eee;"></div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:16px; margin-bottom:20px; padding: 10px; background:#e8f5e9; border-radius:8px; color:var(--primary-dark);">
+                        <span>Gesamtbetrag (Startgeld):</span>
+                        <span id="gau-modal-total">0,00 €</span>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="executeGauSave()" style="background:var(--primary); flex:2; margin:0;">Jetzt verbindlich speichern</button>
+                        <button onclick="closeGauModal()" style="background:#777; flex:1; margin:0;">Zurück</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <div style="display:flex; gap:10px;">
-            <button onclick="executeGauSave()" style="background:var(--primary); flex:2; margin:0;">Jetzt verbindlich speichern</button>
-            <button onclick="closeGauModal()" style="background:#777; flex:1; margin:0;">Zurück</button>
-        </div>
-    </div>
-</div>
-</div>
        
-<div id="view-meals" class="view-section" style="display:none;">
-    <h3>🍲 Trainings-Essen</h3>
-    <div id="meals-user-container"></div>
-</div>
-<!-- ADMIN VIEW (EXPLORER DESIGN - ERWEITERT) -->
-<div id="view-admin" class="view-section" style="display:none;">
-    <h3 style="margin-bottom: 5px;">⚙️ Admin-Bereich</h3>
-    <p style="color:#666; font-size:13px; margin-top:0; margin-bottom:15px;">Wähle einen Ordner aus, um die Verwaltungsfunktionen zu öffnen.</p>
-
-    <details class="admin-explorer-card" open>
-        <summary class="admin-explorer-header">
-            <span>⏳ Offene Anträge & Stunden-Statistik</span>
-        </summary>
-        <div class="admin-explorer-body">
-            <div style="padding: 12px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32; margin-bottom: 15px;">
-                <h4 style="margin-top:0; color:#2e7d32; font-size:14px;">📦 System-Backup</h4>
-                <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%; border:none; padding:8px; border-radius:4px; font-weight:bold; cursor:pointer;">
-                    Vollständiges Backup erstellen (.json)
-                </button>
-            </div>
-
-            <div id="admin-stats-container"></div>
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:#f8f9fa; padding:10px 12px; border-radius:8px; border:1px solid #e0e0e0; margin-bottom:12px;">
-                <label for="admin-year-filter" style="font-size:13px; font-weight:bold; margin:0;">📅 Abrechnungsjahr (Statistik, PDF & CSV):</label>
-                <select id="admin-year-filter" onchange="onAdminYearChange()" style="width:auto; padding:6px 10px; margin:0; font-size:13px; font-weight:bold;"></select>
-            </div>
-
-            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
-                <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
-                    📄 Stunden Report (PDF)
-                </button>
-                <button onclick="exportHoursCSV()" style="background:#0288d1; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
-                    📊 Stunden Excel/CSV
-                </button>
-            </div>
-
-            <h4 style="margin-top:10px; margin-bottom:8px;">Offene Anträge</h4>
-            <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse: collapse; min-width: 600px; border: 1px solid #ddd;">
-                    <thead>
-                        <tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;">
-                            <th style="padding:10px; width:180px;">Name/Datum</th>
-                            <th style="padding:10px;">Beschreibung</th>
-                            <th style="padding:10px; width:60px;">Dauer</th>
-                            <th style="padding:10px; width:120px; text-align:center;">Aktion</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-pending-body-real"></tbody>
-                </table>
-            </div>
+        <div id="view-meals" class="view-section" style="display:none;">
+            <h3>🍲 Trainings-Essen</h3>
+            <div id="meals-user-container"></div>
         </div>
-    </details>
 
-    <details class="admin-explorer-card">
-        <summary class="admin-explorer-header">
-            <span>👥 Mitglieder-Verwaltung</span>
-        </summary>
-        <div class="admin-explorer-body">
-            <div id="admin-hours-category-panel" style="display:none; background:#f4fbf7; border:1px solid #c8e6c9; border-radius:8px; padding:12px; margin-bottom:12px; font-size:12px; color:#1b5e20;">
-                <strong>🔒 Pflichtstunden-Regelung (nur Admin sichtbar):</strong>
-                Passiv = <strong>0h</strong> · Aktiv = <strong>20h</strong> (Mannschaft oder ≥1x/Monat bzw. ≥12x/Jahr Training) · Funktionär = <strong>40h</strong>
-            </div>
+        <!-- ADMIN VIEW (EXPLORER DESIGN - ERWEITERT) -->
+        <div id="view-admin" class="view-section" style="display:none;">
+            <h3 style="margin-bottom: 5px;">⚙️ Admin-Bereich</h3>
+            <p style="color:#666; font-size:13px; margin-top:0; margin-bottom:15px;">Wähle einen Ordner aus, um die Verwaltungsfunktionen zu öffnen.</p>
 
-            <input type="text" id="admin-member-search" placeholder="🔍 Mitglied suchen..." oninput="filterAdminMembers()" style="width:100%; padding:8px 12px; border:1px solid #ccc; border-radius:6px; margin-bottom:12px; font-size:13px; box-sizing:border-box;">
-            
-            <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background:#eee; text-align:left;">
-                            <th style="padding:8px;">Name</th>
-                            <th style="padding:8px; width:60px;">h</th>
-                            <th style="padding:8px; width:140px; text-align:right;">Rollen / Aktionen</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-member-table-list"></tbody>
-                </table>
-            </div>
-        </div>
-    </details>
+            <details class="admin-explorer-card" open>
+                <summary class="admin-explorer-header">
+                    <span>⏳ Offene Anträge & Stunden-Statistik</span>
+                </summary>
+                <div class="admin-explorer-body">
+                    <div style="padding: 12px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32; margin-bottom: 15px;">
+                        <h4 style="margin-top:0; color:#2e7d32; font-size:14px;">📦 System-Backup</h4>
+                        <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%; border:none; padding:8px; border-radius:4px; font-weight:bold; cursor:pointer;">
+                            Vollständiges Backup erstellen (.json)
+                        </button>
+                    </div>
 
-    <details class="admin-explorer-card">
-        <summary class="admin-explorer-header">
-            <span>📅 Wettkampfplan (.ics Import & Bereinigung)</span>
-        </summary>
-        <div class="admin-explorer-body">
-            <h4 style="margin-top: 0;">📅 Wettkampfplan importieren (.ics)</h4>
-            <input type="file" id="ics-upload" accept=".ics" onchange="handleICSUpload(event)" style="margin-bottom: 15px;">
-            
-            <hr style="margin: 15px 0;">
-            
-            <h4 style="margin-top: 0; color: var(--primary-dark, #1b5e20);">🧹 Wettkampfplan löschen</h4>
-            <div style="margin-bottom: 10px;">
-                <label style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">Aktion / Modus wählen:</label>
-                <select id="cleanup-mode" onchange="toggleCleanupMode()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
-                    <option value="date">Alle Wettkampfpläne vor einem bestimmten Datum löschen</option>
-                    <option value="team">Alle Wettkampfpläne einer einzelnen Mannschaft löschen</option>
-                    <option value="all_teams">Alle Wettkampfpläne ALLER Mannschaften löschen (Gesamter Plan)</option>
-                </select>
-            </div>
+                    <div id="admin-stats-container"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:#f8f9fa; padding:10px 12px; border-radius:8px; border:1px solid #e0e0e0; margin-bottom:12px;">
+                        <label for="admin-year-filter" style="font-size:13px; font-weight:bold; margin:0;">📅 Abrechnungsjahr (Statistik, PDF & CSV):</label>
+                        <select id="admin-year-filter" onchange="onAdminYearChange()" style="width:auto; padding:6px 10px; margin:0; font-size:13px; font-weight:bold;"></select>
+                    </div>
 
-            <div id="cleanup-box-date" style="margin-bottom: 10px;">
-                <label style="font-size: 12px; display: block; margin-bottom: 3px;">Datum auswählen (alle Termine davor werden gelöscht):</label>
-                <input type="date" id="cleanup-date" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
-            </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+                        <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                            📄 Stunden Report (PDF)
+                        </button>
+                        <button onclick="exportHoursCSV()" style="background:#0288d1; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                            📊 Stunden Excel/CSV
+                        </button>
+                    </div>
 
-            <div id="cleanup-box-team" style="display: none; margin-bottom: 10px;">
-                <label style="font-size: 12px; display: block; margin-bottom: 3px;">Mannschaft auswählen:</label>
-                <select id="cleanup-team-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;"></select>
-            </div>
+                    <h4 style="margin-top:10px; margin-bottom:8px;">Offene Anträge</h4>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse: collapse; min-width: 600px; border: 1px solid #ddd;">
+                            <thead>
+                                <tr style="background:#f8f9fa; text-align:left; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding:10px; width:180px;">Name/Datum</th>
+                                    <th style="padding:10px;">Beschreibung</th>
+                                    <th style="padding:10px; width:60px;">Dauer</th>
+                                    <th style="padding:10px; width:120px; text-align:center;">Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-pending-body-real"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
 
-            <button onclick="executeTournamentCleanup()" style="background: var(--danger, #d32f2f); color: white; border: none; border-radius: 4px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-weight: bold; width: 100%;">
-                🗑️ Ausgewählte Turniere bereinigen
-            </button>
-        </div>
-    </details>
+            <details class="admin-explorer-card">
+                <summary class="admin-explorer-header">
+                    <span>👥 Mitglieder-Verwaltung</span>
+                </summary>
+                <div class="admin-explorer-body">
+                    <div id="admin-hours-category-panel" style="display:none; background:#f4fbf7; border:1px solid #c8e6c9; border-radius:8px; padding:12px; margin-bottom:12px; font-size:12px; color:#1b5e20;">
+                        <strong>🔒 Pflichtstunden-Regelung (nur Admin sichtbar):</strong>
+                        Passiv = <strong>0h</strong> · Aktiv = <strong>20h</strong> (Mannschaft oder ≥1x/Monat bzw. ≥12x/Jahr Training) · Funktionär = <strong>40h</strong>
+                    </div>
 
-    <details class="admin-explorer-card">
-        <summary class="admin-explorer-header">
-            <span>🏆 Gau-Meisterschaftsmeldungen</span>
-        </summary>
-        <div class="admin-explorer-body">
-            <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
-                <h4 style="margin-top:0;">⚙️ Freigabe</h4>
-                <label class="checkbox-wrapper" style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">
-                    <input type="checkbox" id="admin-toggle-reg" onchange="updateRegStatus(this.checked)" style="width: 18px; height: 18px;"> 
-                    Reiter "Gau-Meldung" für alle Schützen einblenden
-                </label>
-            </div>
+                    <input type="text" id="admin-member-search" placeholder="🔍 Mitglied suchen..." oninput="filterAdminMembers()" style="width:100%; padding:8px 12px; border:1px solid #ccc; border-radius:6px; margin-bottom:12px; font-size:13px; box-sizing:border-box;">
+                    
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background:#eee; text-align:left;">
+                                    <th style="padding:8px;">Name</th>
+                                    <th style="padding:8px; width:60px;">h</th>
+                                    <th style="padding:8px; width:140px; text-align:right;">Rollen / Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-member-table-list"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="margin:0;">📋 Übersicht Meldungen</h4>
-                <button onclick="exportGauMeldungenPDF()" style="background:var(--blue); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
-                    📄 Gau-Meldungen PDF exportieren
-                </button>
-            </div>
+            <details class="admin-explorer-card">
+                <summary class="admin-explorer-header">
+                    <span>📅 Wettkampfplan (.ics Import & Bereinigung)</span>
+                </summary>
+                <div class="admin-explorer-body">
+                    <h4 style="margin-top: 0;">📅 Wettkampfplan importieren (.ics)</h4>
+                    <input type="file" id="ics-upload" accept=".ics" onchange="handleICSUpload(event)" style="margin-bottom: 15px;">
+                    
+                    <hr style="margin: 15px 0;">
+                    
+                    <h4 style="margin-top: 0; color: var(--primary-dark, #1b5e20);">🧹 Wettkampfplan löschen</h4>
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">Aktion / Modus wählen:</label>
+                        <select id="cleanup-mode" onchange="toggleCleanupMode()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
+                            <option value="date">Alle Wettkampfpläne vor einem bestimmten Datum löschen</option>
+                            <option value="team">Alle Wettkampfpläne einer einzelnen Mannschaft löschen</option>
+                            <option value="all_teams">Alle Wettkampfpläne ALLER Mannschaften löschen (Gesamter Plan)</option>
+                        </select>
+                    </div>
 
-            <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background:#eee; text-align:left;">
-                            <th style="padding:8px;">Schütze</th>
-                            <th style="padding:8px;">Gemeldete Disziplinen</th>
-                            <th style="padding:8px; width:90px;">Gesamt</th>
-                            <th style="padding:8px; width:180px;">Gau-Melde-Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-championship-list"></tbody>
-                </table>
-            </div>
+                    <div id="cleanup-box-date" style="margin-bottom: 10px;">
+                        <label style="font-size: 12px; display: block; margin-bottom: 3px;">Datum auswählen (alle Termine davor werden gelöscht):</label>
+                        <input type="date" id="cleanup-date" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
+                    </div>
 
-            <div style="margin-top: 15px;">
-                <button onclick="clearAllGauMelungen()" style="background: var(--danger, #d32f2f); color:white; border:none; padding: 8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">
-                    🗑️ Alle Meisterschaftsmeldungen zurücksetzen
-                </button>
-            </div>
-        </div>
-    </details>
+                    <div id="cleanup-box-team" style="display: none; margin-bottom: 10px;">
+                        <label style="font-size: 12px; display: block; margin-bottom: 3px;">Mannschaft auswählen:</label>
+                        <select id="cleanup-team-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;"></select>
+                    </div>
 
-    <details class="admin-explorer-card">
-        <summary class="admin-explorer-header">
-            <span>🎯 Standgebühren & Vereinswaffen</span>
-        </summary>
-        <div class="admin-explorer-body">
-            <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
-                <h4 style="margin-top:0;">⚙️ Freigabe</h4>
-                <label class="checkbox-wrapper" style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">
-                    <input type="checkbox" id="admin-toggle-stand" onchange="updateStandStatus(this.checked)" style="width: 18px; height: 18px;"> 
-                    Bereich "Standgebühr & Vereinswaffen" in Profilen einblenden
-                </label>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="margin:0;">📋 Übersicht Gebühren</h4>
-                <div style="display:flex; gap:6px;">
-                    <button onclick="exportStandFeePDF()" style="background:var(--blue); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
-                        📄 PDF Export
-                    </button>
-                    <button onclick="exportStandFeeCSV()" style="background:#0288d1; color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
-                        📊 CSV Export
+                    <button onclick="executeTournamentCleanup()" style="background: var(--danger, #d32f2f); color: white; border: none; border-radius: 4px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-weight: bold; width: 100%;">
+                        🗑️ Ausgewählte Turniere bereinigen
                     </button>
                 </div>
-            </div>
+            </details>
 
-            <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background:#eee; text-align:left;">
-                            <th style="padding:8px;">Schütze</th>
-                            <th style="padding:8px;">Stand-Nutzung</th>
-                            <th style="padding:8px;">Vereinswaffe</th>
-                            <th style="padding:8px; width:90px;">Gesamt</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-stand-list"></tbody>
-                </table>
-            </div>
-        </div>
-    </details>
+            <details class="admin-explorer-card">
+                <summary class="admin-explorer-header">
+                    <span>🏆 Gau-Meisterschaftsmeldungen</span>
+                </summary>
+                <div class="admin-explorer-body">
+                    <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
+                        <h4 style="margin-top:0;">⚙️ Freigabe</h4>
+                        <label class="checkbox-wrapper" style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="admin-toggle-reg" onchange="updateRegStatus(this.checked)" style="width: 18px; height: 18px;"> 
+                            Reiter "Gau-Meldung" für alle Schützen einblenden
+                        </label>
+                    </div>
 
-<details class="admin-explorer-card">
-    <summary class="admin-explorer-header">
-        <span>🍲 Trainings-Essen verwalten</span>
-    </summary>
-    <div class="admin-explorer-body">
-        <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
-            <input type="hidden" id="admin-meal-id" value="">
-            <h5 id="admin-meal-form-title" style="margin-top:0; font-size:14px;">Neues Essen anbieten</h5>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
-                <input type="text" id="admin-meal-title" placeholder="Gericht (z.B. Schnitzel)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
-                <input type="text" id="admin-meal-description" placeholder="Inhalt / Beschreibung der Portion (z.B. 1 Paar Blaue Zipfel mit 1 Scheibe Brot)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
-                <input type="date" id="admin-meal-date" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
-                <input type="number" step="0.50" id="admin-meal-price" placeholder="Preis pro Portion (€)" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
-                <div>
-                    <label style="font-size:11px; display:block;">Anmeldefrist bis:</label>
-                    <input type="datetime-local" id="admin-meal-deadline" style="padding:6px; border:1px solid #ccc; border-radius:4px; width:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h4 style="margin:0;">📋 Übersicht Meldungen</h4>
+                        <button onclick="exportGauMeldungenPDF()" style="background:var(--blue); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                            📄 Gau-Meldungen PDF exportieren
+                        </button>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background:#eee; text-align:left;">
+                                    <th style="padding:8px;">Schütze</th>
+                                    <th style="padding:8px;">Gemeldete Disziplinen</th>
+                                    <th style="padding:8px; width:90px;">Gesamt</th>
+                                    <th style="padding:8px; width:180px;">Gau-Melde-Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-championship-list"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <button onclick="clearAllGauMelungen()" style="background: var(--danger, #d32f2f); color:white; border:none; padding: 8px 15px; border-radius:4px; cursor:pointer; font-size:13px;">
+                            🗑️ Alle Meisterschaftsmeldungen zurücksetzen
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div style="margin-top:10px; display:flex; gap:10px;">
-                <button id="admin-meal-submit-btn" onclick="saveMeal()" style="background:var(--primary); color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">
-                    Essen veröffentlichen
-                </button>
-                <button id="btn-cancel-meal-edit" onclick="resetMealForm()" style="display:none; background:#6c757d; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">
-                    Abbrechen
-                </button>
-            </div>
-        </div>
+            </details>
 
-        <div id="admin-meals-list"></div>
-    </div>
-</details>
+            <details class="admin-explorer-card">
+                <summary class="admin-explorer-header">
+                    <span>🎯 Standgebühren & Vereinswaffen</span>
+                </summary>
+                <div class="admin-explorer-body">
+                    <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
+                        <h4 style="margin-top:0;">⚙️ Freigabe</h4>
+                        <label class="checkbox-wrapper" style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="admin-toggle-stand" onchange="updateStandStatus(this.checked)" style="width: 18px; height: 18px;"> 
+                            Bereich "Standgebühr & Vereinswaffen" in Profilen einblenden
+                        </label>
+                    </div>
 
-    <details class="admin-explorer-card" ontoggle="if(this.open) loadTrash()">
-        <summary class="admin-explorer-header">
-            <span>🗑️ Papierkorb & Wiederherstellung</span>
-        </summary>
-        <div class="admin-explorer-body">
-            <p style="font-size:12px; color:#666; margin-top:0;">
-                Gelöschte Essen, Turniere, Termine, Stunden und Fahrten bleiben hier gespeichert. Nur Administratoren können Einträge endgültig entfernen.
-            </p>
-            <div id="admin-trash-list">
-                <p>Lade Papierkorb...</p>
-            </div>
-        </div>
-    </details>
-        
-    </div> <!-- ENDE MAIN-APP -->
-</div> <!-- ENDE CARD -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h4 style="margin:0;">📋 Übersicht Gebühren</h4>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="exportStandFeePDF()" style="background:var(--blue); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                                📄 PDF Export
+                            </button>
+                            <button onclick="exportStandFeeCSV()" style="background:#0288d1; color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                                📊 CSV Export
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background:#eee; text-align:left;">
+                                    <th style="padding:8px;">Schütze</th>
+                                    <th style="padding:8px;">Stand-Nutzung</th>
+                                    <th style="padding:8px;">Vereinswaffe</th>
+                                    <th style="padding:8px; width:90px;">Gesamt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-stand-list"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
+
+            <details class="admin-explorer-card">
+                <summary class="admin-explorer-header">
+                    <span>🍲 Trainings-Essen verwalten</span>
+                </summary>
+                <div class="admin-explorer-body">
+                    <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
+                        <input type="hidden" id="admin-meal-id" value="">
+                        <h5 id="admin-meal-form-title" style="margin-top:0; font-size:14px;">Neues Essen anbieten</h5>
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                            <input type="text" id="admin-meal-title" placeholder="Gericht (z.B. Linsen mit Mehlspatzen)" style="padding:6px; border:1px solid #ccc; border-radius:4px; margin:0;">
+                            <input type="text" id="admin-meal-description" placeholder="Inhalt / Beschreibung (z.B. 1 Teller Linsen mit Spatzen)" style="padding:6px; border:1px solid #ccc; border-radius:4px; margin:0;">
+                            <input type="date" id="admin-meal-date" style="padding:6px; border:1px solid #ccc; border-radius:4px; margin:0;">
+                            <input type="number" step="0.50" id="admin-meal-price" placeholder="Basispreis (€, falls keine Varianten)" style="padding:6px; border:1px solid #ccc; border-radius:4px; margin:0;">
+                            <div>
+                                <label style="font-size:11px; display:block; margin-bottom:2px;">Anmeldefrist bis:</label>
+                                <input type="datetime-local" id="admin-meal-deadline" style="padding:6px; border:1px solid #ccc; border-radius:4px; width:100%; margin:0;">
+                            </div>
+
+                            <!-- VARIANTEN / OPTIONEN (z. B. für Linsen) -->
+                            <div style="grid-column: 1 / -1; background: #f4fbf7; border: 1px solid #c8e6c9; border-radius: 6px; padding: 12px; margin-top: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                    <label style="font-weight: bold; font-size: 13px; color: var(--primary); margin: 0;">
+                                        🍽️ Varianten / Beilagen-Optionen (optional)
+                                    </label>
+                                    <button type="button" onclick="addMealVariantRow()" style="width: auto; margin: 0; background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                                        ➕ Option hinzufügen
+                                    </button>
+                                </div>
+                                <small style="display: block; color: #555; margin-bottom: 8px; font-size: 12px;">
+                                    Leer lassen für Standardgericht mit einem Preis. Bei Varianten (z. B. mit Bauchscheibe & Wienerla, nur Wienerla, ohne Fleisch) hier mit eigenem Preis anlegen:
+                                </small>
+                                <div id="admin-meal-variants-container" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:12px; display:flex; gap:10px;">
+                            <button id="admin-meal-submit-btn" onclick="saveMeal()" style="background:var(--primary); color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin:0;">
+                                Essen veröffentlichen
+                            </button>
+                            <button id="btn-cancel-meal-edit" onclick="resetMealForm()" style="display:none; background:#6c757d; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin:0;">
+                                Abbrechen
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="admin-meals-list"></div>
+                </div>
+            </details>
+
+            <details class="admin-explorer-card" ontoggle="if(this.open) loadTrash()">
+                <summary class="admin-explorer-header">
+                    <span>🗑️ Papierkorb & Wiederherstellung</span>
+                </summary>
+                <div class="admin-explorer-body">
+                    <p style="font-size:12px; color:#666; margin-top:0;">
+                        Gelöschte Essen, Turniere, Termine, Stunden und Fahrten bleiben hier gespeichert. Nur Administratoren können Einträge endgültig entfernen.
+                    </p>
+                    <div id="admin-trash-list">
+                        <p>Lade Papierkorb...</p>
+                    </div>
+                </div>
+            </details>
+        </div> <!-- ENDE MAIN-APP -->
+    </div> <!-- ENDE CARD -->
 
 <!-- ZENTRALES DIALOG-MODAL FÜR BESTÄTIGUNGEN & EINGABEN -->
 <div id="app-dialog-modal" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
@@ -2637,7 +2653,7 @@ async function adminDeleteUser(userId, currentName) {
     }
 }
 
-   async function adminDeleteWork(hourId, userId) {
+async function adminDeleteWork(hourId, userId) {
     const { data: rec } = await sb.from('work_hours').select('date, duration, description').eq('id', hourId).maybeSingle();
     const detailsHtml = rec
         ? `<strong>Datum:</strong> ${rec.date ? new Date(rec.date).toLocaleDateString('de-DE') : '-'}<br><strong>Dauer:</strong> ${rec.duration}h<br><strong>Tätigkeit:</strong> ${rec.description || '-'}`
@@ -2674,7 +2690,7 @@ async function adminDeleteUser(userId, currentName) {
     }
 }
 
-   function renderCalendar() {
+function renderCalendar() {
     const container = document.getElementById('calendar-container'); 
     container.innerHTML = '';
     const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
@@ -2709,7 +2725,7 @@ async function adminDeleteUser(userId, currentName) {
     }
 }
 
-  function showDay(ds) { 
+function showDay(ds) { 
     const evs = allEvents.filter(e => e.date === ds); 
     
     if(!evs.length) {
@@ -2736,20 +2752,20 @@ async function adminDeleteUser(userId, currentName) {
     document.getElementById('calendar-selection-details').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-    function renderEventFilter() {
-        const filterSelect = document.getElementById('event-view-filter');
-        if (!filterSelect) return;
-        let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
-        options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
-        options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
-        options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
-        options += `<option disabled>────────────────────</option>`;
-        options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
-        filterSelect.innerHTML = options;
-        if(!filterSelect.value) filterSelect.value = "my_relevant";
-    }
+function renderEventFilter() {
+    const filterSelect = document.getElementById('event-view-filter');
+    if (!filterSelect) return;
+    let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
+    options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
+    options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
+    options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
+    options += `<option disabled>────────────────────</option>`;
+    options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
+    filterSelect.innerHTML = options;
+    if(!filterSelect.value) filterSelect.value = "my_relevant";
+}
 
-  function getTeamClass(t) {
+function getTeamClass(t) {
     if (!t) return '';
     if (t === 'Verein') return 'team-verein';
     
@@ -2766,36 +2782,36 @@ async function adminDeleteUser(userId, currentName) {
 
     return teamMap[t] || 'team-default'; 
 }
-    function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
-    async function updateRole(uid, col, val) {
-        const d = {};
-        d[col] = val;
-        const { data, error } = await sb.from('profiles').update(d).eq('id', uid).select('id');
-        try {
-            requireAffectedRows(data, error, "Rolle konnte nicht aktualisiert werden (Berechtigung prüfen).");
-            if (currentUser && uid === currentUser.id) {
-                if (col === 'is_captain') isCaptain = Boolean(val);
-                if (col === 'is_official') isOfficial = Boolean(val);
-                syncHomeMenuTiles();
-            }
-            loadAdmin();
-        } catch (err) {
-            showToast("Fehler beim Ändern der Rolle: " + err.message, "error");
-            loadAdmin();
+function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
+async function updateRole(uid, col, val) {
+    const d = {};
+    d[col] = val;
+    const { data, error } = await sb.from('profiles').update(d).eq('id', uid).select('id');
+    try {
+        requireAffectedRows(data, error, "Rolle konnte nicht aktualisiert werden (Berechtigung prüfen).");
+        if (currentUser && uid === currentUser.id) {
+            if (col === 'is_captain') isCaptain = Boolean(val);
+            if (col === 'is_official') isOfficial = Boolean(val);
+            syncHomeMenuTiles();
         }
+        loadAdmin();
+    } catch (err) {
+        showToast("Fehler beim Ändern der Rolle: " + err.message, "error");
+        loadAdmin();
     }
-    async function approveHours(id) {
-        const { data, error } = await sb.from('work_hours').update({ status: 'approved' }).eq('id', id).select('id');
-        try {
-            requireAffectedRows(data, error, "Stunden konnten nicht freigegeben werden (Berechtigung prüfen).");
-            showToast("Stunden freigegeben!", "success");
-            loadAdmin();
-        } catch (err) {
-            showToast("Fehler bei Freigabe: " + err.message, "error");
-        }
+}
+async function approveHours(id) {
+    const { data, error } = await sb.from('work_hours').update({ status: 'approved' }).eq('id', id).select('id');
+    try {
+        requireAffectedRows(data, error, "Stunden konnten nicht freigegeben werden (Berechtigung prüfen).");
+        showToast("Stunden freigegeben!", "success");
+        loadAdmin();
+    } catch (err) {
+        showToast("Fehler bei Freigabe: " + err.message, "error");
     }
+}
 
-    // --- EXPORT FUNKTIONEN ---
+// --- EXPORT FUNKTIONEN ---
 
 async function exportToPDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
@@ -2900,7 +2916,7 @@ async function exportToPDF() {
     doc.save(`Hubertus_Abrechnung_${selectedYear}_${dateString}.pdf`);
 }
 
-   async function exportStandFeePDF() {
+async function exportStandFeePDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
         showToast("PDF-Bibliothek fehlt. Bitte Seite neu laden.", "error");
         return;
@@ -2975,7 +2991,7 @@ async function exportToPDF() {
     doc.save(`Standgebühren_SV_Hubertus_${dateString}.pdf`);
 }
 
-   async function exportGauMeldungenPDF() {
+async function exportGauMeldungenPDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) {
         showToast("PDF-Bibliothek fehlt. Bitte Seite neu laden.", "error");
         return;
@@ -3065,7 +3081,7 @@ async function exportToPDF() {
     doc.save(`Gau_Meldungen_SV_Hubertus_${dateString}.pdf`);
 }
 
-       async function updatePassword() {
+async function updatePassword() {
     const p1 = document.getElementById('new-pass').value;
     const p2 = document.getElementById('new-pass-confirm').value;
 
@@ -3110,7 +3126,7 @@ function toggleAuthMode() {
     document.getElementById('auth-toggle').innerText = isRegistrationMode ? "Zurück zum Login" : "Noch kein Konto? Hier registrieren";
 }
     
-   async function checkApproval(user) {
+async function checkApproval(user) {
     const { data: p } = await sb.from('profiles').select('is_approved').eq('id', user.id).maybeSingle();
     if (p && p.is_approved) {
         setupApp(user);
@@ -3211,10 +3227,10 @@ async function saveWork() {
     const category = document.getElementById('work-category').value;
     const details = document.getElementById('description').value;
     
-  if (!date || !hours) {
-    showToast("Bitte Datum und Stunden angeben!", "error");
-    return;
-}
+    if (!date || !hours) {
+        showToast("Bitte Datum und Stunden angeben!", "error");
+        return;
+    }
 
     const payload = { 
         date, 
@@ -3231,7 +3247,7 @@ async function saveWork() {
         res = await sb.from('work_hours').insert([{...payload, user_id: currentUser.id}]).select('id');
     }
 
-  try {
+    try {
         requireAffectedRows(res?.data, res?.error, "Arbeitszeit konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast(currentWorkEditId ? "Änderung gespeichert!" : "Arbeitszeit eingereicht!", "success"); 
         resetWorkForm(); 
@@ -3253,7 +3269,7 @@ function resetWorkForm() {
     }
 }
 
-   async function rejectHours(id) {
+async function rejectHours(id) {
     const reason = await showPromptModal(
         "Bitte gib eine Begründung für die Ablehnung an:",
         {
@@ -3288,7 +3304,7 @@ function resetWorkForm() {
     }
 }
 
-   function resetForm() {
+function resetForm() {
     currentEditId = null;
     document.getElementById('description').value = '';
     document.getElementById('hours').value = '';
@@ -3335,7 +3351,7 @@ async function deleteWork(id) {
     }
 }
 
-   async function handleResetPassword() {
+async function handleResetPassword() {
     const email = await showPromptModal(
         "Bitte gib deine registrierte E-Mail-Adresse ein:",
         {
@@ -3350,7 +3366,7 @@ async function deleteWork(id) {
         redirectTo: window.location.origin + window.location.pathname + '?view=update-password',
     });
 
-   if (error) {
+    if (error) {
         showToast("Fehler: " + error.message, "error");
     } else {
         showToast("Eine E-Mail zum Zurücksetzen des Passworts wurde versendet. Bitte prüfe deinen Posteingang.", "success");
@@ -3495,10 +3511,10 @@ async function importICSPlan(icsText) {
         detectedDiscipline = "Luftgewehr";
     }
 
-   if (!detectedDiscipline) {
-    showToast("Fehler: Disziplin konnte nicht eindeutig erkannt werden. Import abgebrochen.", "error");
-    return;
-}
+    if (!detectedDiscipline) {
+        showToast("Fehler: Disziplin konnte nicht eindeutig erkannt werden. Import abgebrochen.", "error");
+        return;
+    }
 
     const events = [];
     let currentEvent = null;
@@ -3569,7 +3585,7 @@ async function importICSPlan(icsText) {
         }
     }
 
-   showToast(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`, "success");
+    showToast(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`, "success");
 }
 
 // 1. Restzeit-Rechner für Essen
@@ -3635,11 +3651,63 @@ function startMealCountdowns() {
     mealTimerInterval = setInterval(updateTimers, 1000);
 }
 
-// 3. Ansicht für Schützen / Mitglieder laden
-// ==========================================
-// ESSENS-ANSICHT (OPTIMIERT FÜR MEHRERE GÄSTE)
-// ==========================================
+// HILFSFUNKTIONEN FÜR ESSENS-VARIANTEN
+function addMealVariantRow(name = '', price = '') {
+    const container = document.getElementById('admin-meal-variants-container');
+    if (!container) return;
 
+    const row = document.createElement('div');
+    row.className = 'meal-variant-row';
+    row.style.cssText = 'display: flex; gap: 6px; align-items: center;';
+    row.innerHTML = `
+        <input type="text" class="variant-name" placeholder="z.B. Mit Bauchscheibe & Wienerla" value="${String(name).replace(/"/g, '&quot;')}" style="flex: 2; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; margin: 0;">
+        <input type="number" step="0.10" min="0" class="variant-price" placeholder="Preis €" value="${price}" style="width: 90px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; margin: 0;">
+        <button type="button" onclick="this.parentElement.remove()" style="width: auto; margin: 0; background: #d32f2f; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;" title="Option entfernen">✖</button>
+    `;
+    container.appendChild(row);
+}
+
+function getAdminMealVariants() {
+    const rows = document.querySelectorAll('#admin-meal-variants-container .meal-variant-row');
+    const variants = [];
+    rows.forEach(row => {
+        const name = row.querySelector('.variant-name')?.value.trim();
+        const priceVal = row.querySelector('.variant-price')?.value;
+        const price = parseFloat(String(priceVal || '0').replace(',', '.'));
+        if (name) {
+            variants.push({ name, price: isNaN(price) ? 0 : price });
+        }
+    });
+    return variants;
+}
+
+function calculateMealOrderTotal(order, meal) {
+    const variants = Array.isArray(meal?.variants) ? meal.variants : [];
+    if (variants.length > 0 && Array.isArray(order?.variant_details) && order.variant_details.length > 0) {
+        let sumPortions = 0;
+        let sumPrice = 0;
+        order.variant_details.forEach(vd => {
+            const qty = parseInt(vd.qty || 0, 10);
+            if (qty > 0) {
+                const matched = variants.find(v => v.name === vd.name);
+                const unitPrice = matched ? parseFloat(matched.price) : parseFloat(vd.price || meal.price || 0);
+                sumPortions += qty;
+                sumPrice += qty * unitPrice;
+            }
+        });
+        return { portions: sumPortions, price: sumPrice };
+    }
+
+    const own = parseInt(order?.portions || 0, 10);
+    const guest = order?.is_guest_order ? parseInt(order.guest_portions || 0, 10) : 0;
+    const totalPortions = own + guest;
+    return {
+        portions: totalPortions,
+        price: totalPortions * parseFloat(meal?.price || 0)
+    };
+}
+
+// 3. Ansicht für Schützen / Mitglieder laden
 async function loadMealsView() {
     const container = document.getElementById('meals-user-container');
     if (!container) return;
@@ -3674,17 +3742,19 @@ async function loadMealsView() {
         const isExpired = now > deadlineDate;
         const myOrder = myOrders ? myOrders.find(o => o.meal_id === meal.id) : null;
         const allOrders = meal.meal_orders || [];
+        const variants = Array.isArray(meal.variants) ? meal.variants : [];
+        const hasVariants = variants.length > 0;
 
-        const totalPortions = allOrders.reduce((sum, o) => {
-            const own = o.portions || 0;
-            const guest = o.is_guest_order ? (o.guest_portions || 0) : 0;
-            return sum + own + guest;
-        }, 0);
-
+        const totalPortions = allOrders.reduce((sum, o) => sum + calculateMealOrderTotal(o, meal).portions, 0);
         const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
 
         const participantsList = allOrders.map(o => {
             const name = o.profiles?.full_name || 'Mitglied';
+            if (hasVariants && Array.isArray(o.variant_details) && o.variant_details.length > 0) {
+                const vText = o.variant_details.filter(v => parseInt(v.qty || 0, 10) > 0).map(v => `${v.qty}x ${v.name}`).join(', ');
+                const guestInfo = (o.is_guest_order && o.guest_name) ? ` (inkl. Gast: ${o.guest_name})` : '';
+                return `• ${name}: ${vText}${guestInfo}`;
+            }
             let text = `${name} (${o.portions}x)`;
             if (o.is_guest_order && o.guest_portions > 0) {
                 text += ` + ${o.guest_portions} Gast/Gäste: ${o.guest_name || 'Unbekannt'}`;
@@ -3696,14 +3766,47 @@ async function loadMealsView() {
         const isGuestChecked = myOrder && myOrder.is_guest_order ? 'checked' : '';
         const guestFieldsDisplay = myOrder && myOrder.is_guest_order ? 'display: flex;' : 'display: none;';
 
+        const priceHeaderHtml = hasVariants
+            ? `💰 <strong>Preise:</strong> je nach Auswahl (ab ${Math.min(...variants.map(v => parseFloat(v.price || 0))).toFixed(2).replace('.', ',')} €)`
+            : `💰 <strong>Preis:</strong> ${parseFloat(meal.price || 0).toFixed(2).replace('.', ',')} € / Portion`;
+
+        let portionInputHtml = '';
+        if (hasVariants) {
+            const savedDetails = Array.isArray(myOrder?.variant_details) ? myOrder.variant_details : [];
+            portionInputHtml = `
+                <div style="background: #f8faf8; border: 1px solid #dcedc8; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    <label style="font-size: 13px; font-weight: bold; color: var(--primary); margin: 0;">🍽️ Bitte gewünschte Anzahl je Variante wählen (inkl. eventueller Gäste):</label>
+                    ${variants.map(v => {
+                        const existing = savedDetails.find(sd => sd.name === v.name);
+                        const qtyVal = existing ? parseInt(existing.qty || 0, 10) : 0;
+                        return `
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff; padding: 6px 10px; border-radius: 4px; border: 1px solid #e0e0e0;">
+                                <span style="font-size: 13px; flex: 1;">
+                                    <strong>${v.name}</strong><br>
+                                    <small style="color: #2e7d32; font-weight: bold;">${parseFloat(v.price || 0).toFixed(2).replace('.', ',')} € / Portion</small>
+                                </span>
+                                <input type="number" class="user-variant-qty-${meal.id}" data-variant-name="${String(v.name).replace(/"/g, '&quot;')}" data-variant-price="${v.price}" min="0" max="20" value="${qtyVal}" style="width: 70px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-weight: bold; margin: 0;">
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        } else {
+            portionInputHtml = `
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <label style="font-size:13px; font-weight:bold; margin:0;">Deine Portionen:</label>
+                    <input type="number" id="portions-${meal.id}" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:75px; padding:6px; border:1px solid #ccc; border-radius:4px; margin:0;">
+                </div>
+            `;
+        }
+
         return `
             <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
                         <h4 style="margin:0 0 5px 0; color:var(--primary);">${meal.title}</h4>
                         <p style="margin:0; font-size:14px; color:#555;">
-                            📅 <strong>Termin:</strong> ${formattedDate} | 
-                            💰 <strong>Preis:</strong> ${parseFloat(meal.price).toFixed(2).replace('.', ',')} € / Portion
+                            📅 <strong>Termin:</strong> ${formattedDate} | ${priceHeaderHtml}
                         </p>
                         ${meal.description ? `
                             <p style="margin:5px 0 0 0; font-size:13px; color:#2e7d32; font-weight:bold;">
@@ -3728,44 +3831,42 @@ async function loadMealsView() {
                 ` : `
                     <form onsubmit="submitMealOrderDirect(event, '${meal.id}')" style="display:flex; flex-direction:column; gap:12px;">
                         
-                        <div style="display:flex; gap:15px; align-items:center;">
-                            <label style="font-size:13px; font-weight:bold;">Deine Portionen:</label>
-                            <input type="number" id="portions-${meal.id}" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:70px; padding:6px; border:1px solid #ccc; border-radius:4px;">
-                        </div>
+                        ${portionInputHtml}
 
                         <div>
                             <label style="font-size:13px; font-weight:bold; display:block; margin-bottom:3px;">Deine Bemerkung / Sonderwünsche:</label>
-                            <input type="text" id="remarks-${meal.id}" placeholder="z.B. Vegetarisch..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px;">
+                            <input type="text" id="remarks-${meal.id}" placeholder="z.B. Vegetarisch, ohne Senf..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; margin:0;">
                         </div>
 
                         <div style="background:#f4fbf7; padding:12px; border-radius:6px; border:1px solid #c8e6c9; display:flex; flex-direction:column; gap:8px;">
-                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:bold; color:var(--primary);">
-                                <input type="checkbox" id="toggle-guest-${meal.id}" ${isGuestChecked} onchange="toggleGuestInputs('${meal.id}')" style="width:18px; height:18px; cursor:pointer;">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:bold; color:var(--primary); margin:0;">
+                                <input type="checkbox" id="toggle-guest-${meal.id}" ${isGuestChecked} onchange="toggleGuestInputs('${meal.id}')" style="width:18px; height:18px; cursor:pointer; margin:0;">
                                 <span>➕ Portion(en) für Gäste mitbestellen</span>
                             </label>
 
                             <div id="guest-container-${meal.id}" style="${guestFieldsDisplay} flex-direction:column; gap:8px; margin-top:5px; padding-left:22px; border-left:2px solid #81c784;">
+                                ${!hasVariants ? `
                                 <div style="display:flex; gap:15px; align-items:center;">
-                                    <label style="font-size:12px; font-weight:bold;">Anzahl Gäste:</label>
-                                    <input type="number" id="guest-portions-${meal.id}" min="1" max="10" value="${myOrder && myOrder.guest_portions ? myOrder.guest_portions : 2}" style="width:60px; padding:4px; border:1px solid #ccc; border-radius:4px;">
-                                </div>
+                                    <label style="font-size:12px; font-weight:bold; margin:0;">Anzahl Gäste:</label>
+                                    <input type="number" id="guest-portions-${meal.id}" min="1" max="10" value="${myOrder && myOrder.guest_portions ? myOrder.guest_portions : 2}" style="width:65px; padding:4px; border:1px solid #ccc; border-radius:4px; margin:0;">
+                                </div>` : ''}
                                 <div>
                                     <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:2px;">Namen der Gäste:</label>
-                                    <input type="text" id="guest-name-${meal.id}" placeholder="z.B. Max Mustermann, Anna Schmidt" value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+                                    <input type="text" id="guest-name-${meal.id}" placeholder="z.B. Max Mustermann, Anna Schmidt" value="${myOrder?.guest_name || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; font-size:13px; margin:0;">
                                 </div>
                                 <div>
                                     <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:2px;">Bemerkung zu den Gästen (optional):</label>
-                                    <input type="text" id="guest-remarks-${meal.id}" placeholder="z.B. Sonderwünsche..." value="${myOrder?.guest_remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+                                    <input type="text" id="guest-remarks-${meal.id}" placeholder="z.B. Sonderwünsche..." value="${myOrder?.guest_remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px; font-size:13px; margin:0;">
                                 </div>
                             </div>
                         </div>
 
-                        <div style="display:flex; gap:10px; align-items:center; margin-top:5px;">
-                            <button type="submit" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                        <div style="display:flex; gap:10px; align-items:center; margin-top:5px; flex-wrap:wrap;">
+                            <button type="submit" style="width:auto; margin:0; background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:bold;">
                                 ${isOrdered ? 'Bestellung aktualisieren' : 'Kostenpflichtig bestellen'}
                             </button>
                             ${isOrdered ? `
-                                <button type="button" onclick="cancelMealOrder('${meal.id}')" style="background:#d32f2f; color:white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                                <button type="button" onclick="cancelMealOrder('${meal.id}')" style="width:auto; margin:0; background:#d32f2f; color:white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:bold;">
                                     ❌ Bestellung stornieren
                                 </button>
                             ` : ''}
@@ -3783,24 +3884,53 @@ async function loadMealsView() {
 function toggleGuestInputs(mealId) {
     const checkbox = document.getElementById(`toggle-guest-${mealId}`);
     const container = document.getElementById(`guest-container-${mealId}`);
+    if (!checkbox || !container) return;
+
     if (checkbox.checked) {
         container.style.display = 'flex';
     } else {
         container.style.display = 'none';
-        document.getElementById(`guest-name-${mealId}`).value = '';
-        document.getElementById(`guest-portions-${mealId}`).value = '2';
-        document.getElementById(`guest-remarks-${mealId}`).value = '';
+        const nameEl = document.getElementById(`guest-name-${mealId}`);
+        const portEl = document.getElementById(`guest-portions-${mealId}`);
+        const remEl = document.getElementById(`guest-remarks-${mealId}`);
+        if (nameEl) nameEl.value = '';
+        if (portEl) portEl.value = '2';
+        if (remEl) remEl.value = '';
     }
 }
 
 async function submitMealOrderDirect(event, mealId) {
     if (event) event.preventDefault();
 
-    const portions = parseInt(document.getElementById(`portions-${mealId}`)?.value || 1);
+    const variantInputs = document.querySelectorAll(`.user-variant-qty-${mealId}`);
+    const hasVariants = variantInputs.length > 0;
+
+    let portions = 0;
+    let variantDetails = null;
+
+    if (hasVariants) {
+        variantDetails = [];
+        variantInputs.forEach(inp => {
+            const qty = parseInt(inp.value || '0', 10);
+            const name = inp.getAttribute('data-variant-name');
+            const price = parseFloat(inp.getAttribute('data-variant-price') || '0');
+            if (qty > 0) {
+                portions += qty;
+                variantDetails.push({ name, qty, price });
+            }
+        });
+
+        if (portions <= 0) {
+            showToast("Bitte wähle mindestens 1 Portion bei einer Variante aus!", "error");
+            return;
+        }
+    } else {
+        portions = parseInt(document.getElementById(`portions-${mealId}`)?.value || 1, 10);
+    }
+
     const remarks = document.getElementById(`remarks-${mealId}`)?.value.trim() || '';
-    
     const isGuestOrder = document.getElementById(`toggle-guest-${mealId}`)?.checked || false;
-    const guestPortions = isGuestOrder ? parseInt(document.getElementById(`guest-portions-${mealId}`)?.value || 0) : 0;
+    const guestPortions = (!hasVariants && isGuestOrder) ? parseInt(document.getElementById(`guest-portions-${mealId}`)?.value || 0, 10) : 0;
     const guestName = isGuestOrder ? document.getElementById(`guest-name-${mealId}`)?.value.trim() || '' : null;
     const guestRemarks = isGuestOrder ? document.getElementById(`guest-remarks-${mealId}`)?.value.trim() || '' : null;
 
@@ -3812,7 +3942,8 @@ async function submitMealOrderDirect(event, mealId) {
         is_guest_order: isGuestOrder,
         guest_portions: guestPortions,
         guest_name: guestName,
-        guest_remarks: guestRemarks
+        guest_remarks: guestRemarks,
+        variant_details: variantDetails
     };
 
     const { data, error } = await sb.from('meal_orders').upsert(payload, { onConflict: 'meal_id,user_id' }).select('id');
@@ -3834,7 +3965,7 @@ async function submitMealOrder(e, mealId) {
     const portionsEl = document.getElementById(`portions-${mealId}`);
     const remarksEl = document.getElementById(`remarks-${mealId}`);
 
-    const portions = parseInt(portionsEl?.value || 1);
+    const portions = parseInt(portionsEl?.value || 1, 10);
     const remarks = remarksEl ? remarksEl.value.trim() : '';
 
     const payload = {
@@ -3915,19 +4046,23 @@ async function saveMeal() {
     const mealId = document.getElementById('admin-meal-id')?.value;
     const title = document.getElementById('admin-meal-title')?.value.trim();
     const date = document.getElementById('admin-meal-date')?.value;
-    const price = parseFloat(document.getElementById('admin-meal-price')?.value || 0);
+    const rawPrice = parseFloat(String(document.getElementById('admin-meal-price')?.value || '0').replace(',', '.'));
     const rawDeadline = document.getElementById('admin-meal-deadline')?.value;
-    
     const descInput = document.getElementById('admin-meal-description');
     const description = descInput ? descInput.value.trim() : '';
+    const variants = getAdminMealVariants();
 
     if (!title || !date || !rawDeadline) {
         showToast("Bitte Titel, Datum und Anmeldefrist ausfüllen!", "error");
         return;
     }
 
+    const price = (variants.length > 0 && (!rawPrice || rawPrice <= 0))
+        ? Math.min(...variants.map(v => v.price))
+        : (isNaN(rawPrice) ? 0 : rawPrice);
+
     const deadline = new Date(rawDeadline).toISOString();
-    const payload = { title, date, price, deadline, description };
+    const payload = { title, date, price, deadline, description, variants };
 
     try {
         let res;
@@ -3959,6 +4094,9 @@ function resetMealForm() {
     setVal('admin-meal-price');
     setVal('admin-meal-deadline');
     setVal('admin-meal-description');
+
+    const variantsContainer = document.getElementById('admin-meal-variants-container');
+    if (variantsContainer) variantsContainer.innerHTML = '';
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Neues Essen anbieten";
@@ -3994,6 +4132,14 @@ async function editMeal(mealId) {
         setVal('admin-meal-date', '');
     }
     setVal('admin-meal-deadline', formatForDateTimeInput(meal.deadline));
+
+    const variantsContainer = document.getElementById('admin-meal-variants-container');
+    if (variantsContainer) {
+        variantsContainer.innerHTML = '';
+        if (Array.isArray(meal.variants) && meal.variants.length > 0) {
+            meal.variants.forEach(v => addMealVariantRow(v.name, v.price));
+        }
+    }
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Essen bearbeiten";
@@ -4033,27 +4179,44 @@ async function loadAdminMeals() {
 
     container.innerHTML = meals.map(m => {
         const orders = m.meal_orders || [];
+        const variants = Array.isArray(m.variants) ? m.variants : [];
         
-        const totalPortions = orders.reduce((sum, o) => {
-            const own = o.portions || 0;
-            const guest = o.is_guest_order ? (o.guest_portions || 0) : 0;
-            return sum + own + guest;
-        }, 0);
+        let totalPortions = 0;
+        let totalPrice = 0;
+        const variantCounts = new Map();
 
-        const totalPrice = totalPortions * parseFloat(m.price);
+        orders.forEach(o => {
+            const calc = calculateMealOrderTotal(o, m);
+            totalPortions += calc.portions;
+            totalPrice += calc.price;
+
+            if (variants.length > 0 && Array.isArray(o.variant_details) && o.variant_details.length > 0) {
+                o.variant_details.forEach(vd => {
+                    const qty = parseInt(vd.qty || 0, 10);
+                    if (qty > 0) {
+                        variantCounts.set(vd.name, (variantCounts.get(vd.name) || 0) + qty);
+                    }
+                });
+            }
+        });
+
+        const variantBreakdownHtml = variantCounts.size > 0
+            ? `<div style="margin-top:4px; font-size:12px; color:#2e7d32;">${Array.from(variantCounts.entries()).map(([vName, vQty]) => `• ${vName}: <strong>${vQty}x</strong>`).join(' &nbsp;|&nbsp; ')}</div>`
+            : '';
 
         return `
             <div style="background:#f4f4f4; border:1px solid #ccc; padding:12px; margin-bottom:12px; border-radius:6px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div>
                         <strong>${m.title}</strong> (${new Date(m.date).toLocaleDateString('de-DE')})<br>
                         ${m.description ? `<small style="color:#555;">Inhalt: ${m.description}</small><br>` : ''}
                         <small>Gesamt: <strong>${totalPortions} Portionen</strong> (${totalPrice.toFixed(2).replace('.', ',')} €)</small>
+                        ${variantBreakdownHtml}
                     </div>
-                    <div style="display:flex; gap:8px;">
-                        <button onclick="exportMealPDF('${m.id}')" style="background:#0288d1; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">📄 PDF Export</button>
-                        <button onclick="editMeal('${m.id}')" style="background:#f57c00; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">✏️ Bearbeiten</button>
-                        <button onclick="deleteMeal('${m.id}')" style="background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">🗑️ Löschen</button>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button onclick="exportMealPDF('${m.id}')" style="width:auto; margin:0; background:#0288d1; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">📄 PDF Export</button>
+                        <button onclick="editMeal('${m.id}')" style="width:auto; margin:0; background:#f57c00; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">✏️ Bearbeiten</button>
+                        <button onclick="deleteMeal('${m.id}')" style="width:auto; margin:0; background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">🗑️ Löschen</button>
                     </div>
                 </div>
             </div>
@@ -4097,8 +4260,10 @@ async function exportMealPDF(mealId) {
         return;
     }
 
+    const variants = Array.isArray(meal.variants) ? meal.variants : [];
+    const hasVariants = variants.length > 0;
     const dateStr = new Date(meal.date).toLocaleDateString('de-DE');
-    const pricePerPortion = parseFloat(meal.price);
+    const pricePerPortion = parseFloat(meal.price || 0);
 
     const cleanText = str => (str || '').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
 
@@ -4112,7 +4277,13 @@ async function exportMealPDF(mealId) {
     
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Preis pro Portion: ${pricePerPortion.toFixed(2).replace('.', ',')} €`, 14, 34);
+    doc.text(
+        hasVariants
+            ? "Preise: je nach gewählter Variante"
+            : `Preis pro Portion: ${pricePerPortion.toFixed(2).replace('.', ',')} €`,
+        14,
+        34
+    );
 
     let totalPortionsAll = 0;
     let grandTotalSum = 0;
@@ -4121,8 +4292,33 @@ async function exportMealPDF(mealId) {
 
     orders.forEach(o => {
         const name = o.profiles?.full_name || 'Mitglied';
+        const guestSuffix = (o.is_guest_order && o.guest_name) ? ` | Gast: ${cleanText(o.guest_name)}` : '';
+        const guestRemarkPart = (o.is_guest_order && o.guest_remarks) ? ` (${cleanText(o.guest_remarks)})` : '';
+        const baseRemark = cleanText(o.remarks);
+        const combinedRemarks = [baseRemark, `${guestSuffix}${guestRemarkPart}`.trim()].filter(Boolean).join(' ') || '-';
+
+        if (hasVariants && Array.isArray(o.variant_details) && o.variant_details.length > 0) {
+            o.variant_details.forEach(vd => {
+                const qty = parseInt(vd.qty || 0, 10);
+                if (qty > 0) {
+                    const matched = variants.find(v => v.name === vd.name);
+                    const unitPrice = matched ? parseFloat(matched.price) : parseFloat(vd.price || pricePerPortion);
+                    const rowTotal = qty * unitPrice;
+                    totalPortionsAll += qty;
+                    grandTotalSum += rowTotal;
+
+                    tableRows.push([
+                        name,
+                        `${qty}x ${cleanText(vd.name)}`,
+                        combinedRemarks,
+                        `${rowTotal.toFixed(2).replace('.', ',')} €`
+                    ]);
+                }
+            });
+            return;
+        }
+
         const ownPortions = o.portions || 0;
-        
         if (ownPortions > 0) {
             const ownTotal = ownPortions * pricePerPortion;
             totalPortionsAll += ownPortions;
@@ -4131,7 +4327,7 @@ async function exportMealPDF(mealId) {
             tableRows.push([
                 name,
                 `${ownPortions} Portion(en)`,
-                cleanText(o.remarks) || '-',
+                baseRemark || '-',
                 `${ownTotal.toFixed(2).replace('.', ',')} €`
             ]);
         }
@@ -4144,12 +4340,12 @@ async function exportMealPDF(mealId) {
 
             const guestLabel = `Gast: ${cleanText(o.guest_name) || 'Unbekannt'}`;
             const guestRemarksClean = cleanText(o.guest_remarks);
-            const combinedRemarks = guestRemarksClean ? `${guestLabel} (${guestRemarksClean})` : guestLabel;
+            const combinedGuestRemarks = guestRemarksClean ? `${guestLabel} (${guestRemarksClean})` : guestLabel;
 
             tableRows.push([
                 { content: `${name} (Gast)`, styles: { fontStyle: 'italic', textColor: [80, 80, 80] } },
                 `${guestPortions} Portion(en)`,
-                combinedRemarks,
+                combinedGuestRemarks,
                 `${guestTotal.toFixed(2).replace('.', ',')} €`
             ]);
         }
@@ -4759,7 +4955,7 @@ async function deleteMileageEntry(id) {
 async function submitMealOrder(event, mealId) {
     if (event) event.preventDefault();
 
-    const portions = parseInt(document.getElementById(`portions-${mealId}`)?.value || 1);
+    const portions = parseInt(document.getElementById(`portions-${mealId}`)?.value || 1, 10);
     const remarks = document.getElementById(`remarks-${mealId}`)?.value.trim() || '';
 
     const { data, error } = await sb.from('meal_orders').upsert({
@@ -5223,7 +5419,7 @@ function getMemberAdminHours(hoursData, userId, referenceDate = new Date()) {
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
 }
 
-  // --- PWA INSTALLATION & SERVICE WORKER ---
+// --- PWA INSTALLATION & SERVICE WORKER ---
 let deferredInstallPrompt = null;
 
 if ('serviceWorker' in navigator) {
@@ -5246,13 +5442,11 @@ function updatePwaInstallCard() {
     const card = document.getElementById('pwa-install-card');
     if (!card) return;
 
-    // Wenn bereits als installierte App geöffnet, Box ausblenden
     if (isRunningStandalone()) {
         card.style.display = 'none';
         return;
     }
 
-    // Im Browser immer anzeigen, damit Mitglieder den Button im Profil finden
     card.style.display = 'block';
 }
 
@@ -5274,7 +5468,6 @@ window.addEventListener('DOMContentLoaded', () => {
     updatePwaInstallCard();
 });
 
-// Falls du beim Tab-Wechsel ins Profil eine Funktion wie switchTab('profile') nutzt:
 const originalSwitchTab = window.switchTab;
 if (typeof originalSwitchTab === 'function') {
     window.switchTab = function(tabName) {
@@ -5324,7 +5517,6 @@ async function installPWA() {
         }
     }
 }
-  
 </script>
 </body>
 </html>
