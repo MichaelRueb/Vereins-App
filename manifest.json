@@ -1,21 +1,25 @@
 {
-  "short_name": "Hubertus",
-  "name": "Hubertus Vereinsapp",
-  "icons": [
-    {
-      "src": "icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
-  "start_url": "./index.html",
+  "name": "Hubertus Stunden & Kalender",
+  "short_name": "Hubertus App",
+  "description": "Arbeitsstunden, Termine, Fahrtenbuch & Trainings-Essen des SV Hubertus 1955 e.V. Strullendorf",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
   "theme_color": "#2e7d32",
-  "background_color": "#ffffff"
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
