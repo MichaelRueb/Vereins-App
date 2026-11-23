@@ -194,16 +194,15 @@
 }
 
    /* Farben für die Mannschaften & Verein */
-/* Bestehende Farben */
 .team-verein { background-color: #FFD700 !important; } 
 .team-lg-1 { background-color: #3498db !important; }    
 .team-lg-2 { background-color: #2980b9 !important; }    
 .team-lp-1 { background-color: #e74c3c !important; }    
 .team-lp-2 { background-color: #c0392b !important; }    
 .team-auflage { background-color: #9b59b6 !important; } 
-.team-gk { background-color: #7f8c8d !important; }    /* Grau für Großkaliber */
-.team-spopi { background-color: #e67e22 !important; } /* Orange für Sportpistole */
-.team-default { background-color: #bdc3c7 !important; } /* Standard-Grau für den Rest */
+.team-gk { background-color: #7f8c8d !important; }
+.team-spopi { background-color: #e67e22 !important; }
+.team-default { background-color: #bdc3c7 !important; }
 
     /* HILFSKLASSEN */
     .mileage-sum { 
@@ -228,10 +227,10 @@
     /* Fix für versetzte Checkboxen in der Admin-Liste */
 .admin-role-wrapper {
     display: flex;
-    justify-content: flex-end; /* Schiebt alles nach rechts */
-    align-items: center;       /* Zentriert Kästchen und Text vertikal */
-    gap: 10px;                 /* Abstand zwischen Text und Kästchen */
-    margin-bottom: 4px;        /* Abstand zwischen den Zeilen */
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
 }
 
 .admin-role-wrapper label {
@@ -241,9 +240,9 @@
 }
 
 .admin-role-wrapper input[type="checkbox"] {
-    width: 18px !important;    /* Feste Größe für die Kästchen */
+    width: 18px !important;
     height: 18px !important;
-    margin: 0 !important;      /* Entfernt Standard-Abstände */
+    margin: 0 !important;
     cursor: pointer;
 }
 
@@ -256,7 +255,7 @@ td .action-btn-container {
 
 td button.btn-edit, 
 td button.btn-del {
-    width: 32px !important;   /* Feste quadratische Größe */
+    width: 32px !important;
     height: 32px !important;
     min-width: 32px !important;
     padding: 0 !important;
@@ -268,22 +267,20 @@ td button.btn-del {
     border-radius: 6px;
 }
 
-/* Die Farben bleiben wie von dir definiert */
 .btn-edit { background: var(--accent) !important; }
 .btn-del { background: var(--danger) !important; }
 
 /* Spezifischer Fix für Datumsfelder */
 input[type="date"] {
-    -webkit-appearance: none; /* Wichtig für iOS, um das Standard-Layout zu entfernen */
-    min-height: 48px;         /* Besser für Touch-Bedienung */
-    line-height: normal;      /* Verhindert, dass der Text vertikal abgeschnitten wird */
+    -webkit-appearance: none;
+    min-height: 48px;
+    line-height: normal;
     display: block;
 }
 
-/* Fix, falls das Icon oder die Schrift unsichtbar ist */
 input[type="date"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
-    filter: invert(0.5); /* Macht das Icon deutlicher sichtbar */
+    filter: invert(0.5);
     opacity: 0.8;
 }
 
@@ -293,15 +290,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     min-height: 50px !important;
     padding: 12px !important;
     margin: 8px 0 !important;
-    font-size: 16px !important; /* Wichtig: Unter 16px zoomen manche Android-Browser beim Tippen */
+    font-size: 16px !important;
     background-color: #ffffff !important;
     border: 1px solid #ccc !important;
-    color: #000000 !important; /* Erzwingt schwarze Schrift */
-    appearance: auto !important; /* Erlaubt Android, das Standard-Datum-Layout zu nutzen */
+    color: #000000 !important;
+    appearance: auto !important;
     -webkit-appearance: auto !important;
 }
 
-/* Fallback: Wenn das Feld leer ist, erzwingen wir die Sichtbarkeit des Rahmens */
 .date-input:invalid {
     color: #999;
 }
@@ -332,10 +328,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    list-style: none; /* Entfernt den Standard-Pfeil */
+    list-style: none;
 }
 
-/* Eigener benutzerdefinierter Pfeil */
 .admin-explorer-header::-webkit-details-marker {
     display: none;
 }
@@ -363,12 +358,105 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     background: #fff;
 }
 
+    /* --- ZENTRALES DIALOG-MODAL (ERSATZ FÜR CONFIRM / PROMPT) --- */
+#app-dialog-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.app-dialog-box {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 22px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+}
+
+.app-dialog-title {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    color: #1b5e20;
+}
+
+.app-dialog-message {
+    margin: 0 0 14px 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #333;
+    white-space: pre-line;
+}
+
+.app-dialog-details {
+    background: #f6f8f7;
+    border: 1px solid #e0e6e2;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: #444;
+    display: none;
+}
+
+.app-dialog-input-wrap {
+    margin-bottom: 16px;
+    display: none;
+}
+
+.app-dialog-input {
+    width: 100%;
+    padding: 10px 12px;
+    margin: 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    box-sizing: border-box;
+}
+
+.app-dialog-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.app-dialog-btn {
+    width: auto !important;
+    min-width: 100px;
+    margin: 0 !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    border-radius: 8px;
+}
+
+.app-dialog-btn-cancel {
+    background: #757575 !important;
+}
+
+.app-dialog-btn-confirm {
+    background: var(--primary) !important;
+}
+
+.app-dialog-btn-danger {
+    background: var(--danger) !important;
+}
+
     /* --- TOAST NOTIFICATIONS --- */
 #toast-container {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 9999;
+    z-index: 10001;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -455,7 +543,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
         <!-- STUNDEN VIEW -->
         <div id="view-home">
-            <h3>Deine Stunden</h3>
             <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
                 <h3 style="margin:0;">Deine Stunden</h3>
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -519,7 +606,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
       <!-- FAHRTENBUCH VIEW -->
 <div id="view-mileage" style="display:none;">
-    <h3>🚗 Fahrtenbuch</h3>
     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <h3 style="margin:0;">🚗 Fahrtenbuch</h3>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -630,7 +716,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     <div class="card" style="background:#fff3e0; border: 2px solid var(--accent);">
         <h3 style="margin-top:0; color:var(--accent);">🎯 Meldung Gaumeisterschaft</h3>
         
-        <!-- NEU: Admin/Funktionär Schützen-Auswahl -->
         <div id="gau-admin-selector-container" style="display:none; margin-bottom: 15px; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #ccc;">
             <label for="gau-member-select" style="font-weight: bold; font-size: 13px; display: block; margin-bottom: 5px;">👤 Schütze auswählen (Funktionärs-Modus):</label>
             <select id="gau-member-select" onchange="onGauMemberChange()" style="margin: 0;"></select>
@@ -647,9 +732,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <h3 style="margin-top:0; color:var(--accent);">📋 Zusammenfassung der Meldung</h3>
         <p style="font-size:13px; color:#666; margin-bottom:10px;" id="gau-modal-subtitle">Bitte überprüfe deine Auswahl:</p>
         
-        <div id="gau-modal-list" style="background:#f9f9f9; padding:12px; border-radius:8px; max-height:200px; overflow-y:auto; font-size:13px; margin-bottom:15px; border:1px solid #eee;">
-            <!-- Hier fliegen dynamisch die Disziplinen rein -->
-        </div>
+        <div id="gau-modal-list" style="background:#f9f9f9; padding:12px; border-radius:8px; max-height:200px; overflow-y:auto; font-size:13px; margin-bottom:15px; border:1px solid #eee;"></div>
         
         <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:16px; margin-bottom:20px; padding: 10px; background:#e8f5e9; border-radius:8px; color:var(--primary-dark);">
             <span>Gesamtbetrag (Startgeld):</span>
@@ -666,9 +749,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
        
 <div id="view-meals" class="view-section" style="display:none;">
     <h3>🍲 Trainings-Essen</h3>
-    <div id="meals-user-container">
-        <!-- Wird dynamisch per JS befüllt -->
-    </div>
+    <div id="meals-user-container"></div>
 </div>
 <!-- ADMIN VIEW (EXPLORER DESIGN - ERWEITERT) -->
 <div id="view-admin" class="view-section" style="display:none;">
@@ -731,7 +812,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <span>👥 Mitglieder-Verwaltung</span>
         </summary>
         <div class="admin-explorer-body">
-            <!-- NUR FÜR ADMIN SICHTBAR (später erweiterbar um Funktionäre) -->
             <div id="admin-hours-category-panel" style="display:none; background:#f4fbf7; border:1px solid #c8e6c9; border-radius:8px; padding:12px; margin-bottom:12px; font-size:12px; color:#1b5e20;">
                 <strong>🔒 Pflichtstunden-Regelung (nur Admin sichtbar):</strong>
                 Passiv = <strong>0h</strong> · Aktiv = <strong>20h</strong> (Mannschaft oder ≥1x/Monat bzw. ≥12x/Jahr Training) · Funktionär = <strong>40h</strong>
@@ -775,13 +855,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                 </select>
             </div>
 
-            <!-- Modus A: Nach Datum -->
             <div id="cleanup-box-date" style="margin-bottom: 10px;">
                 <label style="font-size: 12px; display: block; margin-bottom: 3px;">Datum auswählen (alle Termine davor werden gelöscht):</label>
                 <input type="date" id="cleanup-date" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;">
             </div>
 
-            <!-- Modus B: Einzelne Mannschaft -->
             <div id="cleanup-box-team" style="display: none; margin-bottom: 10px;">
                 <label style="font-size: 12px; display: block; margin-bottom: 3px;">Mannschaft auswählen:</label>
                 <select id="cleanup-team-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 10px;"></select>
@@ -884,7 +962,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <span>🍲 Trainings-Essen verwalten</span>
     </summary>
     <div class="admin-explorer-body">
-        <!-- Formular zum Erstellen / Bearbeiten eines Essens -->
         <div style="background:#f9f9f9; padding:12px; border-radius:6px; margin-bottom:15px; border:1px solid #eee;">
             <input type="hidden" id="admin-meal-id" value="">
             <h5 id="admin-meal-form-title" style="margin-top:0; font-size:14px;">Neues Essen anbieten</h5>
@@ -908,7 +985,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             </div>
         </div>
 
-        <!-- Dynamische Liste der Essen + PDF-Exporte -->
         <div id="admin-meals-list"></div>
     </div>
 </details>
@@ -920,7 +996,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </summary>
         <div class="admin-explorer-body">
             <p style="font-size:12px; color:#666; margin-top:0;">
-                Gelöschte Elemente bleiben hier gespeichert. Nur Administratoren können Einträge endgültig entfernen.
+                Gelöschte Essen, Turniere, Termine, Stunden und Fahrten bleiben hier gespeichert. Nur Administratoren können Einträge endgültig entfernen.
             </p>
             <div id="admin-trash-list">
                 <p>Lade Papierkorb...</p>
@@ -930,6 +1006,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         
     </div> <!-- ENDE MAIN-APP -->
 </div> <!-- ENDE CARD -->
+
+<!-- ZENTRALES DIALOG-MODAL FÜR BESTÄTIGUNGEN & EINGABEN -->
+<div id="app-dialog-modal" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
+    <div class="app-dialog-box">
+        <h3 id="app-dialog-title" class="app-dialog-title">Bestätigung</h3>
+        <p id="app-dialog-message" class="app-dialog-message"></p>
+        <div id="app-dialog-details" class="app-dialog-details"></div>
+        <div id="app-dialog-input-wrap" class="app-dialog-input-wrap">
+            <input type="text" id="app-dialog-input" class="app-dialog-input">
+        </div>
+        <div class="app-dialog-actions">
+            <button type="button" id="app-dialog-cancel" class="app-dialog-btn app-dialog-btn-cancel">Abbrechen</button>
+            <button type="button" id="app-dialog-confirm" class="app-dialog-btn app-dialog-btn-confirm">Bestätigen</button>
+        </div>
+    </div>
+</div>
 
 <script>
 
@@ -1051,6 +1143,146 @@ let currentWorkEditId = null;
 let isStandOpen = false;
 let currentProfileData = null;
 
+// ==========================================
+// 2B. ZENTRALE DIALOG- & RLS-HILFSFUNKTIONEN
+// ==========================================
+function openAppDialog({
+    title = "Bestätigung",
+    message = "",
+    detailsHtml = "",
+    isPrompt = false,
+    placeholder = "",
+    defaultValue = "",
+    confirmText = "Bestätigen",
+    cancelText = "Abbrechen",
+    danger = false
+}) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('app-dialog-modal');
+        const titleEl = document.getElementById('app-dialog-title');
+        const msgEl = document.getElementById('app-dialog-message');
+        const detailsEl = document.getElementById('app-dialog-details');
+        const inputWrap = document.getElementById('app-dialog-input-wrap');
+        const inputEl = document.getElementById('app-dialog-input');
+        const confirmBtn = document.getElementById('app-dialog-confirm');
+        const cancelBtn = document.getElementById('app-dialog-cancel');
+
+        if (!modal || !titleEl || !msgEl || !confirmBtn || !cancelBtn) {
+            if (isPrompt) {
+                resolve(window.prompt(message, defaultValue));
+            } else {
+                resolve(window.confirm(message));
+            }
+            return;
+        }
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+
+        if (detailsEl) {
+            if (detailsHtml) {
+                detailsEl.innerHTML = detailsHtml;
+                detailsEl.style.display = 'block';
+            } else {
+                detailsEl.innerHTML = '';
+                detailsEl.style.display = 'none';
+            }
+        }
+
+        if (inputWrap && inputEl) {
+            if (isPrompt) {
+                inputWrap.style.display = 'block';
+                inputEl.placeholder = placeholder || '';
+                inputEl.value = defaultValue || '';
+            } else {
+                inputWrap.style.display = 'none';
+                inputEl.value = '';
+            }
+        }
+
+        confirmBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+        confirmBtn.className = `app-dialog-btn ${danger ? 'app-dialog-btn-danger' : 'app-dialog-btn-confirm'}`;
+
+        modal.style.display = 'flex';
+        if (isPrompt && inputEl) {
+            setTimeout(() => inputEl.focus(), 40);
+        }
+
+        const cleanup = () => {
+            modal.style.display = 'none';
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+            modal.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+
+        const onConfirm = () => {
+            const val = isPrompt && inputEl ? inputEl.value : true;
+            cleanup();
+            resolve(val);
+        };
+
+        const onCancel = () => {
+            cleanup();
+            resolve(isPrompt ? null : false);
+        };
+
+        const onBackdrop = (e) => {
+            if (e.target === modal) onCancel();
+        };
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') onCancel();
+            if (e.key === 'Enter' && isPrompt) {
+                e.preventDefault();
+                onConfirm();
+            }
+        };
+
+        confirmBtn.addEventListener('click', onConfirm);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKeyDown);
+    });
+}
+
+function showConfirmModal(message, options = {}) {
+    return openAppDialog({
+        title: options.title || "Bitte bestätigen",
+        message,
+        detailsHtml: options.detailsHtml || "",
+        isPrompt: false,
+        confirmText: options.confirmText || "Bestätigen",
+        cancelText: options.cancelText || "Abbrechen",
+        danger: Boolean(options.danger)
+    });
+}
+
+function showPromptModal(message, options = {}) {
+    return openAppDialog({
+        title: options.title || "Eingabe erforderlich",
+        message,
+        detailsHtml: options.detailsHtml || "",
+        isPrompt: true,
+        placeholder: options.placeholder || "",
+        defaultValue: options.defaultValue || "",
+        confirmText: options.confirmText || "OK",
+        cancelText: options.cancelText || "Abbrechen",
+        danger: Boolean(options.danger)
+    });
+}
+
+function requireAffectedRows(data, error, emptyMessage = "Kein Datensatz geändert (möglicherweise fehlende Berechtigung / RLS).") {
+    if (error) {
+        throw new Error(error.message || "Datenbankfehler");
+    }
+    if (!Array.isArray(data) || data.length === 0) {
+        throw new Error(emptyMessage);
+    }
+    return data;
+}
+
 // Pflichtstunden-Kategorien (Passiv: 0h, Aktiv: 20h, Funktionär: 40h)
 const MEMBER_CATEGORIES = {
     passive: { key: 'passive', label: 'Passiv', requiredHours: 0 },
@@ -1085,13 +1317,16 @@ async function updateMemberCategory(userId, newCategory) {
     if (!isAdmin) return;
     if (!MEMBER_CATEGORIES[newCategory]) return;
 
-    const { error } = await sb
+    const { data, error } = await sb
         .from('profiles')
         .update({ member_category: newCategory })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select('id');
 
-    if (error) {
-        showToast("Fehler beim Speichern der Kategorie: " + error.message, "error");
+    try {
+        requireAffectedRows(data, error, "Kategorie konnte nicht gespeichert werden (Berechtigung prüfen).");
+    } catch (err) {
+        showToast("Fehler beim Speichern der Kategorie: " + err.message, "error");
         return;
     }
 
@@ -1105,7 +1340,6 @@ async function updateMemberCategory(userId, newCategory) {
 }
 
 function renderAdminCategorySelect(profile) {
-    // Sichtbar erstmal nur für Admin (später erweiterbar um isOfficial)
     if (!isAdmin) return '';
 
     const currentCat = getEffectiveMemberCategory(profile);
@@ -1133,7 +1367,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const aktuelleURL = window.location.href;
     
-    // Prüft alle Eventualitäten für den Passwort-Reset
     const hatHashToken = window.location.hash.includes('access_token=');
     const istRecoveryMode = aktuelleURL.includes('type=recovery') || urlParams.get('view') === 'update-password';
 
@@ -1142,10 +1375,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast("🎉 Reset-Modus auf dem Handy erkannt!", "info");
     }
     showUpdatePasswordUI();
-    return; // Verhindert den normalen Login-Check
+    return;
 }
 
-    // 2. Normaler Login-Check
     if (sb) {
         try {
             const { data: { session } } = await sb.auth.getSession();
@@ -1189,7 +1421,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // 1. Registrierung
         const { data, error } = await sb.auth.signUp({ email, password: pass });
         if (error) {
             showToast("Fehler: " + error.message, "error");
@@ -1197,7 +1428,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (data.user) {
-            // 2. Profil SOFORT anlegen (wichtig: await!)
             const { error: profError } = await sb.from('profiles').upsert([
                 { id: data.user.id, full_name: name, is_approved: false }
             ]);
@@ -1207,23 +1437,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // 3. WICHTIG: Sofort ausloggen und Session löschen
             await sb.auth.signOut();
             
             showToast("Registrierung erfolgreich! Bitte warte auf die Freigabe durch den Admin.", "success");
             setTimeout(() => {
-                window.location.replace(window.location.pathname); // Harter Reload ohne Session-Reste
+                window.location.replace(window.location.pathname);
             }, 2000);
         }
     } else {
-        // LOGIN-LOGIK
         const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
         if (error) {
             showToast("Login fehlgeschlagen: " + error.message, "error");
             return;
         }
 
-        // Prüfung auf Freigabe (Sicherheits-Check)
         const { data: p } = await sb.from('profiles').select('is_approved').eq('id', data.user.id).maybeSingle();
         
         if (p && p.is_approved) {
@@ -1236,7 +1463,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 }
    async function setupApp(user) {
-    // FIX: Das Anmeldefenster explizit verstecken
     const authUI = document.getElementById('auth-ui');
     if (authUI) authUI.style.display = 'none';
 
@@ -1249,16 +1475,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (p) {
         userTeam = p.team || ""; 
         
-        // --- EINSTELLUNGEN ABRUFEN (Gau-Meldung & Standgebühr) ---
         const { data: setData } = await sb.from('settings').select('is_reg_open, is_stand_open').eq('id', 1).maybeSingle();
         isRegOpen = setData ? setData.is_reg_open : false;
         isStandOpen = setData ? setData.is_stand_open : false;
         
-        // Tab für Gau-Meldung steuern
         const tabGau = document.getElementById('tab-gau');
         if (tabGau) tabGau.style.display = isRegOpen ? 'block' : 'none';
 
-        // Sektion für Standgebühr & Waffen im Profil steuern
         const standSection = document.getElementById('stand-fee-section');
         if (standSection) standSection.style.display = isStandOpen ? 'block' : 'none';
         
@@ -1271,44 +1494,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('prof-weapon').value = p.club_weapon || "keine";
         updateProfileDisciplineOverview(p.disciplines || "");
         
-        // --- SICHTBARKEIT DER TABS (ADMIN & FAHRTEN) ---
         const tabAdmin = document.getElementById('tab-admin');
         const tabMileage = document.getElementById('tab-mileage');
 
         if (isAdmin || isOfficial) {
-            // Einblenden für privilegierte Rollen
             if (tabAdmin) tabAdmin.style.display = 'block';
             if (tabMileage) tabMileage.style.display = 'block';
         } else {
-            // WICHTIG: Explizit ausblenden für normale Mitglieder!
             if (tabAdmin) tabAdmin.style.display = 'none';
             if (tabMileage) tabMileage.style.display = 'none';
         }
 
-        // Pflichtstunden-Panel nur für Admin sichtbar (später erweiterbar um isOfficial)
         const catPanel = document.getElementById('admin-hours-category-panel');
         if (catPanel) catPanel.style.display = isAdmin ? 'block' : 'none';
         
-        // Wettkampf-Formular Anzeige
         if (isAdmin || isOfficial || isCaptain) {
             if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'block';
             fillTeamSelect();
         } else {
-            // Auch hier zur Sicherheit: Formular verstecken, wenn man keines von beidem ist
             if(document.getElementById('captain-event-form')) document.getElementById('captain-event-form').style.display = 'none';
         }
     }
     
     renderTeamCheckboxes(userTeam);
     
-    // UI umschalten
     document.getElementById('loading-ui').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
     
     loadHistory(); 
     loadAllEvents();
 }
-        
 
     function fillTeamSelect() {
     const sel = document.getElementById('event-team-select');
@@ -1318,24 +1533,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     let optionsHtml = '';
 
     if (isAdmin || isOfficial) {
-        // Admins und Funktionäre dürfen Vereinstermine und alle Teams wählen
         optionsHtml += `<option value="Verein" style="font-weight:bold; color:var(--primary);">📅 Allgemeiner Vereinstermin</option>`;
         optionsHtml += `<option disabled>──────────────</option>`;
         
         const allowedTeams = ALL_TEAMS.filter(t => t !== "Passiv / Sonstige");
         optionsHtml += allowedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     } else if (isCaptain) {
-        // Kapitäne sehen nur ihre zugeordneten Teams
         optionsHtml += myTeams.map(t => `<option value="${t}">${t}</option>`).join('');
     }
 
     sel.innerHTML = optionsHtml;
     
-    // Listener für dynamische Formular-Anpassung hinzufügen
     sel.removeEventListener('change', updateEventFormUI);
     sel.addEventListener('change', updateEventFormUI);
     
-    updateEventFormUI(); // Direkt beim Laden einmal ausführen
+    updateEventFormUI();
 }
 
     function updateEventFormUI() {
@@ -1347,10 +1559,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (sel.value === 'Verein') {
         opponentInput.placeholder = "Titel des Termins (z.B. Mitgliederversammlung)";
-        if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'none'; // Heim-Checkbox verstecken
+        if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'none';
     } else {
         opponentInput.placeholder = "Gegner / Wettkampf-Name";
-        if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'flex'; // Heim-Checkbox anzeigen
+        if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'flex';
     }
 }
 
@@ -1372,30 +1584,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     let res;
     
     if (team === 'Verein') {
-        // Vereinstermine kommen in die 'club_events' Tabelle
         const payload = { date, time, title: opponent }; 
         if (id) {
-            res = await sb.from('club_events').update(payload).eq('id', id);
+            res = await sb.from('club_events').update(payload).eq('id', id).select('id');
         } else {
-            res = await sb.from('club_events').insert([payload]);
+            res = await sb.from('club_events').insert([payload]).select('id');
         }
     } else {
-        // Wettkämpfe kommen in die 'tournaments' Tabelle
         const payload = { date, time, team, opponent, is_home: isHome }; 
         if (id) {
-            res = await sb.from('tournaments').update(payload).eq('id', id);
+            res = await sb.from('tournaments').update(payload).eq('id', id).select('id');
         } else {
-            res = await sb.from('tournaments').insert([payload]);
+            res = await sb.from('tournaments').insert([payload]).select('id');
         }
     }
 
-    if (res && res.error) {
-        showToast("Fehler beim Speichern: " + res.error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(res?.data, res?.error, "Termin konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast(id ? "Termin aktualisiert!" : "Erfolgreich gespeichert!", "success");
         resetEventForm();
         if (typeof closeModal === "function") closeModal();
         loadAllEvents();
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
     }
 }
 
@@ -1406,7 +1617,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('edit-event-id').value = id;
     document.getElementById('event-date').value = ev.date;
     document.getElementById('event-time').value = ev.time?.substring(0, 5) || "";
-    // ev.title kommt von club_events, ev.opponent von tournaments
     document.getElementById('event-opponent').value = ev.opponent || ev.title || "";
     document.getElementById('event-team-select').value = ev.team;
     
@@ -1417,7 +1627,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-save-event').innerText = "Änderungen speichern";
     document.getElementById('btn-cancel-event').style.display = "block";
     
-    updateEventFormUI(); // Wichtig: UI beim Bearbeiten auf "Verein" oder "Team" umstellen
+    updateEventFormUI();
 
     const formElement = document.getElementById('captain-event-form');
     if (formElement) {
@@ -1426,24 +1636,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
 function resetEventForm() {
-    // 1. Versteckte ID unbedingt leeren (wichtig für den Wechsel zwischen Update und Insert)
     const idField = document.getElementById('edit-event-id');
     if (idField) idField.value = "";
 
-    // 2. Textfelder leeren
     document.getElementById('event-date').value = "";
-    document.getElementById('event-time').value = "19:00"; // Standardzeit setzen
+    document.getElementById('event-time').value = "19:00";
     document.getElementById('event-opponent').value = "";
     
-    // 3. Dropdown zurücksetzen (wichtig für Importe!)
     const teamSelect = document.getElementById('event-team-select');
     if (teamSelect) teamSelect.selectedIndex = 0;
 
-    // 4. Checkbox zurücksetzen
     const homeCb = document.getElementById('event-is-home');
     if (homeCb) homeCb.checked = false;
 
-    // 5. Texte und Buttons im Modal zurücksetzen
     const title = document.getElementById('event-form-title');
     if (title) title.innerText = "Neuen Wettkampf anlegen";
 
@@ -1453,10 +1658,10 @@ function resetEventForm() {
     const cancelBtn = document.getElementById('btn-cancel-event');
     if (cancelBtn) cancelBtn.style.display = "none";
     
-    // Optional: Den Löschen-Button im Modal verstecken (falls du ihn dort eingebaut hast)
     const delBtn = document.getElementById('delete-event-btn');
     if (delBtn) delBtn.style.display = "none";
 }
+
     async function loadAllEvents() {
         const { data: t } = await sb.from('tournaments').select('*');
         const { data: c } = await sb.from('club_events').select('*');
@@ -1469,12 +1674,9 @@ function resetEventForm() {
    function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
-    
-    // NEU: Datum von heute ermitteln (Format YYYY-MM-DD)
     const today = new Date().toISOString().split('T')[0];
 
     const filtered = allEvents.filter(e => {
-        // NEU: Termine, die vor heute liegen, werden komplett ignoriert
         if (e.date < today) return false;
 
         if (filter === 'all_teams') return true;
@@ -1482,7 +1684,7 @@ function resetEventForm() {
         if (filter === 'only_sports') return e.team !== 'Verein';
         if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
         return e.team === filter;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date)); // Sortiert automatisch den nächsten Termin nach ganz oben
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
     let html = '';
     const sports = filtered.filter(e => e.team !== 'Verein');
@@ -1499,7 +1701,6 @@ function resetEventForm() {
     
     const listBody = document.getElementById('tournament-list-body');
     if (listBody) {
-        // NEU: Text angepasst, falls die Liste leer ist
         listBody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;">Keine anstehenden Termine</td></tr>';
     }
 }
@@ -1508,13 +1709,10 @@ function resetEventForm() {
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
     const isMyTeam = myTeams.includes(e.team);
     
-    // Berechtigungs-Logik:
     let showActions = false;
     if (e.team === 'Verein') {
-        // Nur Admin oder Funktionär darf Vereinstermine bearbeiten
         showActions = isAdmin || isOfficial; 
     } else {
-        // Bei Wettkämpfen: Auch der Mannschaftskapitän darf bearbeiten
         showActions = isAdmin || isOfficial || (isCaptain && isMyTeam);
     }
     
@@ -1539,41 +1737,58 @@ function resetEventForm() {
         <td>${actionButtons}</td>
     </tr>`;
 }
-// Die dazugehörige Lösch-Funktion für den Button
+
 async function deleteEvent(id) {
-    if (!confirm('Möchtest du diesen Termin wirklich löschen?')) return;
+    const ev = allEvents.find(x => String(x.id) === String(id));
+    const detailsHtml = ev
+        ? `<strong>Termin:</strong> ${ev.opponent || ev.title || '-'}<br><strong>Bereich:</strong> ${ev.team || '-'}<br><strong>Datum:</strong> ${ev.date ? new Date(ev.date).toLocaleDateString('de-DE') : '-'}`
+        : `<strong>Termin-ID:</strong> ${id}`;
+
+    const confirmed = await showConfirmModal(
+        "Möchtest du diesen Termin wirklich löschen?",
+        {
+            title: "Termin löschen",
+            detailsHtml,
+            confirmText: "Löschen",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
 
     try {
-        // Wir löschen den Termin vorsichtshalber in BEIDEN Tabellen, da wir anhand
-        // der ID sofort den richtigen erwischen. Das verhindert Bugs ohne Mehraufwand.
-        await sb.from('tournaments').delete().eq('id', id);
-        await sb.from('club_events').delete().eq('id', id);
+        const [tRes, cRes] = await Promise.all([
+            sb.from('tournaments').delete().eq('id', id).select('id'),
+            sb.from('club_events').delete().eq('id', id).select('id')
+        ]);
 
-      if (typeof resetEventForm === "function") resetEventForm();
-    showToast("Termin erfolgreich gelöscht.", "success");
-    loadAllEvents(); 
-} catch (error) {
-    console.error('Kritischer Fehler beim Löschen:', error);
-    showToast("Verbindung zum Server fehlgeschlagen.", "error");
-}
+        if (tRes.error) throw new Error(tRes.error.message);
+        if (cRes.error) throw new Error(cRes.error.message);
+
+        const deletedCount = (tRes.data?.length || 0) + (cRes.data?.length || 0);
+        if (deletedCount === 0) {
+            throw new Error("Termin konnte nicht gelöscht werden (nicht gefunden oder fehlende Berechtigung).");
+        }
+
+        if (typeof resetEventForm === "function") resetEventForm();
+        showToast("Termin erfolgreich gelöscht.", "success");
+        loadAllEvents();
+    } catch (error) {
+        console.error('Kritischer Fehler beim Löschen:', error);
+        showToast("Löschen fehlgeschlagen: " + error.message, "error");
+    }
 }
 
     // --- TABS & NAVIGATION ---
 
    function switchTab(t) { 
-    // Hier stehen die Namen deiner Tabs/Views (inklusive 'meals')
     ['home', 'events', 'profile', 'admin', 'mileage', 'gau', 'meals'].forEach(v => { 
         const view = document.getElementById('view-' + v);
         const tab = document.getElementById('tab-' + v);
         
-        // Zeige nur den View an, der dem gewählten Tab entspricht
         if(view) view.style.display = (v === t) ? 'block' : 'none'; 
-        
-        // Setze nur beim gewählten Tab die Klasse "active"
         if(tab) tab.className = (v === t) ? 'tab active' : 'tab'; 
     }); 
 
-    // Spezial-Aktionen beim Wechsel
     if(t === 'admin') {
         loadAdmin(); 
     }
@@ -1583,12 +1798,10 @@ async function deleteEvent(id) {
     }
     
     if(t === 'mileage') {
-        // Formular zurücksetzen & Daten laden
         if(typeof resetMileageForm === "function") resetMileageForm(); 
         loadMileageHistory();
         loadRouteSuggestions(); 
         
-        // Datum auf heute setzen
         const dateInput = document.getElementById('ml-date');
         if(dateInput) dateInput.valueAsDate = new Date();
     }
@@ -1599,7 +1812,6 @@ async function deleteEvent(id) {
 }
 
 function calcTotalKm() {
-    // Geändert auf ID 'ml-km-single' und 'ml-roundtrip'
     const single = parseFloat(document.getElementById('ml-km-single').value.replace(',', '.')) || 0;
     const total = document.getElementById('ml-roundtrip').checked ? (single * 2) : single;
     const resElem = document.getElementById('ml-result');
@@ -1612,7 +1824,6 @@ async function loadRouteSuggestions() {
     const { data: logData } = await sb.from('mileage_logs').select('purpose').eq('user_id', currentUser.id);
 
     if (routeData) {
-        // Geändert auf ID 'start-suggestions' und 'end-suggestions'
         document.getElementById('start-suggestions').innerHTML = [...new Set(routeData.map(r => r.start_point))].map(s => `<option value="${s}">`).join('');
         document.getElementById('end-suggestions').innerHTML = [...new Set(routeData.map(r => r.end_point))].map(e => `<option value="${e}">`).join('');
         window.mySavedRoutes = routeData;
@@ -1625,7 +1836,6 @@ async function loadRouteSuggestions() {
 }
 
 function checkFavRoute() {
-    // Geändert auf ID 'ml-start' und 'ml-end'
     const start = document.getElementById('ml-start').value;
     const end = document.getElementById('ml-end').value;
     if(window.mySavedRoutes) {
@@ -1639,7 +1849,7 @@ function checkFavRoute() {
 
 async function loadMileageHistory() {
     const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
-    const allLogs = data || [];
+    const allLogs = (data || []).filter(m => m.is_deleted !== true);
 
     const selectedYear = populateYearSelect('mileage-year-filter', allLogs.map(m => m.date), new Date().getFullYear());
     const yearLogs = allLogs.filter(m => getItemYear(m.date) === selectedYear);
@@ -1648,7 +1858,6 @@ async function loadMileageHistory() {
     const currentMonth = now.getMonth();
     const isCurrentCalendarYear = selectedYear === now.getFullYear();
 
-    // 1. Monatssumme (im gewählten Jahr; bei aktuellem Jahr für den aktuellen Monat, sonst für das gewählte Jahr)
     const monthSum = yearLogs
         .filter(m => {
             const d = new Date(m.date);
@@ -1656,7 +1865,6 @@ async function loadMileageHistory() {
         })
         .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
 
-    // 2. Jahressumme für das gewählte Jahr
     const yearSum = yearLogs
         .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
         
@@ -1669,7 +1877,6 @@ async function loadMileageHistory() {
         yearDisplay.innerText = `Gesamt ${selectedYear}: ${yearSum.toFixed(2).replace('.', ',')} km`;
     }
     
-    // 3. Tabelle für das gewählte Jahr rendern
     document.getElementById('mileage-history-body').innerHTML = yearLogs.length > 0 ? yearLogs.map(m => `
         <tr>
             <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
@@ -1677,7 +1884,7 @@ async function loadMileageHistory() {
             <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
             <td style="white-space:nowrap;">
                 <button class="btn-edit" onclick="editMileage('${m.id}')" title="Bearbeiten">✏️</button>
-                <button class="btn-del" onclick="deleteMileage('${m.id}')" title="Löschen">🗑️</button>
+                <button class="btn-del" onclick="deleteMileage('${m.id}')" title="In Papierkorb">🗑️</button>
             </td>
         </tr>`).join('') : `<tr><td colspan="4" style="text-align:center; color:#666;">Keine Fahrten für ${selectedYear} erfasst</td></tr>`;
 }
@@ -1685,7 +1892,6 @@ async function loadMileageHistory() {
 async function saveMileage() {
     console.log("Speichervorgang gestartet...");
 
-    // 1. Elemente anhand der korrekten IDs (ml-...) suchen
     const fields = {
         date: document.getElementById('ml-date'),
         purpose: document.getElementById('ml-purpose'),
@@ -1695,7 +1901,6 @@ async function saveMileage() {
         roundtrip: document.getElementById('ml-roundtrip')
     };
 
-    // 2. Debug-Check
     for (const [key, el] of Object.entries(fields)) {
         if (!el) {
             console.error(`Kritischer Fehler: Das Feld für "${key}" fehlt im HTML.`);
@@ -1703,7 +1908,6 @@ async function saveMileage() {
         }
     }
 
-    // 3. Werte extrahieren
     const date = fields.date.value;
     const purpose = fields.purpose.value;
     const from = fields.from.value;
@@ -1727,31 +1931,27 @@ async function saveMileage() {
     };
 
     try {
-        let error;
+        let res;
         if (currentMileageEditId) {
-            const res = await sb.from('mileage_logs').update(payload).eq('id', currentMileageEditId);
-            error = res.error;
+            res = await sb.from('mileage_logs').update(payload).eq('id', currentMileageEditId).select('id');
         } else {
-            const res = await sb.from('mileage_logs').insert([payload]);
-            error = res.error;
+            res = await sb.from('mileage_logs').insert([payload]).select('id');
         }
 
-      if (error) throw error;
+        requireAffectedRows(res?.data, res?.error, "Fahrt konnte nicht gespeichert werden (Berechtigung prüfen).");
 
-    showToast("Fahrt erfolgreich gespeichert!", "success");
-    resetMileageForm();
-    loadMileageHistory(); // Liste neu laden
-    
-} catch (err) {
-    console.error("Datenbankfehler:", err);
-    showToast("Speichern fehlgeschlagen: " + err.message, "error");
-}
+        showToast("Fahrt erfolgreich gespeichert!", "success");
+        resetMileageForm();
+        loadMileageHistory();
+    } catch (err) {
+        console.error("Datenbankfehler:", err);
+        showToast("Speichern fehlgeschlagen: " + err.message, "error");
+    }
 }
 
 function resetMileageForm() {
     currentMileageEditId = null;
     
-    // IDs auf 'ml-...' angepasst
     const fields = ['ml-date', 'ml-purpose', 'ml-start', 'ml-end', 'ml-km-single', 'edit-ml-id'];
     fields.forEach(id => {
         const el = document.getElementById(id);
@@ -1781,7 +1981,6 @@ async function editMileage(id) {
 
         currentMileageEditId = id;
         
-        // Formular mit den 'ml-...' IDs befüllen
         document.getElementById('ml-date').value = record.date;
         document.getElementById('ml-purpose').value = record.purpose;
         document.getElementById('ml-start').value = record.start_location;
@@ -1789,7 +1988,6 @@ async function editMileage(id) {
         document.getElementById('ml-km-single').value = record.distance_single;
         document.getElementById('ml-roundtrip').checked = record.is_round_trip;
 
-        // UI Updates
         document.getElementById('ml-form-title').innerText = "Fahrt bearbeiten";
         document.getElementById('ml-cancel-btn').style.display = "inline-block";
         const btn = document.querySelector('button[onclick="saveMileage()"]');
@@ -1806,14 +2004,36 @@ async function editMileage(id) {
 }
 
 async function deleteMileage(id) {
-    if (!confirm("Möchtest du diese Fahrt wirklich löschen?")) return;
-    const { error } = await sb.from('mileage_logs').delete().eq('id', id);
-    
-    if (error) {
-        showToast("Fehler beim Löschen: " + error.message, "error");
-    } else {
-        showToast("Fahrt gelöscht.", "info");
+    const { data: record } = await sb.from('mileage_logs').select('date, purpose, start_location, end_location, distance_total').eq('id', id).maybeSingle();
+    const detailsHtml = record
+        ? `<strong>Datum:</strong> ${record.date ? new Date(record.date).toLocaleDateString('de-DE') : '-'}<br><strong>Zweck:</strong> ${record.purpose || '-'}<br><strong>Strecke:</strong> ${parseFloat(record.distance_total || 0).toFixed(2).replace('.', ',')} km`
+        : `<strong>Fahrt-ID:</strong> ${id}`;
+
+    const confirmed = await showConfirmModal(
+        "Möchtest du diese Fahrt in den Papierkorb verschieben?",
+        {
+            title: "Fahrt in Papierkorb verschieben",
+            detailsHtml,
+            confirmText: "In Papierkorb",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
+
+    try {
+        const { data, error } = await sb
+            .from('mileage_logs')
+            .update({ is_deleted: true })
+            .eq('id', id)
+            .select('id');
+
+        requireAffectedRows(data, error, "Fahrt konnte nicht in den Papierkorb verschoben werden (Berechtigung / Spalte is_deleted prüfen).");
+
+        showToast("Fahrt in den Papierkorb verschoben.", "info");
         loadMileageHistory();
+        if (typeof loadTrash === 'function') loadTrash();
+    } catch (err) {
+        showToast("Fehler beim Verschieben: " + err.message, "error");
     }
 }
 
@@ -1823,7 +2043,7 @@ async function exportMileagePDF() {
     const selectedYear = getSelectedYear('mileage-year-filter', new Date().getFullYear());
     const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
     const { data: allLogs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
-    const logs = (allLogs || []).filter(l => getItemYear(l.date) === selectedYear);
+    const logs = (allLogs || []).filter(l => l.is_deleted !== true && getItemYear(l.date) === selectedYear);
     
     if (!logs || logs.length === 0) {
         showToast(`Keine Fahrten für das Jahr ${selectedYear} zum Exportieren gefunden!`, "info");
@@ -1866,19 +2086,20 @@ async function exportMileagePDF() {
     // --- STUNDEN LOGIK ---
 
    async function sendHours() { 
-    const { error } = await sb.from('work_hours').insert([{ 
+    const { data, error } = await sb.from('work_hours').insert([{ 
         user_id: currentUser.id, 
         date: document.getElementById('date').value, 
         duration: document.getElementById('hours').value, 
         description: document.getElementById('work-category').value + ": " + document.getElementById('description').value, 
         status: 'pending' 
-    }]); 
+    }]).select('id'); 
 
-    if (error) {
-        showToast("Fehler beim Senden: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Stunden konnten nicht gespeichert werden.");
         showToast("Gesendet!", "success"); 
         loadHistory(); 
+    } catch (err) {
+        showToast("Fehler beim Senden: " + err.message, "error");
     }
 }
 
@@ -1890,11 +2111,10 @@ async function exportMileagePDF() {
 
     if (error) return console.error(error);
 
-    const allHours = hours || [];
+    const allHours = (hours || []).filter(h => h.is_deleted !== true);
     const selectedYear = populateYearSelect('hours-year-filter', allHours.map(h => h.date), new Date().getFullYear());
     const yearHours = allHours.filter(h => getItemYear(h.date) === selectedYear);
 
-    // 1. Tabelle rendern (für das gewählte Jahr)
     const list = document.getElementById('history-body');
     list.innerHTML = yearHours.length > 0 ? yearHours.map(h => {
         const isRejected = h.status === 'rejected';
@@ -1927,7 +2147,6 @@ async function exportMileagePDF() {
         `;
     }).join('') : `<tr><td colspan="4" style="text-align:center; color:#666;">Keine Stunden für ${selectedYear} erfasst</td></tr>`;
 
-    // --- BERECHNUNG & FARB-LOGIK FÜR DIE PROGRESS BAR (im gewählten Jahr) ---
     const totalApproved = yearHours
         .filter(h => h.status === 'approved')
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
@@ -1969,7 +2188,7 @@ async function exportMileagePDF() {
     }
 }
         
-    // --- PROFIL & ADMIN ---
+ // --- PROFIL & ADMIN ---
 
     function renderTeamCheckboxes(sel) { 
         const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
@@ -1982,18 +2201,17 @@ async function exportMileagePDF() {
     const stand = document.getElementById('prof-stand').value;
     const weapon = document.getElementById('prof-weapon').value;
     
-    const { error } = await sb.from('profiles').upsert({ 
+    const { data, error } = await sb.from('profiles').upsert({ 
         id: currentUser.id, 
         full_name: document.getElementById('prof-name').value, 
         team: teams,
         disciplines: disciplines,
         shooting_stand: stand,
         club_weapon: weapon
-    }); 
+    }).select('id'); 
 
-  if (error) {
-        showToast("Fehler beim Speichern: " + error.message, "error");
-    } else {
+  try {
+        requireAffectedRows(data, error, "Profil konnte nicht gespeichert werden (Berechtigung prüfen).");
         userTeam = teams;
         if (currentProfileData) {
             currentProfileData.full_name = document.getElementById('prof-name').value;
@@ -2003,14 +2221,19 @@ async function exportMileagePDF() {
             currentProfileData.club_weapon = weapon;
         }
         showToast("Profil, Standgebühr & Waffen-Auswahl gespeichert!", "success"); 
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
     }
 }
+
 async function loadAdmin() {
-    // Daten von Supabase holen
     const { data: profilesData, error: pErr } = await sb.from('profiles').select('*').order('full_name');
     const { data: hoursData, error: hErr } = await sb.from('work_hours').select('*').order('date', {descending:true});
     
     if (pErr || !profilesData) return console.error("Fehler beim Laden der Profile:", pErr);
+    if (hErr) console.error("Fehler beim Laden der Stunden:", hErr);
+
+    const activeHoursData = (hoursData || []).filter(h => h.is_deleted !== true);
 
     // 1. NEUE REGISTRIERUNGEN
     const unapproved = profilesData.filter(p => p.is_approved === false || p.is_approved === null);
@@ -2025,7 +2248,7 @@ async function loadAdmin() {
     `).join('');
 
     // 2. OFFENE STUNDEN-ANTRÄGE
-    const pendingHours = hoursData ? hoursData.filter(h => h.status === 'pending') : [];
+    const pendingHours = activeHoursData.filter(h => h.status === 'pending');
     let hoursHtml = pendingHours.map(h => {
         const u = profilesData.find(p => p.id === h.user_id);
         return `
@@ -2051,8 +2274,9 @@ async function loadAdmin() {
     const memberList = document.getElementById('admin-member-table-list');
     if (memberList) {
         memberList.innerHTML = profilesData.filter(p => p.is_approved === true).map(p => {
-           const sum = getMemberAdminHours(hoursData, p.id);
+           const sum = getMemberAdminHours(activeHoursData, p.id);
             const catSelectHtml = renderAdminCategorySelect(p);
+            const safeName = (p.full_name || 'Kein Name').replace(/'/g, "\\'");
             return `
             <tr>
                 <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold; vertical-align:middle;">
@@ -2071,8 +2295,8 @@ async function loadAdmin() {
                         </div>
                         
                         <div style="margin-top: 6px; display: flex; gap: 4px;">
-                            <button onclick="adminChangeEmail('${p.id}', '${p.full_name}')" style="background:#0288d1; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">📧 E-Mail</button>
-                            <button onclick="adminDeleteUser('${p.id}', '${p.full_name}')" style="background:#d32f2f; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">🗑️ Löschen</button>
+                            <button onclick="adminChangeEmail('${p.id}', '${safeName}')" style="background:#0288d1; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">📧 E-Mail</button>
+                            <button onclick="adminDeleteUser('${p.id}', '${safeName}')" style="background:#d32f2f; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">🗑️ Löschen</button>
                         </div>
                         ${catSelectHtml}
                     </div>
@@ -2082,7 +2306,6 @@ async function loadAdmin() {
         }).join('');
     }
 
-    // --- TURNIER-BEREINIGUNG INITIALISIEREN ---
     if (typeof initCleanupTeams === 'function') {
         await initCleanupTeams();
     }
@@ -2164,6 +2387,7 @@ async function loadAdmin() {
     updateAdminStatsDashboard();
 }
 }
+
    async function viewUserDetail(uid) {
     const row = document.getElementById(`details-${uid}`);
     const content = document.getElementById(`content-${uid}`);
@@ -2171,10 +2395,12 @@ async function loadAdmin() {
     if (row.style.display === 'table-row') {
         row.style.display = 'none';
     } else {
-        const { data: hours } = await sb.from('work_hours')
+        const { data: allHours } = await sb.from('work_hours')
             .select('*')
             .eq('user_id', uid)
             .order('date', { descending: true });
+
+        const hours = (allHours || []).filter(h => h.is_deleted !== true);
 
         let html = '<strong>Letzte Tätigkeiten:</strong><br><ul style="list-style:none; padding-left:0; margin-top:5px;">';
         
@@ -2191,7 +2417,7 @@ async function loadAdmin() {
                         <button onclick="adminDeleteWork('${h.id}', '${uid}')" 
                                 class="btn-del" 
                                 style="width: 34px !important; height: 34px !important; flex-shrink: 0;" 
-                                title="Eintrag löschen">
+                                title="In Papierkorb verschieben">
                             🗑️
                         </button>
                     </li>`;
@@ -2211,12 +2437,23 @@ async function loadAdmin() {
         return;
     }
     
-    const newEmail = prompt(`Neue E-Mail-Adresse für ${currentName} eingeben:`);
-    if (!newEmail || !newEmail.includes('@')) return;
+    const newEmail = await showPromptModal(
+        `Neue E-Mail-Adresse für ${currentName} eingeben:`,
+        {
+            title: "E-Mail-Adresse ändern",
+            placeholder: "name@beispiel.de",
+            confirmText: "Speichern"
+        }
+    );
+    if (newEmail === null) return;
+    if (!newEmail.trim() || !newEmail.includes('@')) {
+        showToast("Bitte eine gültige E-Mail-Adresse eingeben.", "error");
+        return;
+    }
 
     const { error } = await sb.rpc('admin_update_email', { 
         target_user_id: userId, 
-        new_email: newEmail 
+        new_email: newEmail.trim() 
     });
 
     if (error) {
@@ -2233,9 +2470,16 @@ async function adminDeleteUser(userId, currentName) {
         return;
     }
     
-    if (!confirm(`WARNUNG: Möchtest du den Benutzer "${currentName}" wirklich KOMPLETT löschen? \n\nDas löscht seinen Login, sein Profil und all seine erfassten Stunden unwiderruflich!`)) {
-        return;
-    }
+    const confirmed = await showConfirmModal(
+        `WARNUNG: Möchtest du den Benutzer "${currentName}" wirklich KOMPLETT löschen?\n\nDas löscht seinen Login, sein Profil und all seine erfassten Stunden unwiderruflich!`,
+        {
+            title: "Benutzer endgültig löschen",
+            detailsHtml: `<strong>Mitglied:</strong> ${currentName || 'Unbekannt'}`,
+            confirmText: "Endgültig löschen",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
 
     const { error } = await sb.rpc('admin_delete_user', { 
         target_user_id: userId 
@@ -2250,24 +2494,39 @@ async function adminDeleteUser(userId, currentName) {
 }
 
    async function adminDeleteWork(hourId, userId) {
-    if (!confirm("Möchtest du diesen Eintrag wirklich unwiderruflich löschen?")) return;
+    const { data: rec } = await sb.from('work_hours').select('date, duration, description').eq('id', hourId).maybeSingle();
+    const detailsHtml = rec
+        ? `<strong>Datum:</strong> ${rec.date ? new Date(rec.date).toLocaleDateString('de-DE') : '-'}<br><strong>Dauer:</strong> ${rec.duration}h<br><strong>Tätigkeit:</strong> ${rec.description || '-'}`
+        : `<strong>Eintrag-ID:</strong> ${hourId}`;
+
+    const confirmed = await showConfirmModal(
+        "Möchtest du diesen Stundeneintrag in den Papierkorb verschieben?",
+        {
+            title: "Stunden in Papierkorb verschieben",
+            detailsHtml,
+            confirmText: "In Papierkorb",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
 
     try {
-        const { error } = await sb.from('work_hours').delete().eq('id', hourId);
-        
-        if (error) throw error;
+        const { data, error } = await sb
+            .from('work_hours')
+            .update({ is_deleted: true })
+            .eq('id', hourId)
+            .select('id');
 
-        showToast("Eintrag erfolgreich entfernt.", "info");
+        requireAffectedRows(data, error, "Eintrag konnte nicht in den Papierkorb verschoben werden (Berechtigung / Spalte is_deleted prüfen).");
+
+        showToast("Eintrag in den Papierkorb verschoben.", "info");
         
-        // 1. Admin-Hauptliste neu laden (aktualisiert die Summen in der Zeile)
         await loadAdmin(); 
-        
-        // 2. Details für diesen User sofort wieder öffnen
+        if (typeof loadTrash === 'function') loadTrash();
         viewUserDetail(userId); 
-
     } catch (err) {
-        console.error("Löschfehler:", err);
-        showToast("Fehler beim Löschen: " + err.message, "error");
+        console.error("Fehler beim Verschieben:", err);
+        showToast("Fehler beim Verschieben: " + err.message, "error");
     }
 }
 
@@ -2289,10 +2548,7 @@ async function adminDeleteUser(userId, currentName) {
         const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         const dayEvents = allEvents.filter(e => e.date === ds);
         
-        // Erweitertes Mapping für Heimwettkampf-Optik
         const dotsHtml = dayEvents.map(e => {
-            // Falls es ein Heimwettkampf ist: Rahmen + Skalierung
-            // Falls es ein Vereinstermin (Gold) ist: kein Rahmen
             const isHome = e.is_home === true && e.team !== 'Verein';
             const homeStyle = isHome ? 'border: 1.5px solid #000; border-radius: 2px; transform: scale(1.3);' : '';
             
@@ -2320,12 +2576,9 @@ async function adminDeleteUser(userId, currentName) {
     const detailsHtml = evs.map(e => {
         const zeit = e.time ? ` um ${e.time.substring(0, 5)} Uhr` : "";
         
-        // Unterscheidung zwischen Verein und Wettkampf
         if (e.team === 'Verein') {
-            // Vereinstermine: Nur Event-Name + Uhrzeit
             return `• <strong>${e.opponent || e.title}</strong>${zeit}`;
         } else {
-            // Wettkämpfe: Mannschaft + Uhrzeit + Gegner + Ort
             const gegner = e.opponent ? ` gegen <strong>${e.opponent}</strong>` : "";
             const ort = e.is_home ? " (Heimwettkampf 🏠)" : " (Auswärts 🚗)";
             return `• <strong>${e.team}</strong>${zeit}${gegner}${ort}`;
@@ -2356,24 +2609,42 @@ async function adminDeleteUser(userId, currentName) {
     if (!t) return '';
     if (t === 'Verein') return 'team-verein';
     
-    // Mapping der Mannschaften auf CSS-Klassen
-    // WICHTIG: Die Texte links müssen exakt den Namen im Dropdown entsprechen!
     const teamMap = {
         'Luftgewehr 1': 'team-lg-1',
         'Luftgewehr 2': 'team-lg-2',
-        'Luftgewehr 3': 'team-lg-2', // Falls LG 3 die gleiche Farbe wie LG 2 haben soll
+        'Luftgewehr 3': 'team-lg-2',
         'Luftpistole 1': 'team-lp-1',
         'Luftpistole 2': 'team-lp-2',
-        'Luftgewehr Auflage': 'team-auflage', // Vorher stand hier nur 'Auflage'
-        'Großkaliber': 'team-gk',            // Neue Klasse für GK
-        'Sportpistole': 'team-spopi',          // Neue Klasse für SpoPi
+        'Luftgewehr Auflage': 'team-auflage',
+        'Großkaliber': 'team-gk',
+        'Sportpistole': 'team-spopi',
     };
 
     return teamMap[t] || 'team-default'; 
 }
     function changeMonth(d) { currentViewDate.setMonth(currentViewDate.getMonth()+d); renderCalendar(); }
-    async function updateRole(uid, col, val) { const d = {}; d[col] = val; await sb.from('profiles').update(d).eq('id', uid); loadAdmin(); }
-    async function approveHours(id) { await sb.from('work_hours').update({ status: 'approved' }).eq('id', id); loadAdmin(); }
+    async function updateRole(uid, col, val) {
+        const d = {};
+        d[col] = val;
+        const { data, error } = await sb.from('profiles').update(d).eq('id', uid).select('id');
+        try {
+            requireAffectedRows(data, error, "Rolle konnte nicht aktualisiert werden (Berechtigung prüfen).");
+            loadAdmin();
+        } catch (err) {
+            showToast("Fehler beim Ändern der Rolle: " + err.message, "error");
+            loadAdmin();
+        }
+    }
+    async function approveHours(id) {
+        const { data, error } = await sb.from('work_hours').update({ status: 'approved' }).eq('id', id).select('id');
+        try {
+            requireAffectedRows(data, error, "Stunden konnten nicht freigegeben werden (Berechtigung prüfen).");
+            showToast("Stunden freigegeben!", "success");
+            loadAdmin();
+        } catch (err) {
+            showToast("Fehler bei Freigabe: " + err.message, "error");
+        }
+    }
 
     // --- EXPORT FUNKTIONEN ---
 
@@ -2392,7 +2663,7 @@ async function exportToPDF() {
 
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: allHours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
-    const hours = (allHours || []).filter(h => getItemYear(h.date) === selectedYear);
+    const hours = (allHours || []).filter(h => h.is_deleted !== true && getItemYear(h.date) === selectedYear);
 
     doc.setFontSize(22);
     doc.setTextColor(46, 125, 50);
@@ -2489,7 +2760,6 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // 1. Profile aus Supabase abrufen
     const { data: profs, error } = await sb.from('profiles').select('*').order('full_name');
 
     if (error || !profs) {
@@ -2497,7 +2767,6 @@ async function exportToPDF() {
         return;
     }
 
-    // Nur freigeschaltete Mitglieder filtern, die Stand oder Leihwaffe angegeben haben
     const standMeldungen = profs.filter(p => p.is_approved && ((p.shooting_stand && p.shooting_stand !== "keiner") || (p.club_weapon && p.club_weapon !== "keine")));
 
     if (standMeldungen.length === 0) {
@@ -2505,7 +2774,6 @@ async function exportToPDF() {
         return;
     }
 
-    // Header & Design (Eins-zu-Eins aus exportToPDF übernommen)
     doc.setFontSize(22);
     doc.setTextColor(46, 125, 50);
     doc.setFont("helvetica", "bold");
@@ -2536,7 +2804,6 @@ async function exportToPDF() {
         ]);
     });
 
-    // Summenzeile am Tabellenende
     tableRows.push([
         { content: 'GESAMTSUMME', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
         { content: `${grandTotal.toFixed(2).replace('.', ',')} €`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 240, 240], textColor: [46, 125, 50] } }
@@ -2568,7 +2835,6 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // 1. Profile aus Supabase abrufen
     const { data: profs, error } = await sb.from('profiles').select('*').order('full_name');
 
     if (error || !profs) {
@@ -2576,7 +2842,6 @@ async function exportToPDF() {
         return;
     }
 
-    // Nur freigeschaltete Mitglieder mit Disziplinmeldungen filtern
     const meldungen = profs.filter(p => p.is_approved && p.disciplines && p.disciplines.trim() !== "");
 
     if (meldungen.length === 0) {
@@ -2584,7 +2849,6 @@ async function exportToPDF() {
         return;
     }
 
-    // Header & Design (Einheitlich mit den anderen PDF-Exporten)
     doc.setFontSize(22);
     doc.setTextColor(46, 125, 50);
     doc.setFont("helvetica", "bold");
@@ -2629,7 +2893,6 @@ async function exportToPDF() {
         ]);
     });
 
-    // Summenzeile am Tabellenende
     tableRows.push([
         { content: 'GESAMTSUMME (STARTGELDER)', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
         { content: `${grandTotal.toFixed(2).replace('.', ',')} €`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 240, 240], textColor: [46, 125, 50] } },
@@ -2666,12 +2929,11 @@ async function exportToPDF() {
         return;
     }
 
-    // 3 von 4 Kriterien prüfen
     let criteria = 0;
-    if (/[A-Z]/.test(p1)) criteria++;          // Großbuchstabe
-    if (/[a-z]/.test(p1)) criteria++;          // Kleinbuchstabe
-    if (/[0-9]/.test(p1)) criteria++;          // Zahl
-    if (/[^A-Za-z0-9]/.test(p1)) criteria++;   // Sonderzeichen
+    if (/[A-Z]/.test(p1)) criteria++;
+    if (/[a-z]/.test(p1)) criteria++;
+    if (/[0-9]/.test(p1)) criteria++;
+    if (/[^A-Za-z0-9]/.test(p1)) criteria++;
 
     if (criteria < 3) {
         showToast("Das Passwort muss mindestens 3 der folgenden 4 Kriterien erfüllen: Großbuchstaben, Kleinbuchstaben, Zahlen, Sonderzeichen.", "error");
@@ -2679,7 +2941,13 @@ async function exportToPDF() {
     }
 
     const { error } = await sb.auth.updateUser({ password: p1 });
-    // ... Rest der Funktion
+    if (error) {
+        showToast("Fehler beim Aktualisieren des Passworts: " + error.message, "error");
+    } else {
+        showToast("Passwort erfolgreich aktualisiert!", "success");
+        document.getElementById('new-pass').value = '';
+        document.getElementById('new-pass-confirm').value = '';
+    }
 }
 
 let isRegistrationMode = false;
@@ -2704,22 +2972,22 @@ function toggleAuthMode() {
     }
 }
 
-// Erweitere loadAdmin() um die Freigabe-Funktion
 async function approveMember(uid) {
-    const { error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid);
-    if (error) {
-        showToast("Fehler: " + error.message, "error");
-    } else {
+    const { data, error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid).select('id');
+    try {
+        requireAffectedRows(data, error, "Mitglied konnte nicht freigeschaltet werden (Berechtigung prüfen).");
         showToast("Mitglied freigeschaltet!", "success");
-        loadAdmin(); // Liste aktualisieren
+        loadAdmin();
+    } catch (err) {
+        showToast("Fehler: " + err.message, "error");
     }
 }
-//Backup
+
 async function exportFullBackup() {
-    // Liste deiner Tabellen aus dem Screenshot
     const tablesToExport = [
         'profiles', 
         'work_hours', 
+        'mileage_logs',
         '_logs', 
         'club_events', 
         'competitions', 
@@ -2733,7 +3001,6 @@ async function exportFullBackup() {
     };
 
     try {
-        // Jede Tabelle einzeln abfragen
         for (const tableName of tablesToExport) {
             const { data, error } = await sb.from(tableName).select('*');
             if (error) {
@@ -2744,7 +3011,6 @@ async function exportFullBackup() {
             }
         }
 
-        // In JSON umwandeln und Download starten
         const jsonString = JSON.stringify(backupData, null, 2);
         const blob = new Blob([jsonString], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -2756,39 +3022,34 @@ async function exportFullBackup() {
         
         document.body.appendChild(link);
         link.click();
-       document.body.removeChild(link);
+        document.body.removeChild(link);
         
-    showToast("Vollständiges Backup wurde erstellt und heruntergeladen!", "success");
-} catch (err) {
-    showToast("Kritischer Fehler beim Backup: " + err.message, "error");
-}
+        showToast("Vollständiges Backup wurde erstellt und heruntergeladen!", "success");
+    } catch (err) {
+        showToast("Kritischer Fehler beim Backup: " + err.message, "error");
+    }
 }
 
-let currentEditId = null; // Globale Variable, um zu wissen, ob wir gerade editieren
+let currentEditId = null;
 
 function prepareEdit(id, date, duration, description) {
-    // ID global speichern
     currentWorkEditId = id; 
     
-    // Felder befüllen
     document.getElementById('date').value = date;
     document.getElementById('hours').value = duration;
     
-    // Beschreibung aufteilen (Kategorie: Details)
     const parts = description.split(': ');
     if (parts.length > 1) {
         document.getElementById('work-category').value = parts[0];
-        // Falls im Detail-Text selbst Doppelpunkte sind, nutzen wir join
         document.getElementById('description').value = parts.slice(1).join(': ');
     } else {
         document.getElementById('description').value = description;
     }
 
-    // UI Feedback
     const btn = document.querySelector('button[onclick="saveWork()"]');
     if (btn) {
         btn.innerText = "Änderung speichern";
-        btn.style.background = "#ef6c00"; // Orange für Bearbeitungsmodus
+        btn.style.background = "#ef6c00";
     }
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2815,65 +3076,73 @@ async function saveWork() {
 
     let res;
     if (currentWorkEditId) {
-        // Bestehenden Eintrag aktualisieren
-        res = await sb.from('work_hours').update(payload).eq('id', currentWorkEditId);
+        res = await sb.from('work_hours').update(payload).eq('id', currentWorkEditId).select('id');
     } else {
-        // Neuen Eintrag erstellen - user_id hinzufügen
-        res = await sb.from('work_hours').insert([{...payload, user_id: currentUser.id}]);
+        res = await sb.from('work_hours').insert([{...payload, user_id: currentUser.id}]).select('id');
     }
 
-  if (res.error) {
-        showToast("Fehler beim Speichern: " + res.error.message, "error");
-    } else { 
+  try {
+        requireAffectedRows(res?.data, res?.error, "Arbeitszeit konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast(currentWorkEditId ? "Änderung gespeichert!" : "Arbeitszeit eingereicht!", "success"); 
-        resetWorkForm(); // Formular leeren & ID zurücksetzen
+        resetWorkForm(); 
         loadHistory(); 
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
     }
 }
 
 function resetWorkForm() {
-    currentWorkEditId = null; // WICHTIG: ID löschen!
+    currentWorkEditId = null;
     document.getElementById('description').value = '';
     document.getElementById('hours').value = '';
     
     const btn = document.querySelector('button[onclick="saveWork()"]');
     if (btn) { 
         btn.innerText = "Senden"; 
-        btn.style.background = ""; // Zurück auf Standard-Grün
+        btn.style.background = "";
     }
 }
 
    async function rejectHours(id) {
-    const reason = prompt("Bitte gib eine Begründung für die Ablehnung an:");
+    const reason = await showPromptModal(
+        "Bitte gib eine Begründung für die Ablehnung an:",
+        {
+            title: "Stundenantrag ablehnen",
+            placeholder: "Begründung eingeben...",
+            confirmText: "Ablehnen",
+            danger: true
+        }
+    );
     
-    if (reason === null) return; // Abbrechen
+    if (reason === null) return;
     if (reason.trim() === "") {
         showToast("Eine Begründung ist zwingend erforderlich.", "error");
         return;
     }
 
-    const { error } = await sb
-        .from('work_hours')
-        .update({ 
-            status: 'rejected', 
-            admin_comment: reason 
-        })
-        .eq('id', id);
+    try {
+        const { data, error } = await sb
+            .from('work_hours')
+            .update({ 
+                status: 'rejected', 
+                admin_comment: reason.trim() 
+            })
+            .eq('id', id)
+            .select('id');
 
-    if (error) {
-        showToast("Fehler: " + error.message, "error");
-    } else {
+        requireAffectedRows(data, error, "Ablehnung konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast("Eintrag abgelehnt und Begründung gespeichert.", "info");
-        loadAdmin(); // Admin-Ansicht aktualisieren
+        loadAdmin();
+    } catch (err) {
+        showToast("Fehler: " + err.message, "error");
     }
 }
 
    function resetForm() {
-    currentEditId = null; // Wichtig! Verhindert, dass das nächste "Senden" ein Update wird
+    currentEditId = null;
     document.getElementById('description').value = '';
     document.getElementById('hours').value = '';
     
-    // Button zurück auf Standard-Grün setzen
     const btn = document.querySelector('button[onclick="saveWork()"]');
     if (btn) {
         btn.innerText = "Senden";
@@ -2882,36 +3151,52 @@ function resetWorkForm() {
 }
 
 async function deleteWork(id) {
-    // Sicherheitsabfrage
-    if (!confirm("Möchtest du diesen Eintrag wirklich unwiderruflich löschen?")) {
-        return;
-    }
+    const { data: rec } = await sb.from('work_hours').select('date, duration, description').eq('id', id).maybeSingle();
+    const detailsHtml = rec
+        ? `<strong>Datum:</strong> ${rec.date ? new Date(rec.date).toLocaleDateString('de-DE') : '-'}<br><strong>Dauer:</strong> ${rec.duration}h<br><strong>Tätigkeit:</strong> ${rec.description || '-'}`
+        : `<strong>Eintrag-ID:</strong> ${id}`;
+
+    const confirmed = await showConfirmModal(
+        "Möchtest du diesen Eintrag in den Papierkorb verschieben?",
+        {
+            title: "Stunden in Papierkorb verschieben",
+            detailsHtml,
+            confirmText: "In Papierkorb",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
 
     try {
-        const { error } = await sb
+        const { data, error } = await sb
             .from('work_hours')
-            .delete()
-            .eq('id', id);
+            .update({ is_deleted: true })
+            .eq('id', id)
+            .select('id');
 
-      if (error) {
-            throw error;
-        }
+        requireAffectedRows(data, error, "Eintrag konnte nicht in den Papierkorb verschoben werden (Berechtigung / Spalte is_deleted prüfen).");
 
-        showToast("Eintrag wurde gelöscht.", "info");
-        
-        // Ansicht aktualisieren
-        loadHistory(); 
+        showToast("Eintrag wurde in den Papierkorb verschoben.", "info");
+        loadHistory();
+        if (typeof loadTrash === 'function') loadTrash();
     } catch (error) {
-        console.error("Fehler beim Löschen:", error);
-        showToast("Fehler beim Löschen: " + error.message, "error");
+        console.error("Fehler beim Verschieben:", error);
+        showToast("Fehler beim Verschieben: " + error.message, "error");
     }
 }
-   async function handleResetPassword() {
-    const email = prompt("Bitte gib deine registrierte E-Mail-Adresse ein:");
-    if (!email) return;
 
-    const { error } = await sb.auth.resetPasswordForEmail(email, {
-        // Nutzt die aktuelle URL und hängt den view-Parameter an
+   async function handleResetPassword() {
+    const email = await showPromptModal(
+        "Bitte gib deine registrierte E-Mail-Adresse ein:",
+        {
+            title: "Passwort zurücksetzen",
+            placeholder: "deine@email.de",
+            confirmText: "Link senden"
+        }
+    );
+    if (!email || !email.trim()) return;
+
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: window.location.origin + window.location.pathname + '?view=update-password',
     });
 
@@ -2995,9 +3280,6 @@ function showUpdatePasswordUI() {
     }
 }
 
-// ==========================================
-// 5. UPDATE-LOGIK
-// ==========================================
 async function executeMobilePasswordUpdate() {
     const p1Field = document.getElementById('reset-pass-1');
     const p1TextField = document.getElementById('reset-pass-1-text');
@@ -3046,12 +3328,9 @@ async function executeMobilePasswordUpdate() {
 }
 
 async function importICSPlan(icsText) {
-    // 1. ICS-Zeilenumbrüche korrigieren (Wichtig für DESCRIPTION)
     const unfoldedText = icsText.replace(/\r?\n[ \t]+/g, '');
     const lines = unfoldedText.split(/\r?\n/);
     
-    // 2. DISZIPLIN ERKENNEN (Bevor wir die Termine laden)
-    // Wir suchen in der gesamten Datei nach den Schlüsselwörtern
     let detectedDiscipline = null;
     
     if (/GK Pist\/Rev/i.test(unfoldedText)) {
@@ -3071,7 +3350,6 @@ async function importICSPlan(icsText) {
     return;
 }
 
-    // 3. EVENTS PARSEN
     const events = [];
     let currentEvent = null;
 
@@ -3094,20 +3372,16 @@ async function importICSPlan(icsText) {
         }
     });
 
-    // 4. VERARBEITUNG
     let count = 0;
     for (const e of events) {
-        // Teamnummer aus Summary extrahieren (z.B. "Strullendorf 2")
         const teamMatch = e.summary.match(/Strullendorf\s*(\d)/i);
         const teamNum = teamMatch ? teamMatch[1] : "1";
 
-        // Teamname zusammenbauen
         let finalTeamName = detectedDiscipline;
         if (detectedDiscipline === "Luftgewehr" || detectedDiscipline === "Luftpistole") {
             finalTeamName = `${detectedDiscipline} ${teamNum}`;
         }
 
-        // Datum & Gegner
         const start = e.start || "";
         const formattedDate = `${start.substring(0,4)}-${start.substring(4,6)}-${start.substring(6,8)}`;
         const formattedTime = `${start.substring(9,11)}:${start.substring(11,13)}`;
@@ -3122,7 +3396,6 @@ async function importICSPlan(icsText) {
             opponent = isHome ? teams[1].trim() : teams[0].trim();
         }
 
-        // Dropdown Auswahl
         const teamSelect = document.getElementById('event-team-select');
         let foundInDropdown = false;
         if (teamSelect) {
@@ -3148,8 +3421,6 @@ async function importICSPlan(icsText) {
 
    showToast(`Erfolgreich erkannt: ${detectedDiscipline}\n${count} Wettkämpfe wurden importiert.`, "success");
 }
-
-  // --- TRAININGS-ESSEN LOGIK ---
 
 // 1. Restzeit-Rechner für Essen
 function getMealDeadlineBadge(deadlineStr) {
@@ -3246,7 +3517,6 @@ async function loadMealsView() {
         const myOrder = myOrders ? myOrders.find(o => o.meal_id === meal.id) : null;
         const allOrders = meal.meal_orders || [];
         
-        // Gesamte Portionen (Eigene + Gäste) für die Statistik berechnen
         const totalPortions = allOrders.reduce((sum, o) => {
             const own = o.portions || 0;
             const guest = o.is_guest_order ? (o.guest_portions || 0) : 0;
@@ -3255,7 +3525,6 @@ async function loadMealsView() {
 
         const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
         
-        // Teilnehmer-Liste für die Anzeige aufbauen
         const participantsList = allOrders.map(o => {
             const name = o.profiles?.full_name || 'Mitglied';
             let text = `${name} (${o.portions}x)`;
@@ -3301,7 +3570,6 @@ async function loadMealsView() {
                 ` : `
                     <form onsubmit="submitMealOrderDirect(event, '${meal.id}')" style="display:flex; flex-direction:column; gap:12px;">
                         
-                        <!-- Eigene Portion -->
                         <div style="display:flex; gap:15px; align-items:center;">
                             <label style="font-size:13px; font-weight:bold;">Deine Portionen:</label>
                             <input type="number" id="portions-${meal.id}" min="1" max="10" value="${myOrder ? myOrder.portions : 1}" style="width:70px; padding:6px; border:1px solid #ccc; border-radius:4px;">
@@ -3312,7 +3580,6 @@ async function loadMealsView() {
                             <input type="text" id="remarks-${meal.id}" placeholder="z.B. Vegetarisch..." value="${myOrder?.remarks || ''}" style="width:100%; padding:6px; box-sizing:border-box; border:1px solid #ccc; border-radius:4px;">
                         </div>
 
-                        <!-- GAST CHECKBOX & FELDER -->
                         <div style="background:#f4fbf7; padding:12px; border-radius:6px; border:1px solid #c8e6c9; display:flex; flex-direction:column; gap:8px;">
                             <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:bold; color:var(--primary);">
                                 <input type="checkbox" id="toggle-guest-${meal.id}" ${isGuestChecked} onchange="toggleGuestInputs('${meal.id}')" style="width:18px; height:18px; cursor:pointer;">
@@ -3335,7 +3602,6 @@ async function loadMealsView() {
                             </div>
                         </div>
 
-                        <!-- Buttons -->
                         <div style="display:flex; gap:10px; align-items:center; margin-top:5px;">
                             <button type="submit" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:bold;">
                                 ${isOrdered ? 'Bestellung aktualisieren' : 'Kostenpflichtig bestellen'}
@@ -3391,14 +3657,15 @@ async function submitMealOrderDirect(event, mealId) {
         guest_remarks: guestRemarks
     };
 
-    const { error } = await sb.from('meal_orders').upsert(payload, { onConflict: 'meal_id,user_id' });
+    const { data, error } = await sb.from('meal_orders').upsert(payload, { onConflict: 'meal_id,user_id' }).select('id');
 
-    if (error) {
-        showToast("Fehler beim Speichern: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Bestellung konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast("Bestellung erfolgreich gespeichert!", "success");
         loadMealsView();
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
     }
 }
     
@@ -3426,46 +3693,57 @@ async function submitMealOrder(e, mealId) {
         .eq('user_id', currentUser.id)
         .maybeSingle();
 
-    let error;
+    let res;
 
     if (existingOrder) {
-        const res = await sb
+        res = await sb
             .from('meal_orders')
             .update(payload)
-            .eq('id', existingOrder.id);
-        error = res.error;
+            .eq('id', existingOrder.id)
+            .select('id');
     } else {
-        const res = await sb
+        res = await sb
             .from('meal_orders')
-            .insert([payload]);
-        error = res.error;
+            .insert([payload])
+            .select('id');
     }
 
-    if (error) {
-        showToast("Fehler beim Speichern: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(res?.data, res?.error, "Bestellung konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast("Bestellung erfolgreich gespeichert!", "success");
         await loadMealsView();
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
     }
 }
 
 // 5. Bestellung stornieren (Mitglied)
 async function cancelMealOrder(mealId) {
-    if (!confirm("Möchtest du deine Bestellung wirklich stornieren?")) return;
+    const confirmed = await showConfirmModal(
+        "Möchtest du deine Bestellung wirklich stornieren?",
+        {
+            title: "Bestellung stornieren",
+            confirmText: "Stornieren",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
 
-    const { error } = await sb
+    const { data, error } = await sb
         .from('meal_orders')
         .delete()
         .eq('meal_id', mealId)
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.id)
+        .select('id');
 
-    if (error) {
-        showToast("Fehler beim Stornieren: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Bestellung konnte nicht storniert werden (Berechtigung prüfen).");
         showToast("Bestellung erfolgreich storniert!", "info");
         await loadMealsView();
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
+    } catch (err) {
+        showToast("Fehler beim Stornieren: " + err.message, "error");
     }
 }
 
@@ -3482,7 +3760,6 @@ async function saveMeal() {
     const price = parseFloat(document.getElementById('admin-meal-price')?.value || 0);
     const rawDeadline = document.getElementById('admin-meal-deadline')?.value;
     
-    // Liest das Beschreibungsfeld direkt über seine eindeutige ID aus
     const descInput = document.getElementById('admin-meal-description');
     const description = descInput ? descInput.value.trim() : '';
 
@@ -3494,33 +3771,20 @@ async function saveMeal() {
     const deadline = new Date(rawDeadline).toISOString();
     const payload = { title, date, price, deadline, description };
 
-    if (mealId) {
-        const { error } = await sb
-            .from('meals')
-            .update(payload)
-            .eq('id', mealId);
-
-        if (error) {
-            showToast("Fehler beim Aktualisieren: " + error.message, "error");
+    try {
+        let res;
+        if (mealId) {
+            res = await sb.from('meals').update(payload).eq('id', mealId).select('id');
         } else {
-            showToast("Essen erfolgreich aktualisiert!", "success");
-            resetMealForm();
-            loadAdminMeals();
-            if (typeof loadMealsView === 'function') loadMealsView();
+            res = await sb.from('meals').insert([payload]).select('id');
         }
-    } else {
-        const { error } = await sb
-            .from('meals')
-            .insert([payload]);
-
-        if (error) {
-            showToast("Fehler beim Anlegen: " + error.message, "error");
-        } else {
-            showToast("Essen erfolgreich veröffentlicht!", "success");
-            resetMealForm();
-            loadAdminMeals();
-            if (typeof loadMealsView === 'function') loadMealsView();
-        }
+        requireAffectedRows(res?.data, res?.error, "Essen konnte nicht gespeichert werden (Berechtigung prüfen).");
+        showToast(mealId ? "Essen erfolgreich aktualisiert!" : "Essen erfolgreich veröffentlicht!", "success");
+        resetMealForm();
+        loadAdminMeals();
+        if (typeof loadMealsView === 'function') loadMealsView();
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
     }
 }
 
@@ -3536,7 +3800,7 @@ function resetMealForm() {
     setVal('admin-meal-date');
     setVal('admin-meal-price');
     setVal('admin-meal-deadline');
-    setVal('admin-meal-description'); // Leert das Beschreibungsfeld
+    setVal('admin-meal-description');
 
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Neues Essen anbieten";
@@ -3552,11 +3816,10 @@ function resetMealForm() {
 async function editMeal(mealId) {
     const { data: meal, error } = await sb.from('meals').select('*').eq('id', mealId).single();
     if (error || !meal) {
-        showToast("Fehler beim Laden des Essens zum Bearbeiten", "error");
+        showToast("Fehler beim Laden der Essensdaten: " + (error?.message || "Nicht gefunden"), "error");
         return;
     }
     
-    // Befüllt alle Felder, inklusive der Beschreibung
     const setVal = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.value = val ?? '';
@@ -3567,7 +3830,6 @@ async function editMeal(mealId) {
     setVal('admin-meal-price', meal.price);
     setVal('admin-meal-description', meal.description);
     
-    // Datumsfelder formatieren
     if (meal.date) {
         setVal('admin-meal-date', meal.date.split('T')[0]);
     } else {
@@ -3575,7 +3837,6 @@ async function editMeal(mealId) {
     }
     setVal('admin-meal-deadline', formatForDateTimeInput(meal.deadline));
 
-    // UI-Elemente anpassen
     const formTitle = document.getElementById('admin-meal-form-title');
     if (formTitle) formTitle.textContent = "Essen bearbeiten";
 
@@ -3584,9 +3845,10 @@ async function editMeal(mealId) {
 
     const submitBtn = document.getElementById('admin-meal-submit-btn');
     if (submitBtn) submitBtn.textContent = "Essen aktualisieren";
+
+    document.getElementById('admin-meal-title')?.scrollIntoView({ behavior: 'smooth' });
 }
 
-// Hilfsfunktion: Wandelt Supabase-Timestamps in datetime-local um
 function formatForDateTimeInput(dateString) {
     if (!dateString) return '';
     const d = new Date(dateString);
@@ -3614,7 +3876,6 @@ async function loadAdminMeals() {
     container.innerHTML = meals.map(m => {
         const orders = m.meal_orders || [];
         
-        // Korrekte Addition von eigenen Portionen + Gast-Portionen
         const totalPortions = orders.reduce((sum, o) => {
             const own = o.portions || 0;
             const guest = o.is_guest_order ? (o.guest_portions || 0) : 0;
@@ -3644,7 +3905,11 @@ async function loadAdminMeals() {
 
 // 10. Essen in Papierkorb verschieben
 async function deleteMeal(mealId) {
-    const success = await softDeleteItem('meals', mealId, "Essen in den Papierkorb verschoben.");
+    const { data: meal } = await sb.from('meals').select('title, date, price').eq('id', mealId).maybeSingle();
+    const detailsHtml = meal
+        ? `<strong>Gericht:</strong> ${meal.title}<br><strong>Termin:</strong> ${meal.date ? new Date(meal.date).toLocaleDateString('de-DE') : '-'}<br><strong>Preis:</strong> ${parseFloat(meal.price || 0).toFixed(2).replace('.', ',')} €`
+        : '';
+    const success = await softDeleteItem('meals', mealId, "Essen in den Papierkorb verschoben.", detailsHtml);
     if (success) {
         loadAdminMeals();
         if (typeof loadMealsView === 'function') loadMealsView();
@@ -3700,7 +3965,6 @@ async function exportMealPDF(mealId) {
         const name = o.profiles?.full_name || 'Mitglied';
         const ownPortions = o.portions || 0;
         
-        // 1. Eigene Portionen Zeile hinzufügen (falls vorhanden)
         if (ownPortions > 0) {
             const ownTotal = ownPortions * pricePerPortion;
             totalPortionsAll += ownPortions;
@@ -3714,7 +3978,6 @@ async function exportMealPDF(mealId) {
             ]);
         }
 
-        // 2. Gast-Portionen als separate Zeile hinzufügen (falls angehakt)
         if (o.is_guest_order && o.guest_portions > 0) {
             const guestPortions = o.guest_portions;
             const guestTotal = guestPortions * pricePerPortion;
@@ -3734,7 +3997,6 @@ async function exportMealPDF(mealId) {
         }
     });
 
-    // Summenzeile
     tableRows.push([
         { content: 'GESAMTSUMME', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
         { content: `${totalPortionsAll} Portionen`, styles: { halign: 'center', fontStyle: 'bold', fillColor: [240, 240, 240] } },
@@ -3767,33 +4029,54 @@ function handleICSUpload(event) {
     reader.readAsText(file);
 }
 
-    async function deleteOldTournaments() {
-    // Fragt nach einem Stichtag, standardmäßig der 1. August 2026 (Beginn der neuen Saison)
-    const cutoff = prompt("Alle Wettkämpfe VOR folgendem Datum werden gelöscht (Format: JJJJ-MM-TT):", "2026-08-01");
-    if (!cutoff) return; // Abbruch
+async function deleteOldTournaments() {
+    const cutoff = await showPromptModal(
+        "Alle Wettkämpfe VOR folgendem Datum werden gelöscht (Format: JJJJ-MM-TT):",
+        {
+            title: "Alte Wettkämpfe löschen",
+            defaultValue: "2026-08-01",
+            confirmText: "Weiter",
+            danger: true
+        }
+    );
+    if (!cutoff) return;
     
-    // Sicherheitsabfrage
-    if (!confirm(`Bist du sicher? Das löscht unwiderruflich ALLE Wettkämpfe vor dem ${cutoff}!`)) return;
+    const confirmed = await showConfirmModal(
+        `Bist du sicher? Das löscht unwiderruflich ALLE Wettkämpfe vor dem ${cutoff}!`,
+        {
+            title: "Endgültige Bereinigung bestätigen",
+            detailsHtml: `<strong>Stichtag:</strong> vor ${cutoff}`,
+            confirmText: "Alle löschen",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
 
     try {
-        // Löscht alle Einträge in der Tabelle 'tournaments', deren Datum (date) kleiner (lt = less than) als das Stichtag-Datum ist
         const { error } = await sb.from('tournaments').delete().lt('date', cutoff);
-        
-      if (error) throw error;
+        if (error) throw error;
         
         showToast(`Erfolgreich bereinigt! Alle Wettkämpfe vor dem ${cutoff} wurden gelöscht.`, "success");
-        loadAllEvents(); // Aktualisiert die Ansichten sofort
-        
+        loadAllEvents();
     } catch (err) {
         showToast("Fehler beim Löschen: " + err.message, "error");
     }
 }
-    // 1. Öffnet das Vorschau-Fenster und berechnet die Summe
-function openGauConfirmation() {
+
+// 1. Öffnet das Vorschau-Fenster und berechnet die Summe
+async function openGauConfirmation() {
     const checkedBoxes = Array.from(document.querySelectorAll('input[name="prof-disciplines"]:checked'));
     
     if (checkedBoxes.length === 0) {
-        if (!confirm("Du hast keine Disziplin ausgewählt. Möchtest du alle Meldungen für diese Person löschen?")) return;
+        const confirmed = await showConfirmModal(
+            "Du hast keine Disziplin ausgewählt. Möchtest du alle Meldungen für diese Person löschen?",
+            {
+                title: "Meldungen leeren",
+                confirmText: "Meldung leeren",
+                danger: true
+            }
+        );
+        if (!confirmed) return;
     }
 
     let totalSum = 0;
@@ -3802,7 +4085,6 @@ function openGauConfirmation() {
     if (checkedBoxes.length > 0) {
         listHtml = "<ul style='margin:0; padding-left:15px;'>" + checkedBoxes.map(cb => {
             const discName = cb.value;
-            // Finde den Preis aus der ALL_DISCIPLINES Liste
             const foundObj = ALL_DISCIPLINES.find(d => d.name === discName);
             const fee = foundObj ? foundObj.fee : 0;
             totalSum += fee;
@@ -3813,7 +4095,6 @@ function openGauConfirmation() {
         listHtml = "<i>Keine Disziplinen ausgewählt (Meldung wird geleert).</i>";
     }
 
-    // Name des Schützen ermitteln (falls im Admin/Funktionärs-Modus)
     let memberName = "dir";
     const memberSelect = document.getElementById('gau-member-select');
     if (memberSelect && memberSelect.style.display !== 'none' && window.gauProfilesCache) {
@@ -3825,26 +4106,22 @@ function openGauConfirmation() {
     document.getElementById('gau-modal-list').innerHTML = listHtml;
     document.getElementById('gau-modal-total').innerText = totalSum.toFixed(2).replace('.', ',') + " €";
     
-    // Modal anzeigen
     document.getElementById('gau-confirm-modal').style.display = 'flex';
 }
 
-// 2. Schließt das Vorschau-Fenster wieder ohne zu speichern
 function closeGauModal() {
     document.getElementById('gau-confirm-modal').style.display = 'none';
 }
 
-// 3. Führt das eigentliche Speichern in der Datenbank aus (wird aus dem Modal aufgerufen)
 async function executeGauSave() { 
     closeGauModal();
     const disciplines = Array.from(document.querySelectorAll('input[name="prof-disciplines"]:checked')).map(c=>c.value).join(', '); 
     const userIdToSave = targetGauUserId || currentUser.id;
 
-    const { error } = await sb.from('profiles').update({ disciplines: disciplines }).eq('id', userIdToSave); 
+    const { data, error } = await sb.from('profiles').update({ disciplines: disciplines }).eq('id', userIdToSave).select('id'); 
     
-  if (error) {
-        showToast("Fehler beim Speichern: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Gau-Meldung konnte nicht gespeichert werden (Berechtigung prüfen).");
         if (window.gauProfilesCache) {
             const p = window.gauProfilesCache.find(x => x.id === userIdToSave);
             if (p) p.disciplines = disciplines;
@@ -3852,24 +4129,26 @@ async function executeGauSave() {
         
         const isSelf = userIdToSave === currentUser.id;
         showToast(isSelf ? "Deine Meldung zur Gaumeisterschaft wurde erfolgreich gespeichert!" : "Meldung für das ausgewählte Mitglied erfolgreich gespeichert!", "success");
-    }
-   // Falls der User gerade sein eigenes Profil updatet, direkt die Ansicht im Profil aktualisieren
         if (userIdToSave === currentUser.id) {
             updateProfileDisciplineOverview(disciplines);
         }
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
     }
+}
 
 async function updateRegStatus(isOpen) {
-    const { error } = await sb.from('settings').upsert({ id: 1, is_reg_open: isOpen });
-    if (error) {
-        showToast("Fehler beim Umschalten: " + error.message, "error");
-        document.getElementById('admin-toggle-reg').checked = !isOpen; 
-    } else {
+    const { data, error } = await sb.from('settings').upsert({ id: 1, is_reg_open: isOpen }).select('id');
+    try {
+        requireAffectedRows(data, error, "Status konnte nicht gespeichert werden (Berechtigung prüfen).");
         isRegOpen = isOpen;
         const tabGau = document.getElementById('tab-gau');
         if (tabGau) tabGau.style.display = isOpen ? 'block' : 'none';
         if (!isOpen && document.getElementById('view-gau').style.display === 'block') switchTab('home');
         showToast(isOpen ? "Der Reiter 'Gau-Meldung' ist nun für alle sichtbar!" : "Die Meldung wurde geschlossen. Der Reiter ist verschwunden.", "info");
+    } catch (err) {
+        showToast("Fehler beim Umschalten: " + err.message, "error");
+        document.getElementById('admin-toggle-reg').checked = !isOpen; 
     }
 }
 
@@ -3883,30 +4162,35 @@ function renderDisciplineCheckboxes(sel) {
         </label>`;
     }).join(''); 
 }
-    async function clearAllGauMelungen() {
-    if (!confirm("Möchtest du wirklich ALLE Meisterschaftsmeldungen aller Schützen zurücksetzen? Dies kann nicht rückgängig gemacht werden!")) return;
+
+async function clearAllGauMelungen() {
+    const confirmed = await showConfirmModal(
+        "Möchtest du wirklich ALLE Meisterschaftsmeldungen aller Schützen zurücksetzen? Dies kann nicht rückgängig gemacht werden!",
+        {
+            title: "Alle Gau-Meldungen zurücksetzen",
+            confirmText: "Alle zurücksetzen",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
 
     try {
-        // Setzt das 'disciplines'-Feld in der Tabelle 'profiles' für alle User auf NULL/leer
         const { error } = await sb.from('profiles').update({ disciplines: null }).not('disciplines', 'is', null);
-        
-      if (error) throw error;
+        if (error) throw error;
         
         showToast("Alle Meisterschaftsmeldungen wurden erfolgreich zurückgesetzt.", "success");
-        loadAdmin(); // Admin-Ansicht sofort aktualisieren
-        
+        loadAdmin();
     } catch (err) {
         showToast("Fehler beim Zurücksetzen: " + err.message, "error");
     }
 }
 
-    let targetGauUserId = null; // Speichert, für welchen User gerade gemeldet wird
+let targetGauUserId = null;
 
 async function initGauTab() {
     const selectorContainer = document.getElementById('gau-admin-selector-container');
     if (!selectorContainer) return;
 
-    // Prüfen, ob der User Admin oder Funktionär ist
     if (isAdmin || isOfficial) {
         selectorContainer.style.display = 'block';
         const { data: profiles } = await sb.from('profiles').select('*').eq('is_approved', true).order('full_name');
@@ -3933,7 +4217,7 @@ function onGauMemberChange() {
     renderDisciplineCheckboxes(profile?.disciplines || "");
 }
 
-    function updateProfileDisciplineOverview(disciplinesStr) {
+function updateProfileDisciplineOverview(disciplinesStr) {
     const container = document.getElementById('profile-my-disciplines-list');
     const totalContainer = document.getElementById('profile-my-total-fee');
     if (!container || !totalContainer) return;
@@ -3959,11 +4243,10 @@ function onGauMemberChange() {
     totalContainer.innerText = totalFee.toFixed(2).replace('.', ',') + " €";
 }
 
-   async function toggleGauReported(userId, isReported) {
+async function toggleGauReported(userId, isReported) {
     let reporterName = "Funktionär";
 
     if (isReported) {
-        // Hol den echten Namen des aktuell eingeloggten Users aus der Tabelle 'profiles'
         const { data: myProfile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).maybeSingle();
         if (myProfile && myProfile.full_name) {
             reporterName = myProfile.full_name;
@@ -3978,31 +4261,32 @@ function onGauMemberChange() {
         gau_reported_by: null
     };
 
-    const { error } = await sb.from('profiles').update(payload).eq('id', userId);
+    const { data, error } = await sb.from('profiles').update(payload).eq('id', userId).select('id');
 
-    if (error) {
-    showToast("Fehler beim Aktualisieren: " + error.message, "error");
-    } else {
-        loadAdmin(); // Admin-Ansicht sofort neu laden
+    try {
+        requireAffectedRows(data, error, "Gau-Meldestatus konnte nicht aktualisiert werden (Berechtigung prüfen).");
+        loadAdmin();
+    } catch (err) {
+        showToast("Fehler beim Aktualisieren: " + err.message, "error");
     }
 }
 
-   async function updateStandStatus(isOpen) {
-    // Da wir id: 1 schon per upsert verwenden, übergeben wir den Wert
-    const { error } = await sb.from('settings').upsert({ id: 1, is_stand_open: isOpen });
-    if (error) {
-        showToast("Fehler beim Umschalten: " + error.message, "error");
-        document.getElementById('admin-toggle-stand').checked = !isOpen; 
-    } else {
+async function updateStandStatus(isOpen) {
+    const { data, error } = await sb.from('settings').upsert({ id: 1, is_stand_open: isOpen }).select('id');
+    try {
+        requireAffectedRows(data, error, "Status konnte nicht gespeichert werden (Berechtigung prüfen).");
         isStandOpen = isOpen;
         const standSection = document.getElementById('stand-fee-section');
         if (standSection) standSection.style.display = isOpen ? 'block' : 'none';
         
         showToast(isOpen ? "Die Standgebühr-Auswahl ist nun für alle im Profil sichtbar!" : "Die Standgebühr-Auswahl wurde geschlossen.", "info");
+    } catch (err) {
+        showToast("Fehler beim Umschalten: " + err.message, "error");
+        document.getElementById('admin-toggle-stand').checked = !isOpen; 
     }
 }
 
-    function getStandDetails(standKey, weaponKey) {
+function getStandDetails(standKey, weaponKey) {
     let standText = "Keine Nutzung";
     let standFee = 0;
 
@@ -4025,7 +4309,6 @@ function onGauMemberChange() {
     };
 }
 
-    // Schaltet die Eingabefelder je nach Modus um und füllt das Mannschafts-Dropdown
 function toggleCleanupMode() {
     const modeSelect = document.getElementById('cleanup-mode');
     if (!modeSelect) return;
@@ -4035,11 +4318,7 @@ function toggleCleanupMode() {
     const boxTeam = document.getElementById('cleanup-box-team');
     
     if (boxDate) boxDate.style.display = (mode === 'date') ? 'block' : 'none';
-    
-    // WICHTIG: Hier wird das Container-Div eingeblendet
-    if (boxTeam) {
-        boxTeam.style.display = (mode === 'team') ? 'block' : 'none';
-    }
+    if (boxTeam) boxTeam.style.display = (mode === 'team') ? 'block' : 'none';
 
     if (mode === 'team') {
         initCleanupTeams();
@@ -4054,16 +4333,13 @@ async function initCleanupTeams() {
         const { data: teamData, error } = await sb.from('teams').select('name').order('id');
         if (error) throw error;
 
-        // 1. Feld komplett leeren
         select.options.length = 0;
 
-        // 2. Platzhalter-Option hinzufügen
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = '-- Bitte Mannschaft wählen --';
         select.appendChild(defaultOption);
 
-        // 3. Teams als echte DOM-Elemente anhängen
         if (teamData && teamData.length > 0) {
             teamData.forEach(t => {
                 const opt = document.createElement('option');
@@ -4075,73 +4351,93 @@ async function initCleanupTeams() {
             });
         }
 
-        // 4. Styles direkt erzwingen
         select.style.color = '#000000';
         select.style.backgroundColor = '#ffffff';
         select.style.height = '45px';
         select.style.display = 'block';
-
     } catch (err) {
         console.error("Fehler beim Befüllen des Teams-Dropdowns:", err);
     }
 }
 
-    
-// Führt die eigentliche Löschung in Supabase aus
 async function executeTournamentCleanup() {
     const mode = document.getElementById('cleanup-mode').value;
 
-   if (mode === 'date') {
-    const dateLimit = document.getElementById('cleanup-date').value;
-    if (!dateLimit) {
-        showToast("Bitte wähle ein Datum aus.", "error");
-        return;
-    }
+    if (mode === 'date') {
+        const dateLimit = document.getElementById('cleanup-date').value;
+        if (!dateLimit) {
+            showToast("Bitte wähle ein Datum aus.", "error");
+            return;
+        }
 
-    if (!confirm(`Möchtest du wirklich alle Turniere vor dem ${dateLimit} löschen?`)) return;
+        const confirmed = await showConfirmModal(
+            `Möchtest du wirklich alle Turniere vor dem ${dateLimit} löschen?`,
+            {
+                title: "Turniere nach Datum bereinigen",
+                detailsHtml: `<strong>Stichtag:</strong> vor ${dateLimit}`,
+                confirmText: "Bereinigen",
+                danger: true
+            }
+        );
+        if (!confirmed) return;
 
-    const { error } = await sb.from('tournaments').delete().lt('date', dateLimit);
-    if (error) {
-        showToast("Fehler beim Löschen: " + error.message, "error");
-    } else {
-        showToast("Vergangene Turniere wurden erfolgreich gelöscht.", "success");
-        loadAllEvents();
-        if (typeof loadAdmin === 'function') loadAdmin();
-    }
+        const { error } = await sb.from('tournaments').delete().lt('date', dateLimit);
+        if (error) {
+            showToast("Fehler beim Löschen: " + error.message, "error");
+        } else {
+            showToast("Vergangene Turniere wurden erfolgreich gelöscht.", "success");
+            loadAllEvents();
+            if (typeof loadAdmin === 'function') loadAdmin();
+        }
+    } else if (mode === 'team') {
+        const selectedTeam = document.getElementById('cleanup-team-select').value;
+        if (!selectedTeam) {
+            showToast("Bitte wähle eine Mannschaft aus.", "error");
+            return;
+        }
 
-} else if (mode === 'team') {
-    const selectedTeam = document.getElementById('cleanup-team-select').value;
-    if (!selectedTeam) {
-        showToast("Bitte wähle eine Mannschaft aus.", "error");
-        return;
-    }
+        const confirmed = await showConfirmModal(
+            `Möchtest du wirklich alle Turniere der Mannschaft "${selectedTeam}" löschen?`,
+            {
+                title: "Mannschafts-Turniere löschen",
+                detailsHtml: `<strong>Mannschaft:</strong> ${selectedTeam}`,
+                confirmText: "Turniere löschen",
+                danger: true
+            }
+        );
+        if (!confirmed) return;
 
-    if (!confirm(`Möchtest du wirklich alle Turniere der Mannschaft "${selectedTeam}" löschen?`)) return;
+        const { error } = await sb.from('tournaments').delete().eq('team', selectedTeam);
+        if (error) {
+            showToast("Fehler beim Löschen: " + error.message, "error");
+        } else {
+            showToast(`Alle Turniere der Mannschaft "${selectedTeam}" wurden erfolgreich gelöscht.`, "success");
+            loadAllEvents();
+            if (typeof loadAdmin === 'function') loadAdmin();
+        }
+    } else if (mode === 'all_teams') {
+        const confirmed = await showConfirmModal(
+            "SICHERHEITSHINWEIS: Möchtest du wirklich ALLE Turniere ALLER Mannschaften unwiderruflich löschen?",
+            {
+                title: "Gesamten Turnierplan löschen",
+                confirmText: "Alles löschen",
+                danger: true
+            }
+        );
+        if (!confirmed) return;
 
-    const { error } = await sb.from('tournaments').delete().eq('team', selectedTeam);
-    if (error) {
-        showToast("Fehler beim Löschen: " + error.message, "error");
-    } else {
-        showToast(`Alle Turniere der Mannschaft "${selectedTeam}" wurden erfolgreich gelöscht.`, "success");
-        loadAllEvents();
-        if (typeof loadAdmin === 'function') loadAdmin();
-    }
-
-} else if (mode === 'all_teams') {
-    if (!confirm("SICHERHEITSHINWEIS: Möchtest du wirklich ALLE Turniere ALLER Mannschaften unwiderruflich löschen?")) return;
-
-    const { error } = await sb.from('tournaments').delete().neq('id', 0);
-    if (error) {
-        showToast("Fehler beim Löschen: " + error.message, "error");
-    } else {
-        showToast("Der gesamte Turnierplan wurde komplett geleert.", "success");
-        loadAllEvents();
-        if (typeof loadAdmin === 'function') loadAdmin();
+        const { error } = await sb.from('tournaments').delete().neq('id', 0);
+        if (error) {
+            showToast("Fehler beim Löschen: " + error.message, "error");
+        } else {
+            showToast("Der gesamte Turnierplan wurde komplett geleert.", "success");
+            loadAllEvents();
+            if (typeof loadAdmin === 'function') loadAdmin();
+        }
     }
 }
-}
 
-   // ==========================================
+// ==========================================
 // 1. ZENTRALE TOAST-BENACHRICHTIGUNG
 // ==========================================
 function showToast(message, type = 'success') {
@@ -4162,70 +4458,65 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
-
 // ==========================================
 // 2. PROFIL- & MEISTERMELDUNG-SPEICHERN
 // ==========================================
-
-// Profil-Daten (Name, Mannschaft etc.) speichern
 async function saveProfileData() {
     const fullName = document.getElementById('pf-fullname')?.value.trim();
     const team = document.getElementById('pf-team')?.value;
 
     if (!fullName) return showToast("Bitte gib deinen vollständigen Namen ein.", "error");
 
-    const { error } = await sb.from('profiles').update({ 
+    const { data, error } = await sb.from('profiles').update({ 
         full_name: fullName, 
         team: team 
-    }).eq('id', currentUser.id);
+    }).eq('id', currentUser.id).select('id');
 
-    if (error) {
-        showToast("Fehler beim Speichern des Profils: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Profil konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast("Profildaten erfolgreich aktualisiert!", "success");
+    } catch (err) {
+        showToast("Fehler beim Speichern des Profils: " + err.message, "error");
     }
 }
 
-// Gau-Disziplinen im Profil speichern
 async function saveDisciplineSelection() {
     const checked = Array.from(document.querySelectorAll('.disc-checkbox:checked')).map(c => c.value);
     const disciplinesString = checked.join(', ');
 
-    const { error } = await sb.from('profiles').update({ 
+    const { data, error } = await sb.from('profiles').update({ 
         disciplines: disciplinesString,
         gau_reported_at: new Date().toISOString()
-    }).eq('id', currentUser.id);
+    }).eq('id', currentUser.id).select('id');
 
-    if (error) {
-        showToast("Fehler beim Speichern der Gau-Meldung: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Gau-Meldung konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast("Meisterschaftsmeldung erfolgreich gespeichert!", "success");
+    } catch (err) {
+        showToast("Fehler beim Speichern der Gau-Meldung: " + err.message, "error");
     }
 }
 
-// Standgebühr & Vereinswaffen im Profil speichern
 async function saveStandFeeSelection() {
     const stand = document.getElementById('pf-stand-select')?.value;
     const weapon = document.getElementById('pf-weapon-select')?.value;
 
-    const { error } = await sb.from('profiles').update({
+    const { data, error } = await sb.from('profiles').update({
         shooting_stand: stand,
         club_weapon: weapon
-    }).eq('id', currentUser.id);
+    }).eq('id', currentUser.id).select('id');
 
-    if (error) {
-        showToast("Fehler beim Speichern der Standgebühren: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Standgebühren konnten nicht gespeichert werden (Berechtigung prüfen).");
         showToast("Standgebühr & Vereinswaffen gespeichert!", "success");
+    } catch (err) {
+        showToast("Fehler beim Speichern der Standgebühren: " + err.message, "error");
     }
 }
-
 
 // ==========================================
 // 3. ARBEITSSTUNDEN LOGIK
 // ==========================================
-
-// Neue Arbeitsstunden beantragen
 async function submitWorkHours(event) {
     if (event) event.preventDefault();
     
@@ -4237,41 +4528,39 @@ async function submitWorkHours(event) {
         return showToast("Bitte Datum, gültige Stundenanzahl und Beschreibung angeben.", "error");
     }
 
-    const { error } = await sb.from('work_hours').insert([{
+    const { data, error } = await sb.from('work_hours').insert([{
         user_id: currentUser.id,
         date: date,
         duration: duration,
         description: description,
         status: 'pending'
-    }]);
+    }]).select('id');
 
-    if (error) {
-        showToast("Fehler beim Eintragen: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Arbeitsstunden konnten nicht gespeichert werden.");
         showToast("Arbeitsstunden erfolgreich beantragt!", "success");
         if (typeof loadUserHours === 'function') loadUserHours();
+    } catch (err) {
+        showToast("Fehler beim Eintragen: " + err.message, "error");
     }
 }
 
-// Admin: Arbeitsstunden genehmigen oder ablehnen
 async function updateWorkHourStatus(hourId, newStatus) {
-    const { error } = await sb.from('work_hours').update({ status: newStatus }).eq('id', hourId);
+    const { data, error } = await sb.from('work_hours').update({ status: newStatus }).eq('id', hourId).select('id');
 
-    if (error) {
-        showToast("Fehler beim Aktualisieren des Status: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Status konnte nicht aktualisiert werden (Berechtigung prüfen).");
         const text = newStatus === 'approved' ? 'Stunden genehmigt!' : 'Stunden abgelehnt.';
         showToast(text, newStatus === 'approved' ? 'success' : 'info');
         if (typeof loadAdmin === 'function') loadAdmin();
+    } catch (err) {
+        showToast("Fehler beim Aktualisieren des Status: " + err.message, "error");
     }
 }
-
 
 // ==========================================
 // 4. FAHRTENBUCH LOGIK
 // ==========================================
-
-// Fahrtenbuch-Eintrag speichern / aktualisieren
 async function saveMileageEntry(event) {
     if (event) event.preventDefault();
 
@@ -4285,62 +4574,51 @@ async function saveMileageEntry(event) {
 
     let result;
     if (currentMileageEditId) {
-        result = await sb.from('mileage_logs').update({ date, purpose, distance }).eq('id', currentMileageEditId);
+        result = await sb.from('mileage_logs').update({ date, purpose, distance }).eq('id', currentMileageEditId).select('id');
     } else {
-        result = await sb.from('mileage_logs').insert([{ user_id: currentUser.id, date, purpose, distance }]);
+        result = await sb.from('mileage_logs').insert([{ user_id: currentUser.id, date, purpose, distance }]).select('id');
     }
 
-    if (result.error) {
-        showToast("Fehler beim Speichern der Fahrt: " + result.error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(result?.data, result?.error, "Fahrt konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast(currentMileageEditId ? "Fahrt aktualisiert!" : "Fahrt erfolgreich eingetragen!", "success");
         currentMileageEditId = null;
         if (typeof resetMileageForm === 'function') resetMileageForm();
         if (typeof loadMileageHistory === 'function') loadMileageHistory();
+    } catch (err) {
+        showToast("Fehler beim Speichern der Fahrt: " + err.message, "error");
     }
 }
 
-// Fahrtenbuch-Eintrag löschen
 async function deleteMileageEntry(id) {
-    if (!confirm("Möchtest du diese Fahrt wirklich löschen?")) return;
-
-    const { error } = await sb.from('mileage_logs').delete().eq('id', id);
-    if (error) {
-        showToast("Fehler beim Löschen: " + error.message, "error");
-    } else {
-        showToast("Fahrt gelöscht.", "info");
-        if (typeof loadMileageHistory === 'function') loadMileageHistory();
-    }
+    await deleteMileage(id);
 }
-
 
 // ==========================================
 // 5. TRAININGS-ESSEN LOGIK
 // ==========================================
-
-// Bestellung abschicken / aktualisieren
 async function submitMealOrder(event, mealId) {
     if (event) event.preventDefault();
 
     const portions = parseInt(document.getElementById(`portions-${mealId}`)?.value || 1);
     const remarks = document.getElementById(`remarks-${mealId}`)?.value.trim() || '';
 
-    const { error } = await sb.from('meal_orders').upsert({
+    const { data, error } = await sb.from('meal_orders').upsert({
         meal_id: mealId,
         user_id: currentUser.id,
         portions: portions,
         remarks: remarks
-    }, { onConflict: 'meal_id,user_id' });
+    }, { onConflict: 'meal_id,user_id' }).select('id');
 
-    if (error) {
-        showToast("Fehler beim Speichern: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Bestellung konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast("Bestellung erfolgreich gespeichert!", "success");
         if (typeof loadMealsView === 'function') loadMealsView();
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
     }
 }
 
-// Echtzeit-Suche für die Mitglieder-Verwaltung im Admin-Bereich
 function filterAdminMembers() {
     const input = document.getElementById('admin-member-search');
     if (!input) return;
@@ -4348,7 +4626,6 @@ function filterAdminMembers() {
     const rows = document.querySelectorAll('#admin-member-table-list > tr');
 
     rows.forEach(row => {
-        // Unterzeilen für Details überspringen
         if (row.id && row.id.startsWith('details-')) return;
         
         const nameCell = row.cells[0];
@@ -4360,7 +4637,6 @@ function filterAdminMembers() {
     });
 }
 
-    // Hilfsfunktion zum Erstellen und Herunterladen von CSV-Dateien (mit Excel UTF-8 BOM)
 function downloadCSV(filename, csvContent) {
     const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -4372,12 +4648,11 @@ function downloadCSV(filename, csvContent) {
     document.body.removeChild(link);
 }
 
-// 1. CSV-Export: Arbeitsstunden
 async function exportHoursCSV() {
     const selectedYear = getSelectedYear('admin-year-filter', new Date().getFullYear());
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const { data: allHours } = await sb.from('work_hours').select('*').eq('status', 'approved');
-    const hours = (allHours || []).filter(h => getItemYear(h.date) === selectedYear);
+    const hours = (allHours || []).filter(h => h.is_deleted !== true && getItemYear(h.date) === selectedYear);
 
     if (!profs) return showToast("Keine Profile gefunden", "error");
 
@@ -4407,7 +4682,6 @@ async function exportHoursCSV() {
     showToast(`Stunden-CSV (${selectedYear}) erfolgreich heruntergeladen!`);
 }
 
-// 2. CSV-Export: Standgebühren & Vereinswaffen
 async function exportStandFeeCSV() {
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
     const standMeldungen = profs ? profs.filter(p => p.is_approved && ((p.shooting_stand && p.shooting_stand !== "keiner") || (p.club_weapon && p.club_weapon !== "keine"))) : [];
@@ -4425,7 +4699,6 @@ async function exportStandFeeCSV() {
     showToast("Standgebühren-CSV erfolgreich heruntergeladen!");
 }
 
-// 3. Admin-Statistik im Arbeitsstunden-Ordner aktualisieren
 async function onAdminYearChange() {
     if (typeof updateAdminStatsDashboard === 'function') {
         await updateAdminStatsDashboard();
@@ -4437,12 +4710,13 @@ async function updateAdminStatsDashboard() {
     if (!target) return;
 
     const { data: profs } = await sb.from('profiles').select('*').eq('is_approved', true);
-    const { data: allHours } = await sb.from('work_hours').select('duration, user_id, date').eq('status', 'approved');
+    const { data: allHours } = await sb.from('work_hours').select('duration, user_id, date, is_deleted').eq('status', 'approved');
 
     if (!profs || !allHours) return;
 
-    const selectedYear = populateYearSelect('admin-year-filter', allHours.map(h => h.date), new Date().getFullYear());
-    const hours = allHours.filter(h => getItemYear(h.date) === selectedYear);
+    const cleanHours = allHours.filter(h => h.is_deleted !== true);
+    const selectedYear = populateYearSelect('admin-year-filter', cleanHours.map(h => h.date), new Date().getFullYear());
+    const hours = cleanHours.filter(h => getItemYear(h.date) === selectedYear);
 
     const totalMembers = profs.length;
     let fulfilledMembers = 0;
@@ -4475,94 +4749,34 @@ async function updateAdminStatsDashboard() {
     `;
 }
 
-// Befüllt das Formular mit den Daten des ausgewählten Essens
-async function editMeal(mealId) {
-    const { data: meal, error } = await sb
-        .from('meals')
-        .select('*')
-        .eq('id', mealId)
-        .single();
+async function softDeleteItem(table, id, successMsg = "In den Papierkorb verschoben.", detailsHtml = "") {
+    const confirmed = await showConfirmModal(
+        "Möchtest du diesen Eintrag wirklich in den Papierkorb verschieben?",
+        {
+            title: "In Papierkorb verschieben",
+            detailsHtml,
+            confirmText: "In Papierkorb",
+            danger: true
+        }
+    );
+    if (!confirmed) return false;
 
-    if (error || !meal) {
-        showToast("Fehler beim Laden der Essensdaten: " + (error?.message || "Nicht gefunden"), "error");
-        return;
-    }
-
-    // Felder befüllen
-    document.getElementById('admin-meal-id').value = meal.id;
-    document.getElementById('admin-meal-title').value = meal.title || '';
-    document.getElementById('admin-meal-date').value = meal.date || '';
-    document.getElementById('admin-meal-price').value = meal.price || 0;
-    
-    // Beschreibung korrekt in das eindeutige Feld laden
-    const descEl = document.getElementById('admin-meal-description');
-    if (descEl) descEl.value = meal.description || '';
-
-    document.getElementById('admin-meal-form-title').innerText = "Essen bearbeiten";
-    document.getElementById('admin-meal-deadline').value = formatForDateTimeInput(meal.deadline);
-
-    // Buttons anpassen
-    const saveBtn = document.getElementById('admin-meal-submit-btn');
-    const cancelBtn = document.getElementById('btn-cancel-meal-edit');
-    if (saveBtn) saveBtn.innerText = "Essen aktualisieren";
-    if (cancelBtn) cancelBtn.style.display = "inline-block";
-
-    // Sanft zum Formular scrollen
-    document.getElementById('admin-meal-title')?.scrollIntoView({ behavior: 'smooth' });
-}
-
-// Setzt das Formular wieder auf den Modus "Neu anlegen" zurück
-function resetMealForm() {
-    document.getElementById('admin-meal-id').value = "";
-    document.getElementById('admin-meal-title').value = "";
-    document.getElementById('admin-meal-date').value = "";
-    document.getElementById('admin-meal-price').value = "";
-    document.getElementById('admin-meal-deadline').value = "";
-    
-    const descEl = document.getElementById('admin-meal-description');
-    if (descEl) descEl.value = "";
-
-    document.getElementById('admin-meal-form-title').innerText = "Neues Essen anbieten";
-
-    const saveBtn = document.getElementById('admin-meal-submit-btn');
-    const cancelBtn = document.getElementById('btn-cancel-meal-edit');
-    if (saveBtn) saveBtn.innerText = "Essen veröffentlichen";
-    if (cancelBtn) cancelBtn.style.display = "none";
-}
-
-    // Universelle Soft-Delete Funktion für jede beliebige Tabelle
-async function softDeleteItem(table, id, successMsg = "In den Papierkorb verschoben.") {
-    if (!confirm("Möchtest du diesen Eintrag wirklich in den Papierkorb verschieben?")) return false;
-
-    const { error } = await sb
+    const { data, error } = await sb
         .from(table)
         .update({ is_deleted: true })
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
 
-    if (error) {
-        showToast("Fehler beim Löschen: " + error.message, "error");
+    try {
+        requireAffectedRows(data, error, "Eintrag konnte nicht in den Papierkorb verschoben werden (Berechtigung / Spalte is_deleted prüfen).");
+        showToast(successMsg, "info");
+        return true;
+    } catch (err) {
+        showToast("Fehler beim Löschen: " + err.message, "error");
         return false;
     }
-
-    showToast(successMsg, "info");
-    return true;
 }
 
-// ---------------------------------------------------------------------
-// Angepasste Löschfunktionen für die einzelnen Bereiche
-// ---------------------------------------------------------------------
-
-// 🍲 ESSEN LÖSCHEN
-async function deleteMeal(mealId) {
-    const success = await softDeleteItem('meals', mealId, "Essen in den Papierkorb verschoben.");
-    if (success) {
-        loadAdminMeals();
-        if (typeof loadMealsView === 'function') loadMealsView();
-        if (typeof loadTrash === 'function') loadTrash();
-    }
-}
-
-// 🎯 TURNIERE LÖSCHEN
 async function deleteTournament(tournamentId) {
     const success = await softDeleteItem('tournaments', tournamentId, "Turnier in den Papierkorb verschoben.");
     if (success) {
@@ -4572,7 +4786,6 @@ async function deleteTournament(tournamentId) {
     }
 }
 
-// 📅 KALENDER-EVENTS LÖSCHEN
 async function deleteCalendarEvent(eventId) {
     const success = await softDeleteItem('calendar_events', eventId, "Termin in den Papierkorb verschoben.");
     if (success) {
@@ -4581,16 +4794,11 @@ async function deleteCalendarEvent(eventId) {
     }
 }
 
-// ⏱️ ARBEITSZEITEN / FAHRTEN LÖSCHEN
 async function deleteWorkHour(id) {
-    const success = await softDeleteItem('work_hours', id, "Eintrag in den Papierkorb verschoben.");
-    if (success) {
-        if (typeof loadWorkHours === 'function') loadWorkHours();
-        if (typeof loadTrash === 'function') loadTrash();
-    }
+    await deleteWork(id);
 }
 
-    // Lädt alle gelöschten Elemente im Admin-Bereich
+// Lädt alle gelöschten Elemente im Admin-Bereich (inkl. Stunden & Fahrtenbuch)
 async function loadTrash() {
     if (!isAdmin) return;
     const container = document.getElementById('admin-trash-list');
@@ -4598,22 +4806,36 @@ async function loadTrash() {
 
     container.innerHTML = "<p>Lade Papierkorb...</p>";
 
-    // Parallele Abfrage aller relevanten Tabellen
     const [
         { data: deletedMeals },
         { data: deletedTournaments },
-        { data: deletedEvents }
+        { data: deletedEvents },
+        { data: deletedHours },
+        { data: deletedMileage },
+        { data: profilesData }
     ] = await Promise.all([
         sb.from('meals').select('*').eq('is_deleted', true),
         sb.from('tournaments').select('*').eq('is_deleted', true),
-        sb.from('calendar_events').select('*').eq('is_deleted', true)
+        sb.from('calendar_events').select('*').eq('is_deleted', true),
+        sb.from('work_hours').select('*').eq('is_deleted', true).order('date', { ascending: false }),
+        sb.from('mileage_logs').select('*').eq('is_deleted', true).order('date', { ascending: false }),
+        sb.from('profiles').select('id, full_name')
     ]);
 
     const meals = deletedMeals || [];
     const tournaments = deletedTournaments || [];
     const events = deletedEvents || [];
+    const hours = deletedHours || [];
+    const mileage = deletedMileage || [];
+    const profileMap = new Map((profilesData || []).map(p => [p.id, p.full_name || 'Mitglied']));
 
-    if (meals.length === 0 && tournaments.length === 0 && events.length === 0) {
+    if (
+        meals.length === 0 &&
+        tournaments.length === 0 &&
+        events.length === 0 &&
+        hours.length === 0 &&
+        mileage.length === 0
+    ) {
         container.innerHTML = "<p style='color:#777; font-style:italic;'>Der Papierkorb ist leer.</p>";
         return;
     }
@@ -4622,12 +4844,12 @@ async function loadTrash() {
 
     // 1. Gelöschte Essen
     meals.forEach(m => {
-        const dateStr = new Date(m.date).toLocaleDateString('de-DE');
+        const dateStr = m.date ? new Date(m.date).toLocaleDateString('de-DE') : '-';
         html += `
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
+            <li style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
                 <div>
                     <strong>🍲 [Essen] ${m.title}</strong><br>
-                    <small style="color:#666;">Termin: ${dateStr} | Preis: ${parseFloat(m.price).toFixed(2).replace('.', ',')} €</small>
+                    <small style="color:#666;">Termin: ${dateStr} | Preis: ${parseFloat(m.price || 0).toFixed(2).replace('.', ',')} €</small>
                 </div>
                 <div style="display:flex; gap:6px;">
                     <button onclick="restoreItem('meals', '${m.id}')" style="background:#2e7d32; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
@@ -4642,12 +4864,12 @@ async function loadTrash() {
 
     // 2. Gelöschte Turniere
     tournaments.forEach(t => {
-        const dateStr = new Date(t.date).toLocaleDateString('de-DE');
+        const dateStr = t.date ? new Date(t.date).toLocaleDateString('de-DE') : '-';
         html += `
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
+            <li style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
                 <div>
-                    <strong>🎯 [Turnier] ${t.title || t.team}</strong><br>
-                    <small style="color:#666;">Datum: ${dateStr}</small>
+                    <strong>🎯 [Turnier] ${t.opponent || t.title || t.team}</strong><br>
+                    <small style="color:#666;">Team: ${t.team || '-'} | Datum: ${dateStr}</small>
                 </div>
                 <div style="display:flex; gap:6px;">
                     <button onclick="restoreItem('tournaments', '${t.id}')" style="background:#2e7d32; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
@@ -4662,9 +4884,9 @@ async function loadTrash() {
 
     // 3. Gelöschte Kalender-Termine
     events.forEach(e => {
-        const dateStr = new Date(e.date).toLocaleDateString('de-DE');
+        const dateStr = e.date ? new Date(e.date).toLocaleDateString('de-DE') : '-';
         html += `
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
+            <li style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
                 <div>
                     <strong>📅 [Termin] ${e.title}</strong><br>
                     <small style="color:#666;">Datum: ${dateStr}</small>
@@ -4680,56 +4902,111 @@ async function loadTrash() {
             </li>`;
     });
 
+    // 4. Gelöschte Arbeitsstunden
+    hours.forEach(h => {
+        const dateStr = h.date ? new Date(h.date).toLocaleDateString('de-DE') : '-';
+        const memberName = profileMap.get(h.user_id) || 'Mitglied';
+        html += `
+            <li style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
+                <div>
+                    <strong>⏱️ [Stunden] ${memberName} – ${h.duration}h</strong><br>
+                    <small style="color:#666;">Datum: ${dateStr} | ${h.description || '-'}</small>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="restoreItem('work_hours', '${h.id}')" style="background:#2e7d32; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        ↩️ Wiederherstellen
+                    </button>
+                    <button onclick="permanentlyDeleteItem('work_hours', '${h.id}')" style="background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        🔥 Endgültig löschen
+                    </button>
+                </div>
+            </li>`;
+    });
+
+    // 5. Gelöschte Fahrtenbuch-Einträge
+    mileage.forEach(m => {
+        const dateStr = m.date ? new Date(m.date).toLocaleDateString('de-DE') : '-';
+        const memberName = profileMap.get(m.user_id) || 'Mitglied';
+        const kmStr = `${parseFloat(m.distance_total ?? m.distance ?? 0).toFixed(2).replace('.', ',')} km`;
+        const routeStr = (m.start_location || m.end_location) ? ` (${m.start_location || '-'} → ${m.end_location || '-'})` : '';
+        html += `
+            <li style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid #ddd; background:#fff; border-radius:6px;">
+                <div>
+                    <strong>🚗 [Fahrt] ${memberName} – ${kmStr}</strong><br>
+                    <small style="color:#666;">Datum: ${dateStr} | ${m.purpose || '-'}${routeStr}</small>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="restoreItem('mileage_logs', '${m.id}')" style="background:#2e7d32; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        ↩️ Wiederherstellen
+                    </button>
+                    <button onclick="permanentlyDeleteItem('mileage_logs', '${m.id}')" style="background:#d32f2f; color:white; border:none; padding:6px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+                        🔥 Endgültig löschen
+                    </button>
+                </div>
+            </li>`;
+    });
+
     html += '</ul>';
     container.innerHTML = html;
 }
 
-// Stellt ein Gelöschtes Element wieder her (is_deleted = false)
 async function restoreItem(table, id) {
-    const { error } = await sb
+    const { data, error } = await sb
         .from(table)
         .update({ is_deleted: false })
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
 
-    if (error) {
-        showToast("Fehler beim Wiederherstellen: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Eintrag konnte nicht wiederhergestellt werden (Berechtigung prüfen).");
         showToast("Eintrag erfolgreich wiederhergestellt!", "success");
         loadTrash();
         
-        // Aktualisiert alle betroffenen Ansichten
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
         if (typeof loadMealsView === 'function') loadMealsView();
         if (typeof loadAllEvents === 'function') loadAllEvents();
         if (typeof loadCalendar === 'function') loadCalendar();
+        if (typeof loadHistory === 'function') loadHistory();
+        if (typeof loadMileageHistory === 'function') loadMileageHistory();
+        if (typeof loadAdmin === 'function') loadAdmin();
+    } catch (err) {
+        showToast("Fehler beim Wiederherstellen: " + err.message, "error");
     }
 }
 
-// Endgültiges Löschen aus der Datenbank (NUR FÜR ADMINS RECHTSSICHER GESCHÜTZT)
 async function permanentlyDeleteItem(table, id) {
     if (!isAdmin) {
         showToast("Zugriff verweigert: Nur Administratoren dürfen Einträge endgültig löschen!", "error");
         return;
     }
 
-    if (!confirm("SICHERHEITSHINWEIS: Möchtest du diesen Eintrag wirklich UNWIDERRUFLICH aus der Datenbank löschen?")) {
-        return;
-    }
+    const confirmed = await showConfirmModal(
+        "SICHERHEITSHINWEIS: Möchtest du diesen Eintrag wirklich UNWIDERRUFLICH aus der Datenbank löschen?",
+        {
+            title: "Endgültig löschen",
+            detailsHtml: `<strong>Tabelle:</strong> ${table}<br><strong>Eintrag-ID:</strong> ${id}`,
+            confirmText: "Unwiderruflich löschen",
+            danger: true
+        }
+    );
+    if (!confirmed) return;
 
-    const { error } = await sb
+    const { data, error } = await sb
         .from(table)
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
 
-    if (error) {
-        showToast("Fehler beim endgültigen Löschen: " + error.message, "error");
-    } else {
+    try {
+        requireAffectedRows(data, error, "Eintrag konnte nicht endgültig gelöscht werden (Berechtigung / RLS prüfen).");
         showToast("Eintrag unwiderruflich gelöscht.", "success");
         loadTrash();
+    } catch (err) {
+        showToast("Fehler beim endgültigen Löschen: " + err.message, "error");
     }
 }
 
-    function getItemYear(dateStr) {
+function getItemYear(dateStr) {
     if (!dateStr) return null;
     const match = String(dateStr).match(/^(\d{4})/);
     if (match) return parseInt(match[1], 10);
@@ -4768,7 +5045,6 @@ function getSelectedYear(selectId, fallback = new Date().getFullYear()) {
     return isNaN(parsed) ? fallback : parsed;
 }
 
-    // Ab dem 01.01.2027 zählt in der Mitglieder-Verwaltung nur noch das neue Jahr (Start bei 0h)
 const HOURS_CUTOFF_DATE = '2027-01-01';
 
 function getMemberAdminHours(hoursData, userId, referenceDate = new Date()) {
@@ -4779,7 +5055,7 @@ function getMemberAdminHours(hoursData, userId, referenceDate = new Date()) {
 
     return hoursData
         .filter(h => {
-            if (h.user_id !== userId || h.status !== 'approved') return false;
+            if (h.user_id !== userId || h.status !== 'approved' || h.is_deleted === true) return false;
             if (isAfterCutoff) {
                 return String(h.date || '') >= HOURS_CUTOFF_DATE;
             }
