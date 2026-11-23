@@ -5,9 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hubertus Stunden & Kalender Pro</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2e7d32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Hubertus App">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <button id="btn-install-pwa" onclick="installPWA()" style="display:none; background:#2e7d32; color:white; border:none; padding:10px 14px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%; margin:10px 0;">
+        📲 App auf Startbildschirm installieren
+    </button>
     
 <style>
     :root { 
@@ -5070,6 +5082,76 @@ function getMemberAdminHours(hoursData, userId, referenceDate = new Date()) {
             return true;
         })
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
+}
+
+    // --- PWA INSTALLATION & SERVICE WORKER ---
+let deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+            console.warn('Service Worker Registrierung fehlgeschlagen:', err);
+        });
+    });
+}
+
+function isRunningStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function isIosDevice() {
+    return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+}
+
+// Android / Chrome / Edge: Browser-Installations-Event abfangen
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const installBtn = document.getElementById('btn-install-pwa');
+    if (installBtn && !isRunningStandalone()) {
+        installBtn.style.display = 'block';
+    }
+});
+
+// Nach erfolgreicher Installation Button wieder ausblenden
+window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    const installBtn = document.getElementById('btn-install-pwa');
+    if (installBtn) installBtn.style.display = 'none';
+    if (typeof showToast === 'function') {
+        showToast("App wurde erfolgreich installiert!", "success");
+    }
+});
+
+// Auf iPhone/iPad (Safari) Button ebenfalls anzeigen, falls noch nicht installiert
+window.addEventListener('DOMContentLoaded', () => {
+    const installBtn = document.getElementById('btn-install-pwa');
+    if (installBtn && isIosDevice() && !isRunningStandalone()) {
+        installBtn.style.display = 'block';
+    }
+});
+
+async function installPWA() {
+    if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        if (outcome === 'accepted') {
+            deferredInstallPrompt = null;
+            const installBtn = document.getElementById('btn-install-pwa');
+            if (installBtn) installBtn.style.display = 'none';
+        }
+    } else if (isIosDevice()) {
+        const msg = "So installierst du die App auf dem iPhone/iPad:\n\n1. Unten in Safari auf das Teilen-Symbol (Quadrat mit Pfeil nach oben) tippen.\n2. Nach unten scrollen und „Zum Home-Bildschirm“ auswählen.\n3. Oben rechts auf „Hinzufügen“ tippen.";
+        if (typeof showConfirmModal === 'function') {
+            await showConfirmModal(msg, {
+                title: "App auf iPhone / iPad installieren",
+                confirmText: "Verstanden",
+                cancelText: "Schließen"
+            });
+        } else {
+            alert(msg);
+        }
+    }
 }
   
 </script>
