@@ -16,10 +16,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
-<body>
-    <button id="btn-install-pwa" onclick="installPWA()" style="display:none; background:#2e7d32; color:white; border:none; padding:10px 14px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%; margin:10px 0;">
-        📲 App auf Startbildschirm installieren
-    </button>
     
 <style>
     :root { 
@@ -677,49 +673,64 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     </table>
 </div>
 
-        <!-- PROFIL VIEW -->
+      <!-- PROFIL VIEW -->
         <div id="view-profile" style="display:none;">
             <h3>Profil</h3>
             <input type="text" id="prof-name" placeholder="Name">
             <div id="team-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:15px; border:1px solid #ddd; border-radius:8px;"></div>
             <hr>
             <!-- NEUES INFO-FENSTER IM PROFIL -->
-    <div style="margin-top: 25px; padding: 15px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
-        <h4 style="margin-top: 0; color: var(--blue);">🎯 Meine Meldung zur Gaumeisterschaft</h4>
-        <div id="profile-my-disciplines-list" style="font-size: 14px; margin-bottom: 10px;">
-            Lade Meldungen...
-        </div>
-        <div style="font-weight: bold; font-size: 15px; color: var(--blue); border-top: 1px solid #90caf9; padding-top: 8px; display: flex; justify-content: space-between;">
-            <span>Gesamtstartgeld:</span>
-            <span id="profile-my-total-fee">0,00 €</span>
-        </div>
-    </div>
-           <!-- STANDGEBÜHR & VEREINSSWAFEN AUSWAHL (Standardmäßig versteckt) -->
-    <div id="stand-fee-section" style="display:none; margin-top: 25px; padding: 15px; background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 8px;">
-        <h4 style="margin-top: 0; color: var(--primary-dark);">🎯 Standgebühr & Vereinswaffen</h4>
-        
-        <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Welchen Stand nutzt du?</label>
-        <select id="prof-stand" style="margin-bottom: 15px;">
-            <option value="keiner">Bitte auswählen / Keine Nutzung</option>
-            <option value="10m_schueler">10m Stand – Schüler bis 14 Jahre (15,00 €)</option>
-            <option value="10m_jugend">10m Stand – Jugend bis 18 Jahre (20,00 €)</option>
-            <option value="10m_erwachsene">10m Stand – Erwachsen ab 18 Jahre (25,00 €)</option>
-            <option value="50m">50m Stand (35,00 €)</option>
-            <option value="kombiniert">Kombiniert (10m + 50m Stand) (40,00 €)</option>
-        </select>
+            <div style="margin-top: 25px; padding: 15px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
+                <h4 style="margin-top: 0; color: var(--blue);">🎯 Meine Meldung zur Gaumeisterschaft</h4>
+                <div id="profile-my-disciplines-list" style="font-size: 14px; margin-bottom: 10px;">
+                    Lade Meldungen...
+                </div>
+                <div style="font-weight: bold; font-size: 15px; color: var(--blue); border-top: 1px solid #90caf9; padding-top: 8px; display: flex; justify-content: space-between;">
+                    <span>Gesamtstartgeld:</span>
+                    <span id="profile-my-total-fee">0,00 €</span>
+                </div>
+            </div>
 
-        <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Nutzt du Vereinswaffen?</label>
-        <select id="prof-weapon" style="margin-bottom: 5px;">
-            <option value="keine">Keine Vereinswaffen</option>
-           <option value="lg_lp_30">Luftgewehr/Luftpistole Jahrespauschale (30,00 €)</option>
-        </select> 
-    </div>
-             <button onclick="updateProfile()" style="margin-top:15px;">Speichern</button>
-             <hr>
+            <!-- STANDGEBÜHR & VEREINSWAFFEN AUSWAHL (Standardmäßig versteckt) -->
+            <div id="stand-fee-section" style="display:none; margin-top: 25px; padding: 15px; background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 8px;">
+                <h4 style="margin-top: 0; color: var(--primary-dark);">🎯 Standgebühr & Vereinswaffen</h4>
+                
+                <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Welchen Stand nutzt du?</label>
+                <select id="prof-stand" style="margin-bottom: 15px;">
+                    <option value="keiner">Bitte auswählen / Keine Nutzung</option>
+                    <option value="10m_schueler">10m Stand – Schüler bis 14 Jahre (15,00 €)</option>
+                    <option value="10m_jugend">10m Stand – Jugend bis 18 Jahre (20,00 €)</option>
+                    <option value="10m_erwachsene">10m Stand – Erwachsen ab 18 Jahre (25,00 €)</option>
+                    <option value="50m">50m Stand (35,00 €)</option>
+                    <option value="kombiniert">Kombiniert (10m + 50m Stand) (40,00 €)</option>
+                </select>
+
+                <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Nutzt du Vereinswaffen?</label>
+                <select id="prof-weapon" style="margin-bottom: 5px;">
+                    <option value="keine">Keine Vereinswaffen</option>
+                    <option value="lg_lp_30">Luftgewehr/Luftpistole Jahrespauschale (30,00 €)</option>
+                </select> 
+            </div>
+
+            <button onclick="updateProfile()" style="margin-top:15px;">Speichern</button>
+            <hr>
+
             <h4>Passwort ändern</h4>
             <input type="password" id="new-pass" placeholder="Neues Passwort">
             <input type="password" id="new-pass-confirm" placeholder="Bestätigen">
             <button onclick="updatePassword()" style="background:var(--accent);">Passwort aktualisieren</button>
+
+            <!-- PWA APP-INSTALLATION (Wird automatisch ausgeblendet, wenn bereits als App installiert) -->
+            <div id="pwa-install-card" style="display:none; margin-top: 25px; padding: 15px; background: #f4fbf7; border: 1px solid #c8e6c9; border-radius: 8px;">
+                <h4 style="margin-top: 0; margin-bottom: 6px; color: var(--primary-dark);">📲 Vereins-App installieren</h4>
+                <p style="font-size: 13px; color: #555; margin: 0 0 12px 0;">
+                    Lege die Seite direkt auf deinen Startbildschirm – so öffnet sie sich ohne Browserleiste wie eine richtige App.
+                </p>
+                <button id="btn-install-pwa" onclick="installPWA()" style="background: var(--primary); color: white; margin: 0;">
+                    📲 App auf Startbildschirm installieren
+                </button>
+            </div>
+
             <button onclick="sb.auth.signOut().then(()=>location.reload())" style="background:#b71c1c; margin-top:20px;">Abmelden</button>
         </div>
 
