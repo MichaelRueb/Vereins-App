@@ -73,6 +73,66 @@
         transform: scale(0.98);
     }
 
+    /* STARTSEITE / WAPPEN-MENÜ */
+    .home-banner {
+        text-align: center;
+        padding: 20px 15px;
+        background: #f4fbf7;
+        border: 1px solid #c8e6c9;
+        border-radius: 10px;
+        margin-bottom: 18px;
+    }
+
+    .home-crest {
+        width: 96px;
+        height: 96px;
+        object-fit: contain;
+        margin-bottom: 8px;
+    }
+
+    .home-menu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    button.home-tile {
+        background: #ffffff;
+        color: #222222;
+        border: 1px solid #d8e2dc;
+        border-radius: 10px;
+        padding: 18px 12px;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+    }
+
+    button.home-tile:hover {
+        border-color: var(--primary);
+        background: #f9fdf9;
+    }
+
+    button.home-tile.home-tile-accent {
+        border-color: #ffcc80;
+        background: #fff8f0;
+        color: #e65100;
+    }
+
+    button.home-tile.home-tile-admin {
+        border-color: #a5d6a7;
+        background: #f1f8e9;
+        color: var(--primary-dark);
+    }
+
+    .home-tile-icon {
+        font-size: 26px;
+        line-height: 1.1;
+    }
+
     /* TABS */
     .tabs { 
         display: flex; 
@@ -122,7 +182,7 @@
     }
 
     .btn-edit, .btn-del { 
-        width: 34px !important;  /* Feste Breite gegen 100% Rule */
+        width: 34px !important;
         height: 34px !important; 
         padding: 0 !important; 
         margin: 0 !important;
@@ -539,10 +599,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </p>
     </div> <!-- ENDE AUTH-UI -->
 
-    <!-- HAUPT APP BEREICH (Muss AUSSERHALB von auth-ui liegen) -->
+    <!-- HAUPT APP BEREICH -->
     <div id="main-app" style="display:none;">
         <div class="tabs">
-            <div id="tab-home" class="tab active" onclick="switchTab('home')">Stunden</div>
+            <div id="tab-home" class="tab active" onclick="switchTab('home')">Start</div>
+            <div id="tab-hours" class="tab" onclick="switchTab('hours')">Stunden</div>
             <div id="tab-events" class="tab" onclick="switchTab('events')">Kalender</div>
             <div id="tab-meals" class="tab" onclick="switchTab('meals')">Essen</div>
             <div id="tab-mileage" class="tab" onclick="switchTab('mileage')">Fahrten</div>
@@ -551,8 +612,48 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <div id="tab-gau" class="tab" style="display:none; background:var(--accent); color:white;" onclick="switchTab('gau')">Gau-Meldung</div>
         </div>
 
-        <!-- STUNDEN VIEW -->
+        <!-- STARTSEITE / WAPPEN-MENÜ -->
         <div id="view-home">
+            <div class="home-banner">
+                <img src="icon-192.png" alt="Wappen SV Hubertus 1955 e.V. Strullendorf" class="home-crest">
+                <h3 style="margin:0; color:var(--primary-dark);">SV Hubertus 1955 e.V. Strullendorf</h3>
+                <p id="home-welcome-text" style="margin:6px 0 0 0; font-size:13px; color:#555;">Wähle einen Bereich aus:</p>
+            </div>
+
+            <div class="home-menu-grid">
+                <button type="button" class="home-tile" onclick="switchTab('hours')">
+                    <span class="home-tile-icon">⏱️</span>
+                    <span>Stunden</span>
+                </button>
+                <button type="button" class="home-tile" onclick="switchTab('events')">
+                    <span class="home-tile-icon">📅</span>
+                    <span>Kalender</span>
+                </button>
+                <button type="button" class="home-tile" onclick="switchTab('meals')">
+                    <span class="home-tile-icon">🍲</span>
+                    <span>Essen</span>
+                </button>
+                <button type="button" class="home-tile" onclick="switchTab('mileage')">
+                    <span class="home-tile-icon">🚗</span>
+                    <span>Fahrtenbuch</span>
+                </button>
+                <button type="button" class="home-tile" onclick="switchTab('profile')">
+                    <span class="home-tile-icon">👤</span>
+                    <span>Profil</span>
+                </button>
+                <button type="button" id="home-tile-gau" class="home-tile home-tile-accent" style="display:none;" onclick="switchTab('gau')">
+                    <span class="home-tile-icon">🎯</span>
+                    <span>Gau-Meldung</span>
+                </button>
+                <button type="button" id="home-tile-admin" class="home-tile home-tile-admin" style="display:none;" onclick="switchTab('admin')">
+                    <span class="home-tile-icon">⚙️</span>
+                    <span>Admin</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- STUNDEN VIEW -->
+        <div id="view-hours" style="display:none;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
                 <h3 style="margin:0;">Deine Stunden</h3>
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -656,7 +757,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <button onclick="exportMileagePDF()" style="background:var(--blue); width: auto; padding: 10px 20px;">📄 Fahrtenbuch PDF exportieren</button>
     </div>
 
-    <!-- Die Summen-Anzeige nebeneinander -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
         <div class="mileage-sum" id="mileage-sum-display" style="margin:0;">Gesamt aktueller Monat: 0,00 km</div>
         <div class="mileage-sum" id="mileage-year-display" style="margin:0; background: #e3f2fd; color: #0277bd;">Gesamt aktuelles Jahr: 0,00 km</div>
@@ -681,7 +781,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <input type="text" id="prof-name" placeholder="Name">
             <div id="team-checkboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:15px; border:1px solid #ddd; border-radius:8px;"></div>
             <hr>
-            <!-- NEUES INFO-FENSTER IM PROFIL -->
             <div style="margin-top: 25px; padding: 15px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
                 <h4 style="margin-top: 0; color: var(--blue);">🎯 Meine Meldung zur Gaumeisterschaft</h4>
                 <div id="profile-my-disciplines-list" style="font-size: 14px; margin-bottom: 10px;">
@@ -693,7 +792,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                 </div>
             </div>
 
-            <!-- STANDGEBÜHR & VEREINSWAFFEN AUSWAHL (Standardmäßig versteckt) -->
             <div id="stand-fee-section" style="display:none; margin-top: 25px; padding: 15px; background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 8px;">
                 <h4 style="margin-top: 0; color: var(--primary-dark);">🎯 Standgebühr & Vereinswaffen</h4>
                 
@@ -722,7 +820,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <input type="password" id="new-pass-confirm" placeholder="Bestätigen">
             <button onclick="updatePassword()" style="background:var(--accent);">Passwort aktualisieren</button>
 
-            <!-- PWA APP-INSTALLATION (Wird automatisch ausgeblendet, wenn bereits als App installiert) -->
             <div id="pwa-install-card" style="display:none; margin-top: 25px; padding: 15px; background: #f4fbf7; border: 1px solid #c8e6c9; border-radius: 8px;">
                 <h4 style="margin-top: 0; margin-bottom: 6px; color: var(--primary-dark);">📲 Vereins-App installieren</h4>
                 <p style="font-size: 13px; color: #555; margin: 0 0 12px 0;">
@@ -751,7 +848,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         
 <button onclick="openGauConfirmation()" style="background:var(--accent);">Meldung prüfen & speichern</button>
     </div>
-    <!-- BESTÄTIGUNGS-MODAL FÜR GAU-MELDUNG -->
 <div id="gau-confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
     <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:450px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
         <h3 style="margin-top:0; color:var(--accent);">📋 Zusammenfassung der Meldung</h3>
@@ -781,13 +877,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     <h3 style="margin-bottom: 5px;">⚙️ Admin-Bereich</h3>
     <p style="color:#666; font-size:13px; margin-top:0; margin-bottom:15px;">Wähle einen Ordner aus, um die Verwaltungsfunktionen zu öffnen.</p>
 
-    <!-- 1. OFFENE ANTRÄGE, STATISTIK & DATENSICHERUNG -->
     <details class="admin-explorer-card" open>
         <summary class="admin-explorer-header">
             <span>⏳ Offene Anträge & Stunden-Statistik</span>
         </summary>
         <div class="admin-explorer-body">
-            <!-- Datensicherung -->
             <div style="padding: 12px; background: #e8f5e9; border-radius: 8px; border: 1px solid #2e7d32; margin-bottom: 15px;">
                 <h4 style="margin-top:0; color:#2e7d32; font-size:14px;">📦 System-Backup</h4>
                 <button onclick="exportFullBackup()" style="background:#2e7d32; color:white; width:100%; border:none; padding:8px; border-radius:4px; font-weight:bold; cursor:pointer;">
@@ -795,15 +889,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                 </button>
             </div>
 
-            <!-- Live-Statistik Dashboard (Stunden-Soll) -->
             <div id="admin-stats-container"></div>
-            <!-- Abrechnungsjahr für Statistik & Exporte -->
             <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:#f8f9fa; padding:10px 12px; border-radius:8px; border:1px solid #e0e0e0; margin-bottom:12px;">
                 <label for="admin-year-filter" style="font-size:13px; font-weight:bold; margin:0;">📅 Abrechnungsjahr (Statistik, PDF & CSV):</label>
                 <select id="admin-year-filter" onchange="onAdminYearChange()" style="width:auto; padding:6px 10px; margin:0; font-size:13px; font-weight:bold;"></select>
             </div>
 
-            <!-- Export Buttons -->
             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
                 <button id="admin-pdf-btn" onclick="exportToPDF()" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">
                     📄 Stunden Report (PDF)
@@ -813,7 +904,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                 </button>
             </div>
 
-            <!-- Offene Anträge Tabelle -->
             <h4 style="margin-top:10px; margin-bottom:8px;">Offene Anträge</h4>
             <div style="overflow-x:auto;">
                 <table style="width:100%; border-collapse: collapse; min-width: 600px; border: 1px solid #ddd;">
@@ -831,7 +921,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </div>
     </details>
 
-    <!-- 2. MITGLIEDER-VERWALTUNG -->
     <details class="admin-explorer-card">
         <summary class="admin-explorer-header">
             <span>👥 Mitglieder-Verwaltung</span>
@@ -859,7 +948,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </div>
     </details>
 
-    <!-- 3. WETTKAMPFPLAN IMPORT & BEREINIGUNG -->
     <details class="admin-explorer-card">
         <summary class="admin-explorer-header">
             <span>📅 Wettkampfplan (.ics Import & Bereinigung)</span>
@@ -896,7 +984,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </div>
     </details>
 
-    <!-- 4. GAU-MEISTERSCHAFTEN -->
     <details class="admin-explorer-card">
         <summary class="admin-explorer-header">
             <span>🏆 Gau-Meisterschaftsmeldungen</span>
@@ -939,7 +1026,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </div>
     </details>
 
-    <!-- 5. STANDGEBÜHREN & VEREINSWAFFEN -->
     <details class="admin-explorer-card">
         <summary class="admin-explorer-header">
             <span>🎯 Standgebühren & Vereinswaffen</span>
@@ -981,7 +1067,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </div>
     </details>
 
-  <!-- 6. TRAININGS-ESSEN -->
 <details class="admin-explorer-card">
     <summary class="admin-explorer-header">
         <span>🍲 Trainings-Essen verwalten</span>
@@ -1014,7 +1099,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     </div>
 </details>
 
-    <!-- 7. PAPIERKORB & WIEDERHERSTELLUNG (Eigenständiger Ordner) -->
     <details class="admin-explorer-card" ontoggle="if(this.open) loadTrash()">
         <summary class="admin-explorer-header">
             <span>🗑️ Papierkorb & Wiederherstellung</span>
@@ -1385,6 +1469,28 @@ function renderAdminCategorySelect(profile) {
     `;
 }
 
+// Startmenü-Kacheln & Begrüßung synchronisieren
+function syncHomeMenuTiles() {
+    const welcomeEl = document.getElementById('home-welcome-text');
+    if (welcomeEl) {
+        const fullName = currentProfileData?.full_name?.trim();
+        const firstName = fullName ? fullName.split(/\s+/)[0] : '';
+        welcomeEl.textContent = firstName
+            ? `Willkommen, ${firstName}! Wähle einen Bereich aus:`
+            : 'Wähle einen Bereich aus:';
+    }
+
+    const tileGau = document.getElementById('home-tile-gau');
+    if (tileGau) {
+        tileGau.style.display = isRegOpen ? 'flex' : 'none';
+    }
+
+    const tileAdmin = document.getElementById('home-tile-admin');
+    if (tileAdmin) {
+        tileAdmin.style.display = (isAdmin || isOfficial) ? 'flex' : 'none';
+    }
+}
+
 // ==========================================
 // 3. ROBUSTES ROUTING (REAGIERT SOFORT)
 // ==========================================
@@ -1542,9 +1648,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     renderTeamCheckboxes(userTeam);
+    syncHomeMenuTiles();
     
     document.getElementById('loading-ui').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
+
+    // Beim Start immer zuerst das Wappen-Startmenü anzeigen
+    switchTab('home');
     
     loadHistory(); 
     loadAllEvents();
@@ -1806,13 +1916,21 @@ async function deleteEvent(id) {
     // --- TABS & NAVIGATION ---
 
    function switchTab(t) { 
-    ['home', 'events', 'profile', 'admin', 'mileage', 'gau', 'meals'].forEach(v => { 
+    ['home', 'hours', 'events', 'profile', 'admin', 'mileage', 'gau', 'meals'].forEach(v => { 
         const view = document.getElementById('view-' + v);
         const tab = document.getElementById('tab-' + v);
         
         if(view) view.style.display = (v === t) ? 'block' : 'none'; 
         if(tab) tab.className = (v === t) ? 'tab active' : 'tab'; 
     }); 
+
+    if (t === 'home') {
+        syncHomeMenuTiles();
+    }
+
+    if (t === 'hours') {
+        loadHistory();
+    }
 
     if(t === 'admin') {
         loadAdmin(); 
@@ -2245,6 +2363,7 @@ async function exportMileagePDF() {
             currentProfileData.shooting_stand = stand;
             currentProfileData.club_weapon = weapon;
         }
+        syncHomeMenuTiles();
         showToast("Profil, Standgebühr & Waffen-Auswahl gespeichert!", "success"); 
     } catch (err) {
         showToast("Fehler beim Speichern: " + err.message, "error");
@@ -2654,6 +2773,11 @@ async function adminDeleteUser(userId, currentName) {
         const { data, error } = await sb.from('profiles').update(d).eq('id', uid).select('id');
         try {
             requireAffectedRows(data, error, "Rolle konnte nicht aktualisiert werden (Berechtigung prüfen).");
+            if (currentUser && uid === currentUser.id) {
+                if (col === 'is_captain') isCaptain = Boolean(val);
+                if (col === 'is_official') isOfficial = Boolean(val);
+                syncHomeMenuTiles();
+            }
             loadAdmin();
         } catch (err) {
             showToast("Fehler beim Ändern der Rolle: " + err.message, "error");
@@ -3001,6 +3125,7 @@ async function approveMember(uid) {
     const { data, error } = await sb.from('profiles').update({ is_approved: true }).eq('id', uid).select('id');
     try {
         requireAffectedRows(data, error, "Mitglied konnte nicht freigeschaltet werden (Berechtigung prüfen).");
+        syncHomeMenuTiles();
         showToast("Mitglied freigeschaltet!", "success");
         loadAdmin();
     } catch (err) {
@@ -4177,6 +4302,7 @@ async function updateRegStatus(isOpen) {
         isRegOpen = isOpen;
         const tabGau = document.getElementById('tab-gau');
         if (tabGau) tabGau.style.display = isOpen ? 'block' : 'none';
+        if (typeof syncHomeMenuTiles === 'function') syncHomeMenuTiles();
         if (!isOpen && document.getElementById('view-gau').style.display === 'block') switchTab('home');
         showToast(isOpen ? "Der Reiter 'Gau-Meldung' ist nun für alle sichtbar!" : "Die Meldung wurde geschlossen. Der Reiter ist verschwunden.", "info");
     } catch (err) {
