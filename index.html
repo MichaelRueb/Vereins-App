@@ -456,6 +456,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <!-- STUNDEN VIEW -->
         <div id="view-home">
             <h3>Deine Stunden</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <h3 style="margin:0;">Deine Stunden</h3>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label for="hours-year-filter" style="font-size:13px; font-weight:bold;">Jahr:</label>
+                    <select id="hours-year-filter" onchange="loadHistory()" style="width:auto; padding:6px 10px; margin:0; font-size:13px; font-weight:bold;"></select>
+                </div>
+            </div>
             <div class="progress-container"><div id="my-progress-bar" class="progress-bar"></div><div id="my-progress-label" class="progress-text">0 / 10 h</div></div>
             <input type="date" id="date" class="date-input">
             <input type="number" id="hours" step="0.5" placeholder="Stunden">
@@ -513,6 +520,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       <!-- FAHRTENBUCH VIEW -->
 <div id="view-mileage" style="display:none;">
     <h3>🚗 Fahrtenbuch</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <h3 style="margin:0;">🚗 Fahrtenbuch</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <label for="mileage-year-filter" style="font-size:13px; font-weight:bold;">Jahr:</label>
+            <select id="mileage-year-filter" onchange="loadMileageHistory()" style="width:auto; padding:6px 10px; margin:0; font-size:13px; font-weight:bold;"></select>
+        </div>
+    </div>
     <div class="card" style="background:#f1f8e9; border: 1px solid #c8e6c9; margin-bottom: 20px;">
         <h4 id="ml-form-title" style="margin-top:0">Fahrt erfassen</h4>
         <input type="hidden" id="edit-ml-id">
@@ -677,6 +691,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
             <!-- Live-Statistik Dashboard (Stunden-Soll) -->
             <div id="admin-stats-container"></div>
+            <!-- Abrechnungsjahr für Statistik & Exporte -->
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; background:#f8f9fa; padding:10px 12px; border-radius:8px; border:1px solid #e0e0e0; margin-bottom:12px;">
+                <label for="admin-year-filter" style="font-size:13px; font-weight:bold; margin:0;">📅 Abrechnungsjahr (Statistik, PDF & CSV):</label>
+                <select id="admin-year-filter" onchange="onAdminYearChange()" style="width:auto; padding:6px 10px; margin:0; font-size:13px; font-weight:bold;"></select>
+            </div>
 
             <!-- Export Buttons -->
             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
@@ -1620,48 +1639,47 @@ function checkFavRoute() {
 
 async function loadMileageHistory() {
     const { data } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: false});
+    const allLogs = data || [];
+
+    const selectedYear = populateYearSelect('mileage-year-filter', allLogs.map(m => m.date), new Date().getFullYear());
+    const yearLogs = allLogs.filter(m => getItemYear(m.date) === selectedYear);
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const isCurrentCalendarYear = selectedYear === now.getFullYear();
+
+    // 1. Monatssumme (im gewählten Jahr; bei aktuellem Jahr für den aktuellen Monat, sonst für das gewählte Jahr)
+    const monthSum = yearLogs
+        .filter(m => {
+            const d = new Date(m.date);
+            return isCurrentCalendarYear ? d.getMonth() === currentMonth : true;
+        })
+        .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
+
+    // 2. Jahressumme für das gewählte Jahr
+    const yearSum = yearLogs
+        .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
+        
+    document.getElementById('mileage-sum-display').innerText = isCurrentCalendarYear
+        ? `Gesamt aktueller Monat: ${monthSum.toFixed(2).replace('.', ',')} km`
+        : `Gesamt Jahr ${selectedYear}: ${monthSum.toFixed(2).replace('.', ',')} km`;
     
-    if(data) {
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        // 1. Monatssumme berechnen
-        const monthSum = data
-            .filter(m => {
-                const d = new Date(m.date);
-                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-            })
-            .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
-
-        // 2. Jahressumme berechnen
-        const yearSum = data
-            .filter(m => {
-                const d = new Date(m.date);
-                return d.getFullYear() === currentYear;
-            })
-            .reduce((s, m) => s + parseFloat(m.distance_total || 0), 0);
-            
-        // Anzeige aktualisieren (Stelle sicher, dass du das HTML wie zuvor besprochen angepasst hast)
-        document.getElementById('mileage-sum-display').innerText = `Gesamt aktueller Monat: ${monthSum.toFixed(2).replace('.', ',')} km`;
-        
-        const yearDisplay = document.getElementById('mileage-year-display');
-        if (yearDisplay) {
-            yearDisplay.innerText = `Gesamt aktuelles Jahr: ${yearSum.toFixed(2).replace('.', ',')} km`;
-        }
-        
-        // Tabelle rendern
-        document.getElementById('mileage-history-body').innerHTML = data.map(m => `
-            <tr>
-                <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
-                <td><strong>${m.purpose}</strong><br><small>${m.start_location} → ${m.end_location}</small></td>
-                <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
-                <td style="white-space:nowrap;">
-                    <button class="btn-edit" onclick="editMileage('${m.id}')" title="Bearbeiten">✏️</button>
-                    <button class="btn-del" onclick="deleteMileage('${m.id}')" title="Löschen">🗑️</button>
-                </td>
-            </tr>`).join('');
+    const yearDisplay = document.getElementById('mileage-year-display');
+    if (yearDisplay) {
+        yearDisplay.innerText = `Gesamt ${selectedYear}: ${yearSum.toFixed(2).replace('.', ',')} km`;
     }
+    
+    // 3. Tabelle für das gewählte Jahr rendern
+    document.getElementById('mileage-history-body').innerHTML = yearLogs.length > 0 ? yearLogs.map(m => `
+        <tr>
+            <td>${new Date(m.date).toLocaleDateString('de-DE')}</td>
+            <td><strong>${m.purpose}</strong><br><small>${m.start_location} → ${m.end_location}</small></td>
+            <td>${parseFloat(m.distance_total).toFixed(2).replace('.', ',')} km</td>
+            <td style="white-space:nowrap;">
+                <button class="btn-edit" onclick="editMileage('${m.id}')" title="Bearbeiten">✏️</button>
+                <button class="btn-del" onclick="deleteMileage('${m.id}')" title="Löschen">🗑️</button>
+            </td>
+        </tr>`).join('') : `<tr><td colspan="4" style="text-align:center; color:#666;">Keine Fahrten für ${selectedYear} erfasst</td></tr>`;
 }
 
 async function saveMileage() {
@@ -1802,20 +1820,22 @@ async function deleteMileage(id) {
 async function exportMileagePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+    const selectedYear = getSelectedYear('mileage-year-filter', new Date().getFullYear());
     const { data: profile } = await sb.from('profiles').select('full_name').eq('id', currentUser.id).single();
-    const { data: logs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+    const { data: allLogs } = await sb.from('mileage_logs').select('*').eq('user_id', currentUser.id).order('date', {ascending: true});
+    const logs = (allLogs || []).filter(l => getItemYear(l.date) === selectedYear);
     
-if (!logs || logs.length === 0) {
-    showToast("Keine Fahrten zum Exportieren gefunden!", "info");
-    return;
-}
+    if (!logs || logs.length === 0) {
+        showToast(`Keine Fahrten für das Jahr ${selectedYear} zum Exportieren gefunden!`, "info");
+        return;
+    }
 
     doc.setFontSize(18);
     doc.setTextColor(46, 125, 50);
     doc.text("Fahrtenbuch - SV Hubertus Strullendorf", 14, 20);
     doc.setFontSize(11);
     doc.setTextColor(80);
-    doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'}`, 14, 30);
+    doc.text(`Fahrer: ${profile?.full_name || 'Nicht angegeben'} | Jahr: ${selectedYear}`, 14, 30);
     doc.text(`Exportiert am: ${new Date().toLocaleDateString('de-DE')}`, 14, 36);
 
     const tableRows = logs.map(l => [
@@ -1828,7 +1848,7 @@ if (!logs || logs.length === 0) {
 
     const totalKm = logs.reduce((s, l) => s + parseFloat(l.distance_total), 0);
     tableRows.push([
-        { content: 'GESAMTSTRECKE', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: `GESAMTSTRECKE (${selectedYear})`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
         { content: `${totalKm.toFixed(2).replace('.', ',')} km`, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
     ]);
 
@@ -1841,9 +1861,8 @@ if (!logs || logs.length === 0) {
         styles: { fontSize: 9 },
         columnStyles: { 4: { halign: 'right' } }
     });
-    doc.save(`Fahrtenbuch_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
+    doc.save(`Fahrtenbuch_${selectedYear}_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
 }
-
     // --- STUNDEN LOGIK ---
 
    async function sendHours() { 
@@ -1871,9 +1890,13 @@ if (!logs || logs.length === 0) {
 
     if (error) return console.error(error);
 
-    // 1. Tabelle rendern
+    const allHours = hours || [];
+    const selectedYear = populateYearSelect('hours-year-filter', allHours.map(h => h.date), new Date().getFullYear());
+    const yearHours = allHours.filter(h => getItemYear(h.date) === selectedYear);
+
+    // 1. Tabelle rendern (für das gewählte Jahr)
     const list = document.getElementById('history-body');
-    list.innerHTML = hours.map(h => {
+    list.innerHTML = yearHours.length > 0 ? yearHours.map(h => {
         const isRejected = h.status === 'rejected';
         const isApproved = h.status === 'approved';
         
@@ -1902,16 +1925,13 @@ if (!logs || logs.length === 0) {
                 <td style="text-align: right;">${actionButtons}</td>
             </tr>
         `;
-    }).join('');
+    }).join('') : `<tr><td colspan="4" style="text-align:center; color:#666;">Keine Stunden für ${selectedYear} erfasst</td></tr>`;
 
-// --- BERECHNUNG & FARB-LOGIK FÜR DIE PROGRESS BAR ---
-    
-    // Summe aller bestätigten Stunden
-    const totalApproved = hours
+    // --- BERECHNUNG & FARB-LOGIK FÜR DIE PROGRESS BAR (im gewählten Jahr) ---
+    const totalApproved = yearHours
         .filter(h => h.status === 'approved')
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
 
-    // Erstmal nur für Admin eigenes Soll (0h / 20h / 40h) nutzen, für andere bleibt 10h
     const maxHours = isAdmin ? getRequiredHoursForProfile(currentProfileData) : 10;
     const barPercentage = maxHours > 0
         ? Math.min((totalApproved / maxHours) * 100, 100)
@@ -1924,19 +1944,15 @@ if (!logs || logs.length === 0) {
         progressBar.style.width = barPercentage + '%';
         
         if (totalApproved >= maxHours) {
-            // Ziel erreicht oder überschritten: Grün
             progressBar.style.backgroundColor = '#2ecc71'; 
-            
-            // Visuelles Feedback für "Überstunden"
             if (totalApproved > maxHours) {
-                progressBar.style.boxShadow = "0 0 15px rgba(241, 196, 15, 0.6)"; // Goldener Glanz
-                progressBar.style.border = "1px solid #f1c40f"; // Goldener Rand
+                progressBar.style.boxShadow = "0 0 15px rgba(241, 196, 15, 0.6)";
+                progressBar.style.border = "1px solid #f1c40f";
             } else {
                 progressBar.style.boxShadow = "none";
                 progressBar.style.border = "none";
             }
         } else {
-            // Ziel noch nicht erreicht: Rot
             progressBar.style.backgroundColor = '#e74c3c'; 
             progressBar.style.boxShadow = "none";
             progressBar.style.border = "none";
@@ -1945,14 +1961,13 @@ if (!logs || logs.length === 0) {
 
     if (progressLabel) {
         if (totalApproved > maxHours) {
-            // Zeigt die echte Zahl an, auch wenn sie > maxHours ist
             const overtime = (totalApproved - maxHours).toFixed(1);
-            progressLabel.innerHTML = `<strong>${totalApproved.toFixed(1)}</strong> / ${maxHours} h <span style="color: #f1c40f;">(+${overtime}!)</span> 🔥`;
+            progressLabel.innerHTML = `<strong>${totalApproved.toFixed(1)}</strong> / ${maxHours} h (${selectedYear}) <span style="color: #f1c40f;">(+${overtime}!)</span> 🔥`;
         } else {
-            progressLabel.innerText = `${totalApproved.toFixed(1)} / ${maxHours} h`;
+            progressLabel.innerText = `${totalApproved.toFixed(1)} / ${maxHours} h (${selectedYear})`;
         }
     }
-   }
+}
         
     // --- PROFIL & ADMIN ---
 
@@ -2370,15 +2385,15 @@ async function exportToPDF() {
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+    const selectedYear = getSelectedYear('admin-year-filter', new Date().getFullYear());
     
-    // Konfiguration
     const EURO_PRO_STUNDE = 15;
-    const STUNDEN_PRO_GETRAENK = 3; // Regel: Alle 3 Mehrstunden ein Getränk
+    const STUNDEN_PRO_GETRAENK = 3;
 
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+    const { data: allHours } = await sb.from('work_hours').select('*').eq('status', 'approved').order('date', {ascending: true});
+    const hours = (allHours || []).filter(h => getItemYear(h.date) === selectedYear);
 
-    // Header & Design
     doc.setFontSize(22);
     doc.setTextColor(46, 125, 50);
     doc.setFont("helvetica", "bold");
@@ -2388,7 +2403,7 @@ async function exportToPDF() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
     const dateString = new Date().toLocaleDateString('de-DE');
-    doc.text(`Tätigkeitsbericht & Bonus-Check - Stand: ${dateString}`, 105, 28, { align: "center" });
+    doc.text(`Tätigkeitsbericht & Bonus-Check (${selectedYear}) - Stand: ${dateString}`, 105, 28, { align: "center" });
     doc.line(14, 35, 196, 35);
 
     const tableRows = [];
@@ -2397,7 +2412,6 @@ async function exportToPDF() {
         const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
         const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
 
-        // Erstmal nur für Admin eigenes Soll (0h / 20h / 40h) nutzen, für andere bleibt 10h
         const sollStunden = isAdmin ? getRequiredHoursForProfile(p) : 10;
         const catLabel = isAdmin ? (MEMBER_CATEGORIES[getEffectiveMemberCategory(p)]?.label || 'Aktiv') : null;
         
@@ -2406,19 +2420,13 @@ async function exportToPDF() {
         const diff = total - sollStunden;
 
         if (diff >= 0) {
-            // SOLL ERFÜLLT
             isBonus = true;
-            
-            // Dynamische Berechnung: Alle 3h ein Getränk (abgerundet)
             const anzahlGetraenke = Math.floor(diff / STUNDEN_PRO_GETRAENK);
-            
             let bonusInfo = anzahlGetraenke > 0 
                 ? `Bonus: ${anzahlGetraenke} Freigetränk${anzahlGetraenke > 1 ? 'e' : ''}`
                 : "Soll erfüllt";
-
             statusText = `Erfüllt (+${diff.toFixed(1)}h)\n${bonusInfo}`;
         } else {
-            // SOLL NICHT ERFÜLLT
             isBonus = false;
             const fehlstunden = Math.abs(diff);
             const strafBetrag = fehlstunden * EURO_PRO_STUNDE;
@@ -2447,12 +2455,11 @@ async function exportToPDF() {
             }
         ]);
         
-        // Detailzeilen
         if (memberHours.length > 0) {
             let detailText = memberHours.map(h => `  • ${new Date(h.date).toLocaleDateString('de-DE')}: ${h.description} (${h.duration}h)`).join('\n');
             tableRows.push([{ content: detailText, colSpan: 4, styles: { fontSize: 8, textColor: 80 } }]);
         } else {
-            tableRows.push([{ content: "    Keine Stunden erfasst", colSpan: 4, styles: { fontSize: 8, fontStyle: 'italic' } }]);
+            tableRows.push([{ content: `    Keine Stunden für ${selectedYear} erfasst`, colSpan: 4, styles: { fontSize: 8, fontStyle: 'italic' } }]);
         }
     });
 
@@ -2470,7 +2477,7 @@ async function exportToPDF() {
         }
     });
 
-    doc.save(`Hubertus_Abrechnung_${dateString}.pdf`);
+    doc.save(`Hubertus_Abrechnung_${selectedYear}_${dateString}.pdf`);
 }
 
    async function exportStandFeePDF() {
@@ -4367,20 +4374,21 @@ function downloadCSV(filename, csvContent) {
 
 // 1. CSV-Export: Arbeitsstunden
 async function exportHoursCSV() {
+    const selectedYear = getSelectedYear('admin-year-filter', new Date().getFullYear());
     const { data: profs } = await sb.from('profiles').select('*').order('full_name');
-    const { data: hours } = await sb.from('work_hours').select('*').eq('status', 'approved');
+    const { data: allHours } = await sb.from('work_hours').select('*').eq('status', 'approved');
+    const hours = (allHours || []).filter(h => getItemYear(h.date) === selectedYear);
 
     if (!profs) return showToast("Keine Profile gefunden", "error");
 
     let csv = isAdmin
-        ? "Name;Kategorie;Mannschaft;Ist-Stunden;Soll (h);Status;Differenz (h)\n"
-        : "Name;Mannschaft;Ist-Stunden;Soll (h);Status;Differenz (h)\n";
+        ? "Jahr;Name;Kategorie;Mannschaft;Ist-Stunden;Soll (h);Status;Differenz (h)\n"
+        : "Jahr;Name;Mannschaft;Ist-Stunden;Soll (h);Status;Differenz (h)\n";
 
     profs.forEach(p => {
         const userHours = hours ? hours.filter(h => h.user_id === p.id) : [];
         const total = userHours.reduce((s, h) => s + parseFloat(h.duration), 0);
 
-        // Erstmal nur für Admin eigenes Soll (0h / 20h / 40h) nutzen, für andere bleibt 10h
         const soll = isAdmin ? getRequiredHoursForProfile(p) : 10;
         const catLabel = isAdmin ? (MEMBER_CATEGORIES[getEffectiveMemberCategory(p)]?.label || 'Aktiv') : null;
 
@@ -4388,15 +4396,15 @@ async function exportHoursCSV() {
         const status = diff >= 0 ? "Erfüllt" : "Offen";
 
         if (isAdmin) {
-            csv += `"${p.full_name || 'Unbekannt'}";"${catLabel}";"${p.team || '-'}";"${total.toFixed(1).replace('.', ',')}";"${soll}";"${status}";"${diff.toFixed(1).replace('.', ',')}"\n`;
+            csv += `"${selectedYear}";"${p.full_name || 'Unbekannt'}";"${catLabel}";"${p.team || '-'}";"${total.toFixed(1).replace('.', ',')}";"${soll}";"${status}";"${diff.toFixed(1).replace('.', ',')}"\n`;
         } else {
-            csv += `"${p.full_name || 'Unbekannt'}";"${p.team || '-'}";"${total.toFixed(1).replace('.', ',')}";"${soll}";"${status}";"${diff.toFixed(1).replace('.', ',')}"\n`;
+            csv += `"${selectedYear}";"${p.full_name || 'Unbekannt'}";"${p.team || '-'}";"${total.toFixed(1).replace('.', ',')}";"${soll}";"${status}";"${diff.toFixed(1).replace('.', ',')}"\n`;
         }
     });
 
     const dateStr = new Date().toLocaleDateString('de-DE');
-    downloadCSV(`Arbeitsstunden_Hubertus_${dateStr}.csv`, csv);
-    showToast("Stunden-CSV erfolgreich heruntergeladen!");
+    downloadCSV(`Arbeitsstunden_Hubertus_${selectedYear}_${dateStr}.csv`, csv);
+    showToast(`Stunden-CSV (${selectedYear}) erfolgreich heruntergeladen!`);
 }
 
 // 2. CSV-Export: Standgebühren & Vereinswaffen
@@ -4418,14 +4426,23 @@ async function exportStandFeeCSV() {
 }
 
 // 3. Admin-Statistik im Arbeitsstunden-Ordner aktualisieren
+async function onAdminYearChange() {
+    if (typeof updateAdminStatsDashboard === 'function') {
+        await updateAdminStatsDashboard();
+    }
+}
+
 async function updateAdminStatsDashboard() {
     const target = document.getElementById('admin-stats-container');
     if (!target) return;
 
     const { data: profs } = await sb.from('profiles').select('*').eq('is_approved', true);
-    const { data: hours } = await sb.from('work_hours').select('duration, user_id').eq('status', 'approved');
+    const { data: allHours } = await sb.from('work_hours').select('duration, user_id, date').eq('status', 'approved');
 
-    if (!profs || !hours) return;
+    if (!profs || !allHours) return;
+
+    const selectedYear = populateYearSelect('admin-year-filter', allHours.map(h => h.date), new Date().getFullYear());
+    const hours = allHours.filter(h => getItemYear(h.date) === selectedYear);
 
     const totalMembers = profs.length;
     let fulfilledMembers = 0;
@@ -4444,11 +4461,11 @@ async function updateAdminStatsDashboard() {
     target.innerHTML = `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:15px;">
             <div style="background:#f4fbf7; border:1px solid #c8e6c9; border-radius:6px; padding:10px; text-align:center;">
-                <span style="font-size:11px; color:#555; font-weight:bold;">GESAMTSTUNDEN</span>
+                <span style="font-size:11px; color:#555; font-weight:bold;">GESAMTSTUNDEN (${selectedYear})</span>
                 <div style="font-size:18px; font-weight:bold; color:var(--primary); margin-top:2px;">${totalHoursSum.toFixed(1)} h</div>
             </div>
             <div style="background:#f4fbf7; border:1px solid #c8e6c9; border-radius:6px; padding:10px; text-align:center;">
-                <span style="font-size:11px; color:#555; font-weight:bold;">SOLL ERFÜLLT</span>
+                <span style="font-size:11px; color:#555; font-weight:bold;">SOLL ERFÜLLT (${selectedYear})</span>
                 <div style="font-size:18px; font-weight:bold; color:#2e7d32; margin-top:2px;">${fulfilledMembers} / ${totalMembers} (${quotaPct}%)</div>
             </div>
         </div>
@@ -4710,6 +4727,45 @@ async function permanentlyDeleteItem(table, id) {
         showToast("Eintrag unwiderruflich gelöscht.", "success");
         loadTrash();
     }
+}
+
+    function getItemYear(dateStr) {
+    if (!dateStr) return null;
+    const match = String(dateStr).match(/^(\d{4})/);
+    if (match) return parseInt(match[1], 10);
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d.getFullYear();
+}
+
+function populateYearSelect(selectId, datesList = [], defaultYear = new Date().getFullYear()) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return defaultYear;
+
+    const currentSelected = parseInt(sel.value, 10);
+    const yearsSet = new Set([defaultYear, defaultYear - 1, defaultYear + 1]);
+
+    (datesList || []).forEach(d => {
+        const y = getItemYear(d);
+        if (y) yearsSet.add(y);
+    });
+
+    const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
+    sel.innerHTML = sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+
+    if (currentSelected && sortedYears.includes(currentSelected)) {
+        sel.value = String(currentSelected);
+    } else {
+        sel.value = String(defaultYear);
+    }
+
+    return parseInt(sel.value, 10);
+}
+
+function getSelectedYear(selectId, fallback = new Date().getFullYear()) {
+    const sel = document.getElementById(selectId);
+    if (!sel || !sel.value) return fallback;
+    const parsed = parseInt(sel.value, 10);
+    return isNaN(parsed) ? fallback : parsed;
 }
   
 </script>
