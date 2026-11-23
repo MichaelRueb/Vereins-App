@@ -2051,7 +2051,7 @@ async function loadAdmin() {
     const memberList = document.getElementById('admin-member-table-list');
     if (memberList) {
         memberList.innerHTML = profilesData.filter(p => p.is_approved === true).map(p => {
-            const sum = hoursData ? hoursData.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+           const sum = getMemberAdminHours(hoursData, p.id);
             const catSelectHtml = renderAdminCategorySelect(p);
             return `
             <tr>
@@ -4766,6 +4766,26 @@ function getSelectedYear(selectId, fallback = new Date().getFullYear()) {
     if (!sel || !sel.value) return fallback;
     const parsed = parseInt(sel.value, 10);
     return isNaN(parsed) ? fallback : parsed;
+}
+
+    // Ab dem 01.01.2027 zählt in der Mitglieder-Verwaltung nur noch das neue Jahr (Start bei 0h)
+const HOURS_CUTOFF_DATE = '2027-01-01';
+
+function getMemberAdminHours(hoursData, userId, referenceDate = new Date()) {
+    if (!hoursData || !Array.isArray(hoursData)) return 0;
+
+    const cutoffDate = new Date(`${HOURS_CUTOFF_DATE}T00:00:00`);
+    const isAfterCutoff = referenceDate >= cutoffDate;
+
+    return hoursData
+        .filter(h => {
+            if (h.user_id !== userId || h.status !== 'approved') return false;
+            if (isAfterCutoff) {
+                return String(h.date || '') >= HOURS_CUTOFF_DATE;
+            }
+            return true;
+        })
+        .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
 }
   
 </script>
