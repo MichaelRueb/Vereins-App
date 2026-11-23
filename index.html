@@ -5095,7 +5095,7 @@ function getMemberAdminHours(hoursData, userId, referenceDate = new Date()) {
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
 }
 
-    // --- PWA INSTALLATION & SERVICE WORKER ---
+  // --- PWA INSTALLATION & SERVICE WORKER ---
 let deferredInstallPrompt = null;
 
 if ('serviceWorker' in navigator) {
@@ -5114,42 +5114,63 @@ function isIosDevice() {
     return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
-// Android / Chrome / Edge: Browser-Installations-Event abfangen
+function updatePwaInstallCard() {
+    const card = document.getElementById('pwa-install-card');
+    if (!card) return;
+
+    // Wenn bereits als installierte App geöffnet, Box ausblenden
+    if (isRunningStandalone()) {
+        card.style.display = 'none';
+        return;
+    }
+
+    // Im Browser immer anzeigen, damit Mitglieder den Button im Profil finden
+    card.style.display = 'block';
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
-    const installBtn = document.getElementById('btn-install-pwa');
-    if (installBtn && !isRunningStandalone()) {
-        installBtn.style.display = 'block';
-    }
+    updatePwaInstallCard();
 });
 
-// Nach erfolgreicher Installation Button wieder ausblenden
 window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
-    const installBtn = document.getElementById('btn-install-pwa');
-    if (installBtn) installBtn.style.display = 'none';
+    updatePwaInstallCard();
     if (typeof showToast === 'function') {
         showToast("App wurde erfolgreich installiert!", "success");
     }
 });
 
-// Auf iPhone/iPad (Safari) Button ebenfalls anzeigen, falls noch nicht installiert
 window.addEventListener('DOMContentLoaded', () => {
-    const installBtn = document.getElementById('btn-install-pwa');
-    if (installBtn && isIosDevice() && !isRunningStandalone()) {
-        installBtn.style.display = 'block';
-    }
+    updatePwaInstallCard();
 });
 
+// Falls du beim Tab-Wechsel ins Profil eine Funktion wie switchTab('profile') nutzt:
+const originalSwitchTab = window.switchTab;
+if (typeof originalSwitchTab === 'function') {
+    window.switchTab = function(tabName) {
+        originalSwitchTab(tabName);
+        if (tabName === 'profile') {
+            updatePwaInstallCard();
+        }
+    };
+}
+
 async function installPWA() {
+    if (isRunningStandalone()) {
+        if (typeof showToast === 'function') {
+            showToast("Du nutzt bereits die installierte App!", "info");
+        }
+        return;
+    }
+
     if (deferredInstallPrompt) {
         deferredInstallPrompt.prompt();
         const { outcome } = await deferredInstallPrompt.userChoice;
         if (outcome === 'accepted') {
             deferredInstallPrompt = null;
-            const installBtn = document.getElementById('btn-install-pwa');
-            if (installBtn) installBtn.style.display = 'none';
+            updatePwaInstallCard();
         }
     } else if (isIosDevice()) {
         const msg = "So installierst du die App auf dem iPhone/iPad:\n\n1. Unten in Safari auf das Teilen-Symbol (Quadrat mit Pfeil nach oben) tippen.\n2. Nach unten scrollen und „Zum Home-Bildschirm“ auswählen.\n3. Oben rechts auf „Hinzufügen“ tippen.";
@@ -5161,6 +5182,17 @@ async function installPWA() {
             });
         } else {
             alert(msg);
+        }
+    } else {
+        const msg = "Falls sich das Installationsfenster nicht direkt öffnet:\n\nTippe oben rechts im Browser-Menü (⋮) auf „App installieren“ oder „Zum Startbildschirm hinzufügen“.";
+        if (typeof showConfirmModal === 'function') {
+            await showConfirmModal(msg, {
+                title: "App installieren",
+                confirmText: "OK",
+                cancelText: "Schließen"
+            });
+        } else if (typeof showToast === 'function') {
+            showToast("Über das Browser-Menü (⋮) → „App installieren“ hinzufügen.", "info");
         }
     }
 }
