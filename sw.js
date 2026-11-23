@@ -1,8 +1,12 @@
-self.addEventListener('install', (e) => {
-  console.log('[Service Worker] Install');
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
 });
 
-self.addEventListener('fetch', (e) => {
-  // Muss vorhanden sein, damit Chrome die PWA erkennt
-  e.respondWith(fetch(e.request));
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// Netzwerk-Anfragen direkt durchreichen (damit Supabase-Daten & Updates immer aktuell bleiben)
+self.addEventListener('fetch', (event) => {
+  return;
 });
