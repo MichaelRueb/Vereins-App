@@ -561,7 +561,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                 <th>Aktion</th>
             </tr>
         </thead>
-        <tbody id="mileage-history-body"></tbody> <!-- Hier war vorher nur "-history-body" -->
+        <tbody id="mileage-history-body"></tbody>
     </table>
 </div>
 
@@ -712,6 +712,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <span>👥 Mitglieder-Verwaltung</span>
         </summary>
         <div class="admin-explorer-body">
+            <!-- NUR FÜR ADMIN SICHTBAR (später erweiterbar um Funktionäre) -->
+            <div id="admin-hours-category-panel" style="display:none; background:#f4fbf7; border:1px solid #c8e6c9; border-radius:8px; padding:12px; margin-bottom:12px; font-size:12px; color:#1b5e20;">
+                <strong>🔒 Pflichtstunden-Regelung (nur Admin sichtbar):</strong>
+                Passiv = <strong>0h</strong> · Aktiv = <strong>20h</strong> (Mannschaft oder ≥1x/Monat bzw. ≥12x/Jahr Training) · Funktionär = <strong>40h</strong>
+            </div>
+
             <input type="text" id="admin-member-search" placeholder="🔍 Mitglied suchen..." oninput="filterAdminMembers()" style="width:100%; padding:8px 12px; border:1px solid #ccc; border-radius:6px; margin-bottom:12px; font-size:13px; box-sizing:border-box;">
             
             <div style="overflow-x:auto;">
@@ -1023,7 +1029,83 @@ const ALL_DISCIPLINES = [
 let currentUser, userTeam = "", isAdmin = false, isCaptain = false, isOfficial = false, allEvents = [], currentViewDate = new Date();
 let all = [];
 let currentWorkEditId = null;
-    let isStandOpen = false;
+let isStandOpen = false;
+let currentProfileData = null;
+
+// Pflichtstunden-Kategorien (Passiv: 0h, Aktiv: 20h, Funktionär: 40h)
+const MEMBER_CATEGORIES = {
+    passive: { key: 'passive', label: 'Passiv', requiredHours: 0 },
+    active: { key: 'active', label: 'Aktiv', requiredHours: 20 },
+    official: { key: 'official', label: 'Funktionär', requiredHours: 40 }
+};
+
+function getEffectiveMemberCategory(profile) {
+    if (profile && profile.member_category && MEMBER_CATEGORIES[profile.member_category]) {
+        return profile.member_category;
+    }
+    if (profile && profile.is_official) {
+        return 'official';
+    }
+    const teamStr = (profile && profile.team) ? profile.team : '';
+    const teams = teamStr.split(',').map(t => t.trim()).filter(Boolean);
+    if (teams.some(t => t !== 'Passiv / Sonstige')) {
+        return 'active';
+    }
+    if (teamStr.includes('Passiv / Sonstige')) {
+        return 'passive';
+    }
+    return 'active';
+}
+
+function getRequiredHoursForProfile(profile) {
+    const catKey = getEffectiveMemberCategory(profile);
+    return MEMBER_CATEGORIES[catKey]?.requiredHours ?? 20;
+}
+
+async function updateMemberCategory(userId, newCategory) {
+    if (!isAdmin) return;
+    if (!MEMBER_CATEGORIES[newCategory]) return;
+
+    const { error } = await sb
+        .from('profiles')
+        .update({ member_category: newCategory })
+        .eq('id', userId);
+
+    if (error) {
+        showToast("Fehler beim Speichern der Kategorie: " + error.message, "error");
+        return;
+    }
+
+    if (currentUser && userId === currentUser.id && currentProfileData) {
+        currentProfileData.member_category = newCategory;
+        loadHistory();
+    }
+
+    showToast(`Kategorie auf "${MEMBER_CATEGORIES[newCategory].label}" (${MEMBER_CATEGORIES[newCategory].requiredHours}h) geändert.`, "success");
+    loadAdmin();
+}
+
+function renderAdminCategorySelect(profile) {
+    // Sichtbar erstmal nur für Admin (später erweiterbar um isOfficial)
+    if (!isAdmin) return '';
+
+    const currentCat = getEffectiveMemberCategory(profile);
+    const reqHours = getRequiredHoursForProfile(profile);
+
+    const options = Object.values(MEMBER_CATEGORIES).map(cat =>
+        `<option value="${cat.key}" ${currentCat === cat.key ? 'selected' : ''}>${cat.label} (${cat.requiredHours}h)</option>`
+    ).join('');
+
+    return `
+        <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #ddd; text-align:right;">
+            <label style="font-size:11px; color:#555; display:block; margin-bottom:2px;">Stunden-Status:</label>
+            <select onchange="updateMemberCategory('${profile.id}', this.value)" style="width:auto; padding:4px 6px; margin:0; font-size:12px; font-weight:bold;">
+                ${options}
+            </select>
+            <div style="font-size:10px; color:#666; margin-top:2px;">Soll: <strong>${reqHours}h</strong></div>
+        </div>
+    `;
+}
 
 // ==========================================
 // 3. ROBUSTES ROUTING (REAGIERT SOFORT)
@@ -1143,6 +1225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     isAdmin = user.email === ADMIN_EMAIL;
     
     const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    currentProfileData = p || null;
     
     if (p) {
         userTeam = p.team || ""; 
@@ -1182,6 +1265,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (tabAdmin) tabAdmin.style.display = 'none';
             if (tabMileage) tabMileage.style.display = 'none';
         }
+
+        // Pflichtstunden-Panel nur für Admin sichtbar (später erweiterbar um isOfficial)
+        const catPanel = document.getElementById('admin-hours-category-panel');
+        if (catPanel) catPanel.style.display = isAdmin ? 'block' : 'none';
         
         // Wettkampf-Formular Anzeige
         if (isAdmin || isOfficial || isCaptain) {
@@ -1824,9 +1911,11 @@ if (!logs || logs.length === 0) {
         .filter(h => h.status === 'approved')
         .reduce((sum, h) => sum + parseFloat(h.duration || 0), 0);
 
-    const maxHours = 10;
-    // Der Balken füllt sich visuell nur bis 100%
-    const barPercentage = Math.min((totalApproved / maxHours) * 100, 100);
+    // Erstmal nur für Admin eigenes Soll (0h / 20h / 40h) nutzen, für andere bleibt 10h
+    const maxHours = isAdmin ? getRequiredHoursForProfile(currentProfileData) : 10;
+    const barPercentage = maxHours > 0
+        ? Math.min((totalApproved / maxHours) * 100, 100)
+        : (totalApproved > 0 ? 100 : 0);
 
     const progressBar = document.getElementById('my-progress-bar');
     const progressLabel = document.getElementById('my-progress-label');
@@ -1856,7 +1945,7 @@ if (!logs || logs.length === 0) {
 
     if (progressLabel) {
         if (totalApproved > maxHours) {
-            // Zeigt die echte Zahl an, auch wenn sie > 10 ist
+            // Zeigt die echte Zahl an, auch wenn sie > maxHours ist
             const overtime = (totalApproved - maxHours).toFixed(1);
             progressLabel.innerHTML = `<strong>${totalApproved.toFixed(1)}</strong> / ${maxHours} h <span style="color: #f1c40f;">(+${overtime}!)</span> 🔥`;
         } else {
@@ -1891,6 +1980,13 @@ if (!logs || logs.length === 0) {
         showToast("Fehler beim Speichern: " + error.message, "error");
     } else {
         userTeam = teams;
+        if (currentProfileData) {
+            currentProfileData.full_name = document.getElementById('prof-name').value;
+            currentProfileData.team = teams;
+            currentProfileData.disciplines = disciplines;
+            currentProfileData.shooting_stand = stand;
+            currentProfileData.club_weapon = weapon;
+        }
         showToast("Profil, Standgebühr & Waffen-Auswahl gespeichert!", "success"); 
     }
 }
@@ -1941,6 +2037,7 @@ async function loadAdmin() {
     if (memberList) {
         memberList.innerHTML = profilesData.filter(p => p.is_approved === true).map(p => {
             const sum = hoursData ? hoursData.filter(h => h.user_id === p.id && h.status === 'approved').reduce((s, h) => s + parseFloat(h.duration), 0) : 0;
+            const catSelectHtml = renderAdminCategorySelect(p);
             return `
             <tr>
                 <td onclick="viewUserDetail('${p.id}')" style="color:var(--primary); cursor:pointer; font-weight:bold; vertical-align:middle;">
@@ -1962,6 +2059,7 @@ async function loadAdmin() {
                             <button onclick="adminChangeEmail('${p.id}', '${p.full_name}')" style="background:#0288d1; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">📧 E-Mail</button>
                             <button onclick="adminDeleteUser('${p.id}', '${p.full_name}')" style="background:#d32f2f; color:white; border:none; padding:4px 6px; border-radius:4px; font-size:10px; cursor:pointer;">🗑️ Löschen</button>
                         </div>
+                        ${catSelectHtml}
                     </div>
                 </td>
             </tr>
@@ -2274,7 +2372,6 @@ async function exportToPDF() {
     const doc = new jsPDF();
     
     // Konfiguration
-    const SOLL_STUNDEN = 10;
     const EURO_PRO_STUNDE = 15;
     const STUNDEN_PRO_GETRAENK = 3; // Regel: Alle 3 Mehrstunden ein Getränk
 
@@ -2299,10 +2396,14 @@ async function exportToPDF() {
     profs.forEach(p => {
         const memberHours = hours ? hours.filter(h => h.user_id === p.id) : [];
         const total = memberHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+
+        // Erstmal nur für Admin eigenes Soll (0h / 20h / 40h) nutzen, für andere bleibt 10h
+        const sollStunden = isAdmin ? getRequiredHoursForProfile(p) : 10;
+        const catLabel = isAdmin ? (MEMBER_CATEGORIES[getEffectiveMemberCategory(p)]?.label || 'Aktiv') : null;
         
         let statusText = "";
         let isBonus = false;
-        const diff = total - SOLL_STUNDEN;
+        const diff = total - sollStunden;
 
         if (diff >= 0) {
             // SOLL ERFÜLLT
@@ -2321,11 +2422,17 @@ async function exportToPDF() {
             isBonus = false;
             const fehlstunden = Math.abs(diff);
             const strafBetrag = fehlstunden * EURO_PRO_STUNDE;
-            statusText = `Offen: ${fehlstunden.toFixed(1)}h\nStrafe: ${strafBetrag.toFixed(2)} €`;
+            statusText = isAdmin
+                ? `Offen: ${fehlstunden.toFixed(1)}h (Soll ${sollStunden}h)\nStrafe: ${strafBetrag.toFixed(2)} €`
+                : `Offen: ${fehlstunden.toFixed(1)}h\nStrafe: ${strafBetrag.toFixed(2)} €`;
         }
 
+        const memberCellText = isAdmin
+            ? `${p.full_name || 'Unbekannt'}\n(${catLabel}, Soll: ${sollStunden}h)`
+            : (p.full_name || 'Unbekannt');
+
         tableRows.push([
-            { content: p.full_name || 'Unbekannt', styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
+            { content: memberCellText, styles: { fontStyle: 'bold', fillColor: [245, 245, 245] } },
             { content: p.team || '-', styles: { fillColor: [245, 245, 245] } },
             { content: `${total} h`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [245, 245, 245] } },
             { 
@@ -4265,13 +4372,26 @@ async function exportHoursCSV() {
 
     if (!profs) return showToast("Keine Profile gefunden", "error");
 
-    let csv = "Name;Mannschaft;Ist-Stunden;Soll (h);Status;Differenz (h)\n";
+    let csv = isAdmin
+        ? "Name;Kategorie;Mannschaft;Ist-Stunden;Soll (h);Status;Differenz (h)\n"
+        : "Name;Mannschaft;Ist-Stunden;Soll (h);Status;Differenz (h)\n";
+
     profs.forEach(p => {
         const userHours = hours ? hours.filter(h => h.user_id === p.id) : [];
         const total = userHours.reduce((s, h) => s + parseFloat(h.duration), 0);
-        const diff = total - 10;
+
+        // Erstmal nur für Admin eigenes Soll (0h / 20h / 40h) nutzen, für andere bleibt 10h
+        const soll = isAdmin ? getRequiredHoursForProfile(p) : 10;
+        const catLabel = isAdmin ? (MEMBER_CATEGORIES[getEffectiveMemberCategory(p)]?.label || 'Aktiv') : null;
+
+        const diff = total - soll;
         const status = diff >= 0 ? "Erfüllt" : "Offen";
-        csv += `"${p.full_name || 'Unbekannt'}";"${p.team || '-'}";"${total.toFixed(1).replace('.', ',')}";"10";"${status}";"${diff.toFixed(1).replace('.', ',')}"\n`;
+
+        if (isAdmin) {
+            csv += `"${p.full_name || 'Unbekannt'}";"${catLabel}";"${p.team || '-'}";"${total.toFixed(1).replace('.', ',')}";"${soll}";"${status}";"${diff.toFixed(1).replace('.', ',')}"\n`;
+        } else {
+            csv += `"${p.full_name || 'Unbekannt'}";"${p.team || '-'}";"${total.toFixed(1).replace('.', ',')}";"${soll}";"${status}";"${diff.toFixed(1).replace('.', ',')}"\n`;
+        }
     });
 
     const dateStr = new Date().toLocaleDateString('de-DE');
@@ -4302,7 +4422,7 @@ async function updateAdminStatsDashboard() {
     const target = document.getElementById('admin-stats-container');
     if (!target) return;
 
-    const { data: profs } = await sb.from('profiles').select('id').eq('is_approved', true);
+    const { data: profs } = await sb.from('profiles').select('*').eq('is_approved', true);
     const { data: hours } = await sb.from('work_hours').select('duration, user_id').eq('status', 'approved');
 
     if (!profs || !hours) return;
@@ -4314,8 +4434,9 @@ async function updateAdminStatsDashboard() {
     profs.forEach(p => {
         const uHours = hours.filter(h => h.user_id === p.id);
         const sum = uHours.reduce((s, h) => s + parseFloat(h.duration), 0);
+        const required = isAdmin ? getRequiredHoursForProfile(p) : 10;
         totalHoursSum += sum;
-        if (sum >= 10) fulfilledMembers++;
+        if (sum >= required) fulfilledMembers++;
     });
 
     const quotaPct = totalMembers > 0 ? Math.round((fulfilledMembers / totalMembers) * 100) : 0;
