@@ -1690,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAllEvents();
 }
 
-    function fillTeamSelect() {
+   function fillTeamSelect() {
     const sel = document.getElementById('event-team-select');
     if (!sel) return;
 
@@ -1699,6 +1699,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (isAdmin || isOfficial) {
         optionsHtml += `<option value="Verein" style="font-weight:bold; color:var(--primary);">📅 Allgemeiner Vereinstermin</option>`;
+        optionsHtml += `<option value="Sonntagstraining" style="font-weight:bold; color:#e65100;">🎯 Sonntagstraining</option>`;
         optionsHtml += `<option disabled>──────────────</option>`;
         
         const allowedTeams = ALL_TEAMS.filter(t => t !== "Passiv / Sonstige");
@@ -1714,7 +1715,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     updateEventFormUI();
 }
-
     function updateEventFormUI() {
     const sel = document.getElementById('event-team-select');
     const opponentInput = document.getElementById('event-opponent');
@@ -1725,6 +1725,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sel.value === 'Verein') {
         opponentInput.placeholder = "Titel des Termins (z.B. Mitgliederversammlung)";
         if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'none';
+    } else if (sel.value === 'Sonntagstraining') {
+        opponentInput.placeholder = "Titel / Hinweis (z.B. Sonntagstraining / Standaufsicht)";
+        if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'none';
     } else {
         opponentInput.placeholder = "Gegner / Wettkampf-Name";
         if (homeCheckboxWrap) homeCheckboxWrap.parentNode.style.display = 'flex';
@@ -1733,48 +1736,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- KALENDER & WETTKAMPF LOGIK ---
 
-   async function saveNewEvent() {
-    const id = document.getElementById('edit-event-id').value;
-    const date = document.getElementById('event-date').value;
-    const time = document.getElementById('event-time').value;
-    const team = document.getElementById('event-team-select').value;
-    const opponent = document.getElementById('event-opponent').value;
-    const isHome = document.getElementById('event-is-home').checked;
-
-  if (!date || !opponent || !team) {
-        showToast("Bitte Datum, Mannschaft/Kategorie und Titel angeben!", "error");
-        return;
-    }
-
-    let res;
-    
-    if (team === 'Verein') {
-        const payload = { date, time, title: opponent }; 
+  if (team === 'Verein') {
+        const payload = { date, time, title: opponent };
         if (id) {
             res = await sb.from('club_events').update(payload).eq('id', id).select('id');
         } else {
             res = await sb.from('club_events').insert([payload]).select('id');
         }
     } else {
-        const payload = { date, time, team, opponent, is_home: isHome }; 
+        const payload = {
+            date,
+            time,
+            team,
+            opponent,
+            is_home: team === 'Sonntagstraining' ? false : isHome
+        };
         if (id) {
             res = await sb.from('tournaments').update(payload).eq('id', id).select('id');
         } else {
             res = await sb.from('tournaments').insert([payload]).select('id');
         }
     }
-
-    try {
-        requireAffectedRows(res?.data, res?.error, "Termin konnte nicht gespeichert werden (Berechtigung prüfen).");
-        showToast(id ? "Termin aktualisiert!" : "Erfolgreich gespeichert!", "success");
-        resetEventForm();
-        if (typeof closeModal === "function") closeModal();
-        loadAllEvents();
-    } catch (err) {
-        showToast("Fehler beim Speichern: " + err.message, "error");
-    }
-}
-
   function editEvent(id) {
     const ev = allEvents.find(x => x.id === id);
     if (!ev) return;
