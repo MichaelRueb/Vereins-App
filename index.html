@@ -3818,18 +3818,10 @@ async function loadMealsView() {
         const totalPortions = allOrders.reduce((sum, o) => sum + calculateMealOrderTotal(o, meal).portions, 0);
         const formattedDate = new Date(meal.date).toLocaleDateString('de-DE');
 
-        const participantsList = allOrders.map(o => {
+       const participantsList = allOrders.map(o => {
             const name = o.profiles?.full_name || 'Mitglied';
-            if (hasVariants && Array.isArray(o.variant_details) && o.variant_details.length > 0) {
-                const vText = o.variant_details.filter(v => parseInt(v.qty || 0, 10) > 0).map(v => `${v.qty}x ${v.name}`).join(', ');
-                const guestInfo = (o.is_guest_order && o.guest_name) ? ` (inkl. Gast: ${o.guest_name})` : '';
-                return `• ${name}: ${vText}${guestInfo}`;
-            }
-            let text = `${name} (${o.portions}x)`;
-            if (o.is_guest_order && o.guest_portions > 0) {
-                text += ` + ${o.guest_portions} Gast/Gäste: ${o.guest_name || 'Unbekannt'}`;
-            }
-            return `• ${text}`;
+            const guestInfo = (o.is_guest_order && o.guest_name) ? ` (inkl. Gast: ${o.guest_name})` : '';
+            return `• ${name}${guestInfo}`;
         }).join('<br>');
 
         const isOrdered = !!myOrder;
