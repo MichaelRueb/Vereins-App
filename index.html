@@ -253,6 +253,12 @@
         align-items: center; 
         cursor: pointer; 
     }
+
+    /* Eigenständige Hervorhebung für Schießtage Sonntagstraining */
+    .calendar-day.has-sunday-training {
+        background-color: #fff8e1;
+        box-shadow: inset 0 0 0 2px #f57c00;
+    }
     
     /* Grundstyling für die Punkte */
     .event-dot {
@@ -261,6 +267,14 @@
         border-radius: 50%;
         display: inline-block;
         margin: 1px;
+    }
+
+    .event-dot.team-sonntagstraining {
+        width: 11px;
+        height: 11px;
+        background-color: #f57c00 !important;
+        border: 1.5px solid #bf360c;
+        box-shadow: 0 0 0 1px #ffffff;
     }
 
     /* Farben für die Mannschaften & Verein */
@@ -1816,7 +1830,17 @@ function resetEventForm() {
     async function loadAllEvents() {
         const { data: t } = await sb.from('tournaments').select('*');
         const { data: c } = await sb.from('club_events').select('*');
-        allEvents = [...(t || []), ...(c || []).map(e => ({ ...e, team: 'Verein', opponent: e.title }))];
+        allEvents = [
+            ...(t || []),
+            ...(c || []).map(e => {
+                const isSunday = /sonntagstraining|schießtag\s*sonntag/i.test(e.title || '');
+                return {
+                    ...e,
+                    team: isSunday ? 'Sonntagstraining' : 'Verein',
+                    opponent: e.title
+                };
+            })
+        ];
         renderEventFilter(); 
         renderCalendar(); 
         renderTournamentList();
@@ -1831,19 +1855,25 @@ function resetEventForm() {
         if (e.date < today) return false;
 
         if (filter === 'all_teams') return true;
+        if (filter === 'Sonntagstraining') return e.team === 'Sonntagstraining';
         if (filter === 'Verein') return e.team === 'Verein';
-        if (filter === 'only_sports') return e.team !== 'Verein';
-        if (filter === 'my_relevant') return e.team === 'Verein' || myTeams.includes(e.team);
+        if (filter === 'only_sports') return e.team !== 'Verein' && e.team !== 'Sonntagstraining';
+        if (filter === 'my_relevant') return e.team === 'Verein' || e.team === 'Sonntagstraining' || myTeams.includes(e.team);
         return e.team === filter;
     }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
     let html = '';
-    const sports = filtered.filter(e => e.team !== 'Verein');
+    const sports = filtered.filter(e => e.team !== 'Verein' && e.team !== 'Sonntagstraining');
+    const sundayTrainings = filtered.filter(e => e.team === 'Sonntagstraining');
     const club = filtered.filter(e => e.team === 'Verein');
 
     if (sports.length > 0) {
         html += `<tr style="background:#f0f0f0;"><td colspan="6"><b>🎯 Wettkampftermine</b></td></tr>`;
         sports.forEach(e => html += renderEventRow(e));
+    }
+    if (sundayTrainings.length > 0) {
+        html += `<tr style="background:#fff3e0;"><td colspan="6" style="color:#e65100;"><b>🎯 Schießtage Sonntagstraining</b></td></tr>`;
+        sundayTrainings.forEach(e => html += renderEventRow(e));
     }
     if (club.length > 0) {
         html += `<tr style="background:#f0f0f0;"><td colspan="6"><b>📅 Vereinstermine</b></td></tr>`;
@@ -1861,13 +1891,13 @@ function resetEventForm() {
     const isMyTeam = myTeams.includes(e.team);
     
     let showActions = false;
-    if (e.team === 'Verein') {
+    if (e.team === 'Verein' || e.team === 'Sonntagstraining') {
         showActions = isAdmin || isOfficial; 
     } else {
         showActions = isAdmin || isOfficial || (isCaptain && isMyTeam);
     }
     
-    let ortLabel = e.team !== 'Verein' ? (e.is_home ? "🏠 Heim" : "🚗 Auswärts") : "-";
+    let ortLabel = (e.team !== 'Verein' && e.team !== 'Sonntagstraining') ? (e.is_home ? "🏠 Heim" : "🚗 Auswärts") : "-";
 
     let actionButtons = '-';
     if (showActions) {
@@ -1879,10 +1909,14 @@ function resetEventForm() {
         `;
     }
 
-    return `<tr>
+    const isSunday = e.team === 'Sonntagstraining';
+    const rowStyle = isSunday ? ' style="background:#fffdf5;"' : '';
+    const teamBadge = isSunday ? `<span style="color:#e65100; font-weight:bold;">🎯 ${e.team}</span>` : e.team;
+
+    return `<tr${rowStyle}>
         <td>${new Date(e.date).toLocaleDateString('de-DE')}</td>
         <td>${e.time?.substring(0, 5) || '--:--'}</td>
-        <td>${e.team}</td>
+        <td>${teamBadge}</td>
         <td>${e.opponent || e.title || '-'}</td>
         <td>${ortLabel}</td>
         <td>${actionButtons}</td>
@@ -2709,10 +2743,12 @@ function renderCalendar() {
         const dayEvents = allEvents.filter(e => e.date === ds);
         
         const dotsHtml = dayEvents.map(e => {
-            const isHome = e.is_home === true && e.team !== 'Verein';
+            const isHome = e.is_home === true && e.team !== 'Verein' && e.team !== 'Sonntagstraining';
+            const isSunday = e.team === 'Sonntagstraining';
             const homeStyle = isHome ? 'border: 1.5px solid #000; border-radius: 2px; transform: scale(1.3);' : '';
+            const sundayStyle = isSunday ? 'background-color: #e65100; border: 1px solid #bf360c;' : '';
             
-            return `<div class="event-dot ${getTeamClass(e.team)}" style="${homeStyle}" title="${e.team}${isHome ? ' (Heim)' : ''}"></div>`;
+            return `<div class="event-dot ${getTeamClass(e.team)}" style="${homeStyle}${sundayStyle}" title="${e.team}${isHome ? ' (Heim)' : ''}"></div>`;
         }).join('');
 
         const isToday = new Date().toISOString().split('T')[0] === ds;
@@ -2738,6 +2774,8 @@ function showDay(ds) {
         
         if (e.team === 'Verein') {
             return `• <strong>${e.opponent || e.title}</strong>${zeit}`;
+        } else if (e.team === 'Sonntagstraining') {
+            return `• <span style="color:#e65100;">🎯 <strong>Sonntagstraining</strong></span>: <strong>${e.opponent || e.title}</strong>${zeit}`;
         } else {
             const gegner = e.opponent ? ` gegen <strong>${e.opponent}</strong>` : "";
             const ort = e.is_home ? " (Heimwettkampf 🏠)" : " (Auswärts 🚗)";
@@ -2758,6 +2796,7 @@ function renderEventFilter() {
     let options = `<option value="my_relevant">⭐ Meine Teams & Verein</option>`;
     options += `<option value="all_teams">🌐 Alle Termine (Gesamtansicht)</option>`;
     options += `<option value="Verein">📅 Nur Vereinstermine</option>`;
+    options += `<option value="Sonntagstraining">🎯 Sonntagstraining</option>`;
     options += `<option value="only_sports">🎯 Alle Mannschaften</option>`;
     options += `<option disabled>────────────────────</option>`;
     options += ALL_TEAMS.map(t => `<option value="${t}">Nur ${t}</option>`).join('');
@@ -2768,6 +2807,7 @@ function renderEventFilter() {
 function getTeamClass(t) {
     if (!t) return '';
     if (t === 'Verein') return 'team-verein';
+    if (t === 'Sonntagstraining') return 'team-sonntagstraining';
     
     const teamMap = {
         'Luftgewehr 1': 'team-lg-1',
