@@ -1555,7 +1555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-   async function handleAuth() {
+async function handleAuth() {
     const email = document.getElementById('email').value;
     const pass = document.getElementById('password').value;
 
@@ -1563,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const name = document.getElementById('reg-name').value;
         const confirm = document.getElementById('password-confirm').value;
 
-      if (!name || !email || !pass) {
+        if (!name || !email || !pass) {
             showToast("Bitte alle Felder ausfüllen!", "error");
             return;
         }
@@ -1623,7 +1623,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 }
-   async function setupApp(user) {
+
+async function setupApp(user) {
     const authUI = document.getElementById('auth-ui');
     if (authUI) authUI.style.display = 'none';
 
@@ -1690,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAllEvents();
 }
 
-   function fillTeamSelect() {
+function fillTeamSelect() {
     const sel = document.getElementById('event-team-select');
     if (!sel) return;
 
@@ -1715,7 +1716,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     updateEventFormUI();
 }
-    function updateEventFormUI() {
+
+function updateEventFormUI() {
     const sel = document.getElementById('event-team-select');
     const opponentInput = document.getElementById('event-opponent');
     const homeCheckboxWrap = document.getElementById('event-is-home');
@@ -1734,31 +1736,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 }
 
-    // --- KALENDER & WETTKAMPF LOGIK ---
+// --- KALENDER & WETTKAMPF LOGIK ---
 
-  if (team === 'Verein') {
+async function saveNewEvent() {
+    const id = document.getElementById('edit-event-id').value;
+    const date = document.getElementById('event-date').value;
+    const time = document.getElementById('event-time').value;
+    const team = document.getElementById('event-team-select').value;
+    const opponent = document.getElementById('event-opponent').value;
+    const isHome = document.getElementById('event-is-home').checked;
+
+    if (!date || !opponent || !team) {
+        showToast("Bitte Datum, Mannschaft/Kategorie und Titel angeben!", "error");
+        return;
+    }
+
+    let res;
+
+    if (team === 'Verein') {
         const payload = { date, time, title: opponent };
         if (id) {
             res = await sb.from('club_events').update(payload).eq('id', id).select('id');
         } else {
             res = await sb.from('club_events').insert([payload]).select('id');
         }
+    } else if (team === 'Sonntagstraining') {
+        const payload = { date, time, title: opponent };
+        if (id) {
+            res = await sb.from('sunday_trainings').update(payload).eq('id', id).select('id');
+        } else {
+            res = await sb.from('sunday_trainings').insert([payload]).select('id');
+        }
     } else {
-        const payload = {
-            date,
-            time,
-            team,
-            opponent,
-            is_home: team === 'Sonntagstraining' ? false : isHome
-        };
+        const payload = { date, time, team, opponent, is_home: isHome };
         if (id) {
             res = await sb.from('tournaments').update(payload).eq('id', id).select('id');
         } else {
             res = await sb.from('tournaments').insert([payload]).select('id');
         }
     }
-  function editEvent(id) {
-    const ev = allEvents.find(x => x.id === id);
+
+    try {
+        requireAffectedRows(res?.data, res?.error, "Termin konnte nicht gespeichert werden (Berechtigung prüfen).");
+        showToast(id ? "Termin aktualisiert!" : "Erfolgreich gespeichert!", "success");
+        resetEventForm();
+        if (typeof closeModal === "function") closeModal();
+        loadAllEvents();
+    } catch (err) {
+        showToast("Fehler beim Speichern: " + err.message, "error");
+    }
+}
+
+function editEvent(id) {
+    const ev = allEvents.find(x => String(x.id) === String(id));
     if (!ev) return;
 
     document.getElementById('edit-event-id').value = id;
@@ -1809,26 +1839,41 @@ function resetEventForm() {
     if (delBtn) delBtn.style.display = "none";
 }
 
-    async function loadAllEvents() {
-        const { data: t } = await sb.from('tournaments').select('*');
-        const { data: c } = await sb.from('club_events').select('*');
-        allEvents = [
-            ...(t || []),
-            ...(c || []).map(e => {
-                const isSunday = /sonntagstraining|schießtag\s*sonntag/i.test(e.title || '');
-                return {
-                    ...e,
-                    team: isSunday ? 'Sonntagstraining' : 'Verein',
-                    opponent: e.title
-                };
-            })
-        ];
-        renderEventFilter(); 
-        renderCalendar(); 
-        renderTournamentList();
-    }
+async function loadAllEvents() {
+    const [
+        { data: t, error: tErr },
+        { data: c, error: cErr },
+        { data: s, error: sErr }
+    ] = await Promise.all([
+        sb.from('tournaments').select('*'),
+        sb.from('club_events').select('*'),
+        sb.from('sunday_trainings').select('*')
+    ]);
 
-   function renderTournamentList() {
+    if (tErr) console.error("Fehler beim Laden von tournaments:", tErr);
+    if (cErr) console.error("Fehler beim Laden von club_events:", cErr);
+    if (sErr) console.error("Fehler beim Laden von sunday_trainings:", sErr);
+
+    allEvents = [
+        ...(t || []),
+        ...(c || []).map(e => ({
+            ...e,
+            team: 'Verein',
+            opponent: e.title
+        })),
+        ...(s || []).map(e => ({
+            ...e,
+            team: 'Sonntagstraining',
+            opponent: e.title
+        }))
+    ];
+
+    renderEventFilter(); 
+    renderCalendar(); 
+    renderTournamentList();
+}
+
+function renderTournamentList() {
     const filter = document.getElementById('event-view-filter').value;
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
     const today = new Date().toISOString().split('T')[0];
@@ -1868,7 +1913,7 @@ function resetEventForm() {
     }
 }
 
- function renderEventRow(e) {
+function renderEventRow(e) {
     const myTeams = userTeam ? userTeam.split(',').map(t => t.trim()) : [];
     const isMyTeam = myTeams.includes(e.team);
     
@@ -1923,15 +1968,17 @@ async function deleteEvent(id) {
     if (!confirmed) return;
 
     try {
-        const [tRes, cRes] = await Promise.all([
+        const [tRes, cRes, sRes] = await Promise.all([
             sb.from('tournaments').delete().eq('id', id).select('id'),
-            sb.from('club_events').delete().eq('id', id).select('id')
+            sb.from('club_events').delete().eq('id', id).select('id'),
+            sb.from('sunday_trainings').delete().eq('id', id).select('id')
         ]);
 
         if (tRes.error) throw new Error(tRes.error.message);
         if (cRes.error) throw new Error(cRes.error.message);
+        if (sRes.error) throw new Error(sRes.error.message);
 
-        const deletedCount = (tRes.data?.length || 0) + (cRes.data?.length || 0);
+        const deletedCount = (tRes.data?.length || 0) + (cRes.data?.length || 0) + (sRes.data?.length || 0);
         if (deletedCount === 0) {
             throw new Error("Termin konnte nicht gelöscht werden (nicht gefunden oder fehlende Berechtigung).");
         }
@@ -1945,9 +1992,9 @@ async function deleteEvent(id) {
     }
 }
 
-    // --- TABS & NAVIGATION ---
+// --- TABS & NAVIGATION ---
 
-   function switchTab(t) { 
+function switchTab(t) { 
     ['home', 'hours', 'events', 'profile', 'admin', 'mileage', 'gau', 'meals'].forEach(v => { 
         const view = document.getElementById('view-' + v);
         const tab = document.getElementById('tab-' + v);
@@ -2090,10 +2137,10 @@ async function saveMileage() {
     const kmSingle = parseFloat(fields.km.value.replace(',', '.'));
     const isRound = fields.roundtrip.checked;
 
-   if (!date || !purpose || isNaN(kmSingle)) {
-    showToast("Bitte fülle mindestens Datum, Zweck und Kilometer aus.", "error");
-    return;
-}
+    if (!date || !purpose || isNaN(kmSingle)) {
+        showToast("Bitte fülle mindestens Datum, Zweck und Kilometer aus.", "error");
+        return;
+    }
     const payload = {
         date: date,
         purpose: purpose,
@@ -2166,7 +2213,7 @@ async function editMileage(id) {
         document.getElementById('ml-form-title').innerText = "Fahrt bearbeiten";
         document.getElementById('ml-cancel-btn').style.display = "inline-block";
         const btn = document.querySelector('button[onclick="saveMileage()"]');
-       if (btn) {
+        if (btn) {
             btn.innerText = "Änderungen speichern";
             btn.style.backgroundColor = "#f39c12";
         }
@@ -2258,9 +2305,10 @@ async function exportMileagePDF() {
     });
     doc.save(`Fahrtenbuch_${selectedYear}_${profile?.full_name?.replace(/\s+/g, '_') || 'Export'}.pdf`);
 }
-    // --- STUNDEN LOGIK ---
 
-   async function sendHours() { 
+// --- STUNDEN LOGIK ---
+
+async function sendHours() { 
     const { data, error } = await sb.from('work_hours').insert([{ 
         user_id: currentUser.id, 
         date: document.getElementById('date').value, 
@@ -2278,7 +2326,7 @@ async function exportMileagePDF() {
     }
 }
 
-   async function loadHistory() {
+async function loadHistory() {
     const { data: hours, error } = await sb.from('work_hours')
         .select('*')
         .eq('user_id', currentUser.id)
@@ -2363,14 +2411,14 @@ async function exportMileagePDF() {
     }
 }
         
- // --- PROFIL & ADMIN ---
+// --- PROFIL & ADMIN ---
 
-    function renderTeamCheckboxes(sel) { 
-        const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
-        document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>`).join(''); 
-    }
+function renderTeamCheckboxes(sel) { 
+    const arr = sel ? sel.split(',').map(t => t.trim()) : []; 
+    document.getElementById('team-checkboxes').innerHTML = ALL_TEAMS.map(t => `<label class="checkbox-wrapper"><input type="checkbox" name="prof-teams" value="${t}" ${arr.includes(t) ? 'checked' : ''}><span>${t}</span></label>`).join(''); 
+}
 
-   async function updateProfile() { 
+async function updateProfile() { 
     const teams = Array.from(document.querySelectorAll('input[name="prof-teams"]:checked')).map(c=>c.value).join(', '); 
     const disciplines = Array.from(document.querySelectorAll('input[name="prof-disciplines"]:checked')).map(c=>c.value).join(', '); 
     const stand = document.getElementById('prof-stand').value;
@@ -2385,7 +2433,7 @@ async function exportMileagePDF() {
         club_weapon: weapon
     }).select('id'); 
 
-  try {
+    try {
         requireAffectedRows(data, error, "Profil konnte nicht gespeichert werden (Berechtigung prüfen).");
         userTeam = teams;
         if (currentProfileData) {
@@ -2450,7 +2498,7 @@ async function loadAdmin() {
     const memberList = document.getElementById('admin-member-table-list');
     if (memberList) {
         memberList.innerHTML = profilesData.filter(p => p.is_approved === true).map(p => {
-           const sum = getMemberAdminHours(activeHoursData, p.id);
+            const sum = getMemberAdminHours(activeHoursData, p.id);
             const catSelectHtml = renderAdminCategorySelect(p);
             const safeName = (p.full_name || 'Kein Name').replace(/'/g, "\\'");
             return `
@@ -2557,14 +2605,14 @@ async function loadAdmin() {
         }).join('') || "<tr><td colspan='4' style='text-align:center;'>Bisher keine Stand- oder Waffenangaben gemacht</td></tr>";
     }
     if (typeof loadAdminMeals === 'function') {
-    loadAdminMeals();
-}
+        loadAdminMeals();
+    }
     if (typeof updateAdminStatsDashboard === 'function') {
-    updateAdminStatsDashboard();
-}
+        updateAdminStatsDashboard();
+    }
 }
 
-   async function viewUserDetail(uid) {
+  async function viewUserDetail(uid) {
     const row = document.getElementById(`details-${uid}`);
     const content = document.getElementById(`content-${uid}`);
     
@@ -2607,7 +2655,7 @@ async function loadAdmin() {
     }
 }
 
-  async function adminChangeEmail(userId, currentName) {
+async function adminChangeEmail(userId, currentName) {
     if (!isAdmin) {
         showToast("Nur Administratoren dürfen das.", "error");
         return;
@@ -3984,43 +4032,61 @@ async function submitMealOrderDirect(event, mealId) {
 async function submitMealOrder(e, mealId) {
     if (e) e.preventDefault();
 
-    const portionsEl = document.getElementById(`portions-${mealId}`);
-    const remarksEl = document.getElementById(`remarks-${mealId}`);
+    const variantInputs = document.querySelectorAll(`.user-variant-qty-${mealId}`);
+    const hasVariants = variantInputs.length > 0;
 
-    const portions = parseInt(portionsEl?.value || 1, 10);
+    let portions = 0;
+    let variantDetails = null;
+
+    if (hasVariants) {
+        variantDetails = [];
+        variantInputs.forEach(inp => {
+            const qty = parseInt(inp.value || '0', 10);
+            const name = inp.getAttribute('data-variant-name');
+            const price = parseFloat(inp.getAttribute('data-variant-price') || '0');
+            if (qty > 0) {
+                portions += qty;
+                variantDetails.push({ name, qty, price });
+            }
+        });
+
+        if (portions <= 0) {
+            showToast("Bitte wähle mindestens 1 Portion bei einer Variante aus!", "error");
+            return;
+        }
+    } else {
+        const portionsEl = document.getElementById(`portions-${mealId}`);
+        portions = parseInt(portionsEl?.value || 1, 10);
+    }
+
+    const remarksEl = document.getElementById(`remarks-${mealId}`);
     const remarks = remarksEl ? remarksEl.value.trim() : '';
+    const isGuestOrder = document.getElementById(`toggle-guest-${mealId}`)?.checked || false;
+    const guestPortions = (!hasVariants && isGuestOrder)
+        ? parseInt(document.getElementById(`guest-portions-${mealId}`)?.value || 0, 10)
+        : 0;
+    const guestName = isGuestOrder ? (document.getElementById(`guest-name-${mealId}`)?.value.trim() || '') : null;
+    const guestRemarks = isGuestOrder ? (document.getElementById(`guest-remarks-${mealId}`)?.value.trim() || '') : null;
 
     const payload = {
         meal_id: mealId,
         user_id: currentUser.id,
         portions: portions,
-        remarks: remarks
+        remarks: remarks,
+        is_guest_order: isGuestOrder,
+        guest_portions: guestPortions,
+        guest_name: guestName,
+        guest_remarks: guestRemarks,
+        variant_details: variantDetails
     };
 
-    const { data: existingOrder } = await sb
+    const { data, error } = await sb
         .from('meal_orders')
-        .select('id')
-        .eq('meal_id', mealId)
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
-
-    let res;
-
-    if (existingOrder) {
-        res = await sb
-            .from('meal_orders')
-            .update(payload)
-            .eq('id', existingOrder.id)
-            .select('id');
-    } else {
-        res = await sb
-            .from('meal_orders')
-            .insert([payload])
-            .select('id');
-    }
+        .upsert(payload, { onConflict: 'meal_id,user_id' })
+        .select('id');
 
     try {
-        requireAffectedRows(res?.data, res?.error, "Bestellung konnte nicht gespeichert werden (Berechtigung prüfen).");
+        requireAffectedRows(data, error, "Bestellung konnte nicht gespeichert werden (Berechtigung prüfen).");
         showToast("Bestellung erfolgreich gespeichert!", "success");
         await loadMealsView();
         if (typeof loadAdminMeals === 'function') loadAdminMeals();
@@ -4972,30 +5038,8 @@ async function deleteMileageEntry(id) {
 }
 
 // ==========================================
-// 5. TRAININGS-ESSEN LOGIK
+// 5. ADMIN-SUCHE & EXPORTE
 // ==========================================
-async function submitMealOrder(event, mealId) {
-    if (event) event.preventDefault();
-
-    const portions = parseInt(document.getElementById(`portions-${mealId}`)?.value || 1, 10);
-    const remarks = document.getElementById(`remarks-${mealId}`)?.value.trim() || '';
-
-    const { data, error } = await sb.from('meal_orders').upsert({
-        meal_id: mealId,
-        user_id: currentUser.id,
-        portions: portions,
-        remarks: remarks
-    }, { onConflict: 'meal_id,user_id' }).select('id');
-
-    try {
-        requireAffectedRows(data, error, "Bestellung konnte nicht gespeichert werden (Berechtigung prüfen).");
-        showToast("Bestellung erfolgreich gespeichert!", "success");
-        if (typeof loadMealsView === 'function') loadMealsView();
-    } catch (err) {
-        showToast("Fehler beim Speichern: " + err.message, "error");
-    }
-}
-
 function filterAdminMembers() {
     const input = document.getElementById('admin-member-search');
     if (!input) return;
